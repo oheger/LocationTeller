@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Location Teller</string>
     <string name="action_settings">Settings</string>
+    <string name="open_drawer">Open</string>
+    <string name="close_drawer">Close</string>
+
+    <string name="trackView">Track</string>
+    <string name="content_track_settings">Hello track setting fragment</string>
+    <string name="content_track_fragment">Hello track fragment</string>
+    <string name="trackSettingsView">Track settings</string>
 </resources>
