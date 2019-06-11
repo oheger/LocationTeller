@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <EditTextPreference
+        android:key="trackServerUri"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="Track server URI"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        android:key="trackRelativePath"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="Relative path"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        android:key="userName"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="User name"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        android:key="password"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="Password"
+        android:inputType="textPassword"
+        app:useSimpleSummaryProvider="true" />
+</PreferenceScreen>
