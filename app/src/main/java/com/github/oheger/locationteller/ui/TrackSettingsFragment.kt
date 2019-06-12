@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.oheger.locationteller
+package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import android.text.InputType
 import android.widget.EditText
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
+import com.github.oheger.locationteller.R
 
 /**
  * A fragment for displaying settings related to the tracking functionality.

@@ -1,4 +1,4 @@
-package com.github.oheger.locationteller
+package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.github.oheger.locationteller.R
 
 /**
  * A simple [Fragment] subclass.

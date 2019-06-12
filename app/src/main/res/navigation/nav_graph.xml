@@ -7,15 +7,15 @@
 
     <fragment
         android:id="@+id/trackView"
-        android:name="com.github.oheger.locationteller.TrackFragment"
+        android:name="com.github.oheger.locationteller.ui.TrackFragment"
         android:label="@string/trackView"
         tools:layout="@layout/fragment_track" />
     <fragment
         android:id="@+id/trackSettingsFragment"
-        android:name="com.github.oheger.locationteller.TrackSettingsFragment"
+        android:name="com.github.oheger.locationteller.ui.TrackSettingsFragment"
         android:label="@string/trackSettingsView" />
     <fragment
         android:id="@+id/serverSettingsFragment"
-        android:name="com.github.oheger.locationteller.ServerSettingsFragment"
+        android:name="com.github.oheger.locationteller.ui.ServerSettingsFragment"
         android:label="@string/serverSettingsView"/>
 </navigation>
