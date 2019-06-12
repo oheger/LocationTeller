@@ -1,0 +1,21 @@
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+
+def versionKtor = '1.2.1'
+def versionKotlinTest = '3.3.0'
+def versionWiremock = '2.23.2'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "io.ktor:ktor-client-cio:$versionKtor"
+
+    testImplementation "io.kotlintest:kotlintest-runner-junit5:$versionKotlinTest"
+    testImplementation "com.github.tomakehurst:wiremock:$versionWiremock"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+sourceCompatibility = "7"
+targetCompatibility = "7"
