@@ -7,7 +7,11 @@
           android:orderInCategory="100"
           app:showAsAction="never"/>
     <item android:id="@+id/trackSettingsFragment"
-          android:title="@string/action_settings"
+          android:title="@string/track_settings"
+          android:orderInCategory="100"
+          app:showAsAction="never"/>
+    <item android:id="@+id/serverSettingsFragment"
+          android:title="@string/server_settings"
           android:orderInCategory="100"
           app:showAsAction="never"/>
 </menu>
