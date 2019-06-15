@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.server
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.receive
+import io.ktor.client.request.delete
 import io.ktor.client.request.header
 import io.ktor.client.request.put
 import io.ktor.client.request.request
@@ -91,6 +92,18 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
             log.error("Could not load folder content!", e)
             return DummyFolder
         }
+    }
+
+    /**
+     * Removes elements from the server.
+     * @param path the path to the element to be removed
+     * @return a flag whether this operation was successful
+     */
+    suspend fun delete(path: String): Boolean {
+        val response = httpClient.delete<HttpResponse>(resolvePath(path)) {
+            header(HeaderAuthorization, authorizationHeader)
+        }
+        return response.status.isSuccess()
     }
 
     /**

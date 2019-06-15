@@ -138,5 +138,27 @@ class DavClientSpec : StringSpec() {
             folder.path shouldBe "/"
             folder.elements shouldHaveSize 0
         }
+
+        "DavClient should delete an element from the server" {
+            val path = "data/test.txt"
+            stubFor(
+                authorized(delete(serverPath(path)))
+                    .willReturn(aResponse().withStatus(StatusOk))
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.delete(path) shouldBe true
+            verify(deleteRequestedFor(serverPath(path)))
+        }
+
+        "DavClient should evaluate the status code when deleting elements" {
+            stubFor(
+                authorized(delete(anyUrl()))
+                    .willReturn(aResponse().withStatus(403))
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.delete("/some/path") shouldBe false
+        }
     }
 }
