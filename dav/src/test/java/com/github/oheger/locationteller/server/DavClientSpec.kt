@@ -21,6 +21,7 @@ import com.github.oheger.locationteller.server.WireMockSupport.serverPath
 import com.github.tomakehurst.wiremock.client.BasicCredentials
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import io.kotlintest.extensions.TestListener
+import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 
@@ -29,6 +30,31 @@ import io.kotlintest.specs.StringSpec
  */
 class DavClientSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(WireMockSupport)
+
+    /**
+     * Adds a stubbing declaration for a request to a folder that is served with
+     * the file specified.
+     *
+     * @param path          the path of the folder
+     * @param responseFile the file to serve the request
+     * @param status       the status code to return from the request
+     */
+    private fun stubFolderRequest(path: String, responseFile: String, status: Int = StatusOk) {
+        val normalizedPath = if (path.endsWith(UriSeparator)) path
+        else path + UriSeparator
+        stubFor(
+            authorized(
+                request("PROPFIND", serverPath(normalizedPath))
+                    .withHeader("Accept", equalTo("text/xml"))
+                    .withHeader("Depth", equalTo("1"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(status)
+                            .withBodyFile(responseFile)
+                    )
+            )
+        )
+    }
 
     init {
         "DavClient should upload data" {
@@ -63,6 +89,54 @@ class DavClientSpec : StringSpec() {
             val client = DavClient.create(WireMockSupport.config())
 
             client.upload(path, "some content") shouldBe false
+        }
+
+        "DavClient should return a DavFolder object when a folder is queried" {
+            val path = "/test/folder"
+            stubFolderRequest(path, "folder.xml")
+            val expectedElements = listOf(
+                DavElement("audio.mp3", false),
+                DavElement("childFolder", true), DavElement("music.mp3", false),
+                DavElement("sound.mp3", false), DavElement("subFolder", true)
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            val folder = client.loadFolder(path)
+            folder.path shouldBe path
+            folder.elements shouldBe expectedElements
+        }
+
+        "DavClient should return a dummy folder object for a failed request" {
+            val path = "/"
+            stubFolderRequest(path, "folder.xml", 400)
+            val client = DavClient.create(WireMockSupport.config())
+
+            val folder = client.loadFolder(path)
+            folder.path shouldBe ""
+            folder.elements shouldHaveSize 0
+        }
+
+        "DavClient should handle folder results with missing elements" {
+            val path = "/test/"
+            stubFolderRequest(path, "folder_missing_elements.xml")
+            val expectedElements = listOf(
+                DavElement("audio.mp3", false),
+                DavElement("sound.mp3", false)
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            val folder = client.loadFolder(path)
+            folder.path shouldBe path
+            folder.elements shouldBe expectedElements
+        }
+
+        "DavClient should handle empty folder results" {
+            stubFolderRequest("/", "folder_empty.xml")
+            val client = DavClient.create(WireMockSupport.config())
+
+            val folder = client.loadFolder("/")
+            folder.path shouldBe "/"
+            folder.elements shouldHaveSize 0
         }
     }
 }
