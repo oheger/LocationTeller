@@ -15,12 +15,14 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.track.TrackService
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -36,5 +38,7 @@ class MainActivity : AppCompatActivity() {
         appBarConfig = AppBarConfiguration(navCtrl.graph, drawerLayout)
         toolbar.setupWithNavController(navCtrl, appBarConfig)
         nav_view.setupWithNavController(navCtrl)
+
+        Intent(this, TrackService::class.java).also { startService(it) }
     }
 }
