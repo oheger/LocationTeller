@@ -160,5 +160,56 @@ class DavClientSpec : StringSpec() {
 
             client.delete("/some/path") shouldBe false
         }
+
+        "DavClient should create a new folder on the server" {
+            val path = "/my/new/folder"
+            stubFor(
+                authorized(request("MKCOL", serverPath("$path/")))
+                    .willReturn(aResponse().withStatus(StatusOk))
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.createFolder(path) shouldBe true
+        }
+
+        "DavClient should evaluate the status code when creating a new folder" {
+            val path = "/broken/folder/"
+            stubFor(
+                authorized(request("MKCOL", serverPath("$path/")))
+                    .willReturn(aResponse().withStatus(500))
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.createFolder(path) shouldBe false
+        }
+
+        "DavClient should read a file from the server" {
+            val path = "/my/data/file.txt"
+            val content = "This is the content of my data file!"
+            stubFor(
+                authorized(get(serverPath(path)))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(StatusOk).withBody(content)
+                    )
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.readFile(path) shouldBe content
+        }
+
+        "DavClient should handle errors when reading a file" {
+            val path = "/my/error/file.bad"
+            stubFor(
+                authorized(get(serverPath(path)))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(403)
+                    )
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.readFile(path) shouldBe ""
+        }
     }
 }

@@ -17,11 +17,9 @@ package com.github.oheger.locationteller.server
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.receive
-import io.ktor.client.request.delete
-import io.ktor.client.request.header
-import io.ktor.client.request.put
-import io.ktor.client.request.request
+import io.ktor.client.request.*
 import io.ktor.client.response.HttpResponse
+import io.ktor.client.response.readText
 import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import org.apache.commons.codec.binary.Base64
@@ -72,11 +70,9 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      * @return an object describing the folder requested
      */
     suspend fun loadFolder(path: String): DavFolder {
-        val resolvedPath = resolvePath(path)
-        val normalizedPath = if (resolvedPath.endsWith(UriSeparator)) resolvedPath
-        else resolvedPath + UriSeparator
+        val resolvedPath = appendSeparator(resolvePath(path))
         try {
-            val response = httpClient.request<HttpResponse>(normalizedPath) {
+            val response = httpClient.request<HttpResponse>(resolvedPath) {
                 method = HttpMethod(MethodPropFind)
                 header(HeaderAccept, MediaXml)
                 header(HeaderDepth, DepthValue)
@@ -89,7 +85,7 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
             parser.parse(response.receive<InputStream>(), handler)
             return DavFolder(path, handler.folderContent())
         } catch (e: Exception) {
-            log.error("Could not load folder content!", e)
+            log.error("Could not load content of folder $resolvedPath.", e)
             return DummyFolder
         }
     }
@@ -104,6 +100,40 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
             header(HeaderAuthorization, authorizationHeader)
         }
         return response.status.isSuccess()
+    }
+
+    /**
+     * Creates a folder under the given path.
+     * @param path the path to create the new folder
+     * @return a flag whether this operation was successful
+     */
+    suspend fun createFolder(path: String): Boolean {
+        val resolvedPath = appendSeparator(resolvePath(path))
+        val response = httpClient.request<HttpResponse>(resolvedPath) {
+            method = HttpMethod("MKCOL")
+            header(HeaderAuthorization, authorizationHeader)
+        }
+        return response.status.isSuccess()
+    }
+
+    /**
+     * Reads the content of a file from the server. It is expected that the
+     * file is small, and the whole content can be read at once. If the request
+     * fails for some reason, an empty string is returned.
+     * @param path the path to the file to be read
+     * @return the content of the file or an empty string
+     */
+    suspend fun readFile(path: String): String {
+        val resolvedPath = resolvePath(path)
+        return try {
+            val response = httpClient.get<HttpResponse>(resolvedPath) {
+                header(HeaderAuthorization, authorizationHeader)
+            }
+            response.readText()
+        } catch (e: Exception) {
+            log.error("Could not read file $resolvedPath.", e)
+            ""
+        }
     }
 
     /**
@@ -156,5 +186,14 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
             val authBytes = "${config.user}:${config.password}".toByteArray()
             return "Basic " + Base64.encodeBase64String(authBytes)
         }
+
+        /**
+         * Adds a separator to a path if it does not contain one yet.
+         * @param path the path
+         * @return the modified path
+         */
+        private fun appendSeparator(path: String): String =
+            if (path.endsWith(UriSeparator)) path
+            else path + UriSeparator
     }
 }
