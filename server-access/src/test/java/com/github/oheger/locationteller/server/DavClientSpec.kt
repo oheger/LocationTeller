@@ -175,12 +175,23 @@ class DavClientSpec : StringSpec() {
         "DavClient should evaluate the status code when creating a new folder" {
             val path = "/broken/folder/"
             stubFor(
-                authorized(request("MKCOL", serverPath("$path/")))
+                authorized(request("MKCOL", serverPath(path)))
                     .willReturn(aResponse().withStatus(500))
             )
             val client = DavClient.create(WireMockSupport.config())
 
             client.createFolder(path) shouldBe false
+        }
+
+        "DavClient should treat a 405 response when creating a folder as successful" {
+            val path = "/existing/folder/"
+            stubFor(
+                authorized(request("MKCOL", serverPath(path)))
+                    .willReturn(aResponse().withStatus(405))
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.createFolder(path) shouldBe true
         }
 
         "DavClient should read a file from the server" {

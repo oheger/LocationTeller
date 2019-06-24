@@ -113,7 +113,11 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
             method = HttpMethod("MKCOL")
             header(HeaderAuthorization, authorizationHeader)
         }
-        return response.status.isSuccess()
+
+        // Status 'Method not allowed' is returned if the folder already exists.
+        // This is treated as success here because for the further proceeding it
+        // only matters that the folder exists.
+        return response.status.isSuccess() || response.status.value == StatusMethodNotAllowed
     }
 
     /**
@@ -161,6 +165,9 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
 
         /** Constant for the custom PROPFIND HTTP method.*/
         private const val MethodPropFind = "PROPFIND"
+
+        /** Constant for the HTTP status code 'method not allowed'.*/
+        private const val StatusMethodNotAllowed = 405
 
         /** Constant for a dummy folder to be returned in case of an error.*/
         private val DummyFolder = DavFolder("", listOf())
