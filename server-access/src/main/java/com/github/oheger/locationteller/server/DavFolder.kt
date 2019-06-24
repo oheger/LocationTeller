@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.server
 
+import java.lang.NumberFormatException
+
 /** The separator for URI components.*/
 const val UriSeparator = "/"
 
@@ -44,5 +46,51 @@ data class DavFolder(val path: String, val elements: List<DavElement>) {
         val resolvedName = path + UriSeparator + elem.name
         return if (elem.isFolder) resolvedName + UriSeparator
         else resolvedName
+    }
+}
+
+/**
+ * A data class representing location information.
+ *
+ * The data hold by this class is written to the track server for each location
+ * item. The class offers functionality to generate a string representation and
+ * parse itself from a string.
+ *
+ * @param latitude the latitude of the location
+ * @param longitude the longitude of the location
+ * @param time a timestamp when this location was tracked
+ */
+data class LocationData(val latitude: Double, val longitude: Double, val time: TimeData) {
+    /**
+     * Generates a string representation of this instance that is compatible
+     * with the format expected by the _parse()_ method of the companion
+     * object.
+     * @return a string representation of this instance
+     */
+    fun stringRepresentation(): String = "$latitude$separator$longitude"
+
+    companion object {
+        /** The separator character between latitude and longitude.*/
+        private const val separator = ';'
+
+        /**
+         * Tries to create a new instance from a string representation. If
+         * the representation is invalid, result is *null*.
+         * @param representation the string representation
+         * @param time the time information for the new instance
+         */
+        fun parse(representation: String, time: TimeData): LocationData? {
+            val separatorPos = representation.indexOf(separator)
+            if (separatorPos >= 1 && separatorPos < representation.length - 1) {
+                try {
+                    val latitude = representation.substring(0, separatorPos).toDouble()
+                    val longitude = representation.substring(separatorPos + 1).toDouble()
+                    return LocationData(latitude, longitude, time)
+                } catch (e: NumberFormatException) {
+                    // fall through
+                }
+            }
+            return null
+        }
     }
 }

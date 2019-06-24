@@ -35,4 +35,32 @@ class DavFolderSpec : StringSpec({
 
         folder.resolve(child) shouldBe folder.path + "/" + child.name + "/"
     }
+
+    "LocationData should support serialization and deserialization" {
+        val time1 = TimeData(20190624174901L)
+        val time2 = TimeData(20190624174922L)
+        val locData1 = LocationData(123.456, 321.654, time1)
+
+        val serialForm = locData1.stringRepresentation()
+        val locData2 = LocationData.parse(serialForm, time2)
+        locData2?.latitude shouldBe locData1.latitude
+        locData2?.longitude shouldBe locData1.longitude
+        locData2?.time shouldBe time2
+    }
+
+    "LocationData.parse() should handle an invalid format" {
+        LocationData.parse("invalid", TimeData(20190624175658L)) shouldBe null
+    }
+
+    "LocationData.parse() should handle a string without a latitude" {
+        LocationData.parse(";1234", TimeData(2019024180012L)) shouldBe null
+    }
+
+    "LocationData.parse() should handle a string without a longitude" {
+        LocationData.parse("12.34;", TimeData(2019024180109L)) shouldBe null
+    }
+
+    "LocationData.parse() should handle non numeric components" {
+        LocationData.parse("To be; or not to be", TimeData(2019024180252L)) shouldBe null
+    }
 })
