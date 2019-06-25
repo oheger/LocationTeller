@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.server
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import org.slf4j.LoggerFactory
 
 /**
  * A class providing functionality to interact with a server to retrieve
@@ -39,10 +40,9 @@ import kotlinx.coroutines.coroutineScope
  * updated when operations are executed. Note that this class is not
  * thread-safe! Callers are responsible for a correct synchronization.
  *
- * @param timeService the _TimeService_ used by this instance
  * @param davClient the _DavClient_ used by this instance
  */
-class TrackService(val timeService: TimeService, val davClient: DavClient) {
+class TrackService(val davClient: DavClient) {
     /**
      * Stores the tracking state on the server. This field is initialized on
      * first access.
@@ -68,6 +68,7 @@ class TrackService(val timeService: TimeService, val davClient: DavClient) {
         val oldState = getTrackState()
         val (removeFiles, nextState) = oldState.removeOutdatedFiles(refTime)
         if (removeFiles.isNotEmpty()) {
+            log.info("Removing {} outdated files from server.", removeFiles.size)
             val removePaths = calcRemovePaths(removeFiles, nextState)
             val removeOpsAsync = removePaths.map { path -> async { davClient.delete(path) } }
             val removeOps = removeOpsAsync.awaitAll()
@@ -78,10 +79,37 @@ class TrackService(val timeService: TimeService, val davClient: DavClient) {
                 if (removeOps.any { it }) {
                     val successFiles = successfullyRemovedFiles(removePaths, removeOps, oldState)
                     trackState = oldState.removeFiles(successFiles)
-                }
+                    log.warn("Removing outdated files failed partially!")
+                } else log.warn("Removing outdated files failed completely!")
                 false
             }
         } else true
+    }
+
+    /**
+     * Creates a location file on the server with the given data. If necessary,
+     * a directory is created first. Note that it is assumed that the time of
+     * the location is after all other data objects on the server.
+     * @param locationData the location data to be uploaded
+     * @return a flag whether this operation was successful
+     */
+    suspend fun addLocation(locationData: LocationData): Boolean {
+        val fileData = FileData(locationData.time.dateString, locationData.time.timeString)
+        log.info("Uploading location data for {}.", fileData)
+
+        val state = getTrackState()
+        if (!state.hasFolder(locationData.time.dateString)) {
+            if (!davClient.createFolder(fileData.folderPath())) {
+                log.error("Could not create directory {} for upload!", fileData.folderPath())
+                return false
+            }
+        }
+
+        val uploadSuccess = davClient.upload(fileData.toPath(), locationData.stringRepresentation())
+        if (uploadSuccess) {
+            trackState = state.appendFile(fileData)
+        } else log.error("Upload failed for {}!", fileData)
+        return uploadSuccess
     }
 
     /**
@@ -105,6 +133,7 @@ class TrackService(val timeService: TimeService, val davClient: DavClient) {
      * @return the track state
      */
     private suspend fun initTrackState(): ServerTrackState = coroutineScope {
+        log.info("Initializing track state.")
         val rootFolder = davClient.loadFolder("")
         val trackFoldersAsync = rootFolder.elements
             .filter { davElement -> davElement.isFolder && davElement.name.startsWith(NamePrefix) }
@@ -114,6 +143,8 @@ class TrackService(val timeService: TimeService, val davClient: DavClient) {
             folder.elements.filter { davElement -> !davElement.isFolder && davElement.name.startsWith(NamePrefix) }
                 .map { FileData(folder.path.substring(NamePrefix.length + 1), it.name.substring(PrefixLength)) }
         }
+
+        log.info("Found {} location files on server.", files.size)
         ServerTrackState(files)
     }
 
@@ -130,6 +161,8 @@ class TrackService(val timeService: TimeService, val davClient: DavClient) {
         /** The length of a file reference (HH_MM_SS).*/
         private const val FileRefLength = 8
 
+        private val log = LoggerFactory.getLogger(TrackService::class.java)
+
         /**
          * Creates a new, fully initialized instance of _TrackService_. Default
          * helper objects are created.
@@ -137,7 +170,7 @@ class TrackService(val timeService: TimeService, val davClient: DavClient) {
          */
         fun create(config: ServerConfig): TrackService {
             val client = DavClient.create(config)
-            return TrackService(CurrentTimeService, client)
+            return TrackService(client)
         }
 
         /**

@@ -20,6 +20,8 @@ import io.kotlintest.matchers.collections.shouldNotContain
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import java.util.*
 
@@ -33,12 +35,11 @@ class TrackServiceSpec : StringSpec() {
 
             val service = TrackService.create(config)
             service.davClient.config shouldBe config
-            service.timeService shouldBe CurrentTimeService
         }
 
         "TrackService should determine the files on the server" {
             val davClient = createPreparedDavClient()
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
 
             service.filesOnServer() shouldBe expectedFiles
         }
@@ -48,7 +49,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 12, 0, 0)
             coEvery { davClient.delete(folderPath(folder1)) } returns true
             coEvery { davClient.delete(expectedFiles[2]) } returns true
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe true
             service.filesOnServer() shouldBe expectedFiles.drop(3)
@@ -57,7 +58,7 @@ class TrackServiceSpec : StringSpec() {
         "TrackService should handle the case that no outdated files need to be removed" {
             val davClient = createPreparedDavClient()
             val refTime = referenceTime(18, 21, 57, 5)
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
             val oldFiles = service.filesOnServer()
 
             service.removeOutdated(refTime) shouldBe true
@@ -69,7 +70,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 19, 28, 46)
             coEvery { davClient.delete(folderPath(folder1)) } returns true
             coEvery { davClient.delete(folderPath(folder2)) } returns true
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe true
         }
@@ -78,7 +79,7 @@ class TrackServiceSpec : StringSpec() {
             val davClient = createPreparedDavClient()
             val refTime = referenceTime(21, 12, 0, 0)
             coEvery { davClient.delete(any()) } returns false
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe false
             service.filesOnServer() shouldBe expectedFiles
@@ -89,7 +90,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 12, 0, 0)
             coEvery { davClient.delete(folderPath(folder1)) } returns false
             coEvery { davClient.delete(expectedFiles[2]) } returns true
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe false
             val files = service.filesOnServer()
@@ -103,13 +104,88 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 12, 0, 0)
             coEvery { davClient.delete(folderPath(folder1)) } returns true
             coEvery { davClient.delete(expectedFiles[2]) } returns false
-            val service = TrackService(CurrentTimeService, davClient)
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe false
             val files = service.filesOnServer()
             files shouldNotContain expectedFiles[0]
             files shouldNotContain expectedFiles[1]
             files shouldContain expectedFiles[2]
+        }
+
+        "TrackService should upload new location data to an existing directory" {
+            val refTime = referenceTime(21, 22, 27, 16)
+            val expPath = pathFromTime(refTime)
+            val locData = LocationData(123.456, 789.321, refTime)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.upload(expPath, locData.stringRepresentation()) } returns true
+            val service = TrackService(davClient)
+
+            service.addLocation(locData) shouldBe true
+            coVerify { davClient.upload(expPath, locData.stringRepresentation()) }
+        }
+
+        "TrackService should evaluate the result of a file upload operation" {
+            val refTime = referenceTime(21, 21, 36, 43)
+            val locData = LocationData(123.456, 789.321, refTime)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.upload(any(), any()) } returns false
+            val service = TrackService(davClient)
+
+            service.addLocation(locData) shouldBe false
+        }
+
+        "TrackService should create a new folder for an upload operation if necessary" {
+            val refTime = referenceTime(25, 21, 39, 3)
+            val folderPath = folderPathFromTime(refTime)
+            val expPath = pathFromTime(refTime)
+            val locData = LocationData(123.456, 789.321, refTime)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.createFolder(folderPath) } returns true
+            coEvery { davClient.upload(expPath, locData.stringRepresentation()) } returns true
+            val service = TrackService(davClient)
+
+            service.addLocation(locData) shouldBe true
+            coVerifyOrder {
+                davClient.createFolder(folderPath)
+                davClient.upload(expPath, locData.stringRepresentation())
+            }
+        }
+
+        "TrackService should evaluate the result of creating a new folder during an upload" {
+            val refTime = referenceTime(25, 21, 43, 39)
+            val folderPath = folderPathFromTime(refTime)
+            val locData = LocationData(123.456, 789.321, refTime)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.createFolder(folderPath) } returns false
+            val service = TrackService(davClient)
+
+            service.addLocation(locData) shouldBe false
+        }
+
+        "TrackService should add uploaded files to the tracking state" {
+            val refTime = referenceTime(25, 21, 27, 17)
+            val locData = LocationData(123.456, 789.321, refTime)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.createFolder(any()) } returns true
+            coEvery { davClient.upload(any(), any()) } returns true
+            coEvery { davClient.delete(any()) } returns true
+            val service = TrackService(davClient)
+            service.addLocation(locData)
+
+            service.removeOutdated(referenceTime(25, 21, 50, 9))
+            coVerify { davClient.delete(folderPathFromTime(refTime)) }
+        }
+
+        "TrackService should add an uploaded file to the tracking state only if successful" {
+            val refTime = referenceTime(21, 21, 36, 43)
+            val locData = LocationData(123.456, 789.321, refTime)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.upload(any(), any()) } returns false
+            val service = TrackService(davClient)
+            service.addLocation(locData)
+
+            service.filesOnServer() shouldNotContain pathFromTime(refTime)
         }
     }
 
@@ -227,6 +303,22 @@ class TrackServiceSpec : StringSpec() {
             cal.set(2019, Calendar.JUNE, date, hour, min, sec)
             return TimeData(cal.timeInMillis)
         }
+
+        /**
+         * Generates the path of a folder from a timestamp.
+         * @param time the time
+         * @return the folder path derived from this time
+         */
+        private fun folderPathFromTime(time: TimeData): String =
+            "/${TrackService.NamePrefix}${time.dateString}/"
+
+        /**
+         * Generates the path of a file from a timestamp.
+         * @param time the time
+         * @return the file path derived from this time
+         */
+        private fun pathFromTime(time: TimeData) =
+            "${folderPathFromTime(time)}${TrackService.NamePrefix}${time.timeString}"
 
         /**
          * Prepares expectations for the given client mock to return test data
