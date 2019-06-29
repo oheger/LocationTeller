@@ -23,6 +23,9 @@ android {
     packagingOptions {
         exclude 'META-INF/*.kotlin_module'
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -47,6 +50,7 @@ dependencies {
     implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.preference:preference-ktx:1.1.0-beta01'
+    implementation 'com.google.android.gms:play-services-location:17.0.0'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versionCoroutines"
     
     implementation project(":server-access")
