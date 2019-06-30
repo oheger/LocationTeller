@@ -18,8 +18,11 @@ package com.github.oheger.locationteller.track
 import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
+import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
@@ -81,6 +84,20 @@ class LocationTellerServiceSpec : StringSpec() {
 
         "UpdateActorFactory should return null if no validity is defined" {
             checkActorCreationWithMissingProperties(trackConf = defTrackConfig.copy(locationValidity = -1))
+        }
+
+        "LocationRetrieverFactory should create a correct retriever object" {
+            val context = mockk<Context>()
+            val actor = mockk<SendChannel<LocationUpdate>>()
+            val locationClient = mockk<FusedLocationProviderClient>()
+            mockkStatic(LocationServices::class)
+            every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
+            val factory = LocationRetrieverFactory()
+
+            val retriever = factory.createRetriever(context, actor)
+            retriever.locationClient shouldBe locationClient
+            retriever.locationUpdateActor shouldBe actor
+            retriever.timeService shouldBe CurrentTimeService
         }
     }
 

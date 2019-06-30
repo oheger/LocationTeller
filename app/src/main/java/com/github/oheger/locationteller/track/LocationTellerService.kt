@@ -26,8 +26,10 @@ import android.os.IBinder
 import android.os.SystemClock
 import android.preference.PreferenceManager
 import android.util.Log
+import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
@@ -119,6 +121,26 @@ class UpdaterActorFactory {
             )
         }
     }
+}
+
+/**
+ * A factory class for creating a [LocationRetriever].
+ *
+ * This factory is used internally by [LocationTellerService]. By providing a
+ * mock implementation, a mock actor can be injected for testing purposes.
+ */
+class LocationRetrieverFactory {
+    /**
+     * Creates a new _LocationRetriever_ based on the given parameters.
+     * @param context the context
+     * @param updater the actor for publishing updates
+     * @return the _LocationRetriever_ instance
+     */
+    fun createRetriever(context: Context, updater: SendChannel<LocationUpdate>): LocationRetriever =
+        LocationRetriever(
+            LocationServices.getFusedLocationProviderClient(context),
+            updater, CurrentTimeService
+        )
 }
 
 class LocationTellerService : Service() {
