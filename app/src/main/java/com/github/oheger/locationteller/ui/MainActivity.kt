@@ -22,7 +22,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.track.TrackService
+import com.github.oheger.locationteller.track.LocationTellerService
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -39,6 +39,6 @@ class MainActivity : AppCompatActivity() {
         toolbar.setupWithNavController(navCtrl, appBarConfig)
         nav_view.setupWithNavController(navCtrl)
 
-        Intent(this, TrackService::class.java).also { startService(it) }
+        Intent(this, LocationTellerService::class.java).also { startService(it) }
     }
 }
