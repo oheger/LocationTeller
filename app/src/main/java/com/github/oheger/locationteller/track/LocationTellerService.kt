@@ -23,16 +23,16 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
-import android.os.SystemClock
 import android.preference.PreferenceManager
 import android.util.Log
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.ServerConfig
+import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
+import kotlin.coroutines.CoroutineContext
 
 /**
  * A factory class for creating the actor to update location data.
@@ -143,11 +143,46 @@ class LocationRetrieverFactory {
         )
 }
 
-class LocationTellerService : Service() {
+/**
+ * A service class that handles location updates in background.
+ *
+ * An instance of this service is running when the user has enabled tracking.
+ * Every time it is invoked, it checks whether a location update is now
+ * possible: whether the user has enabled tracking and the configuration is
+ * complete. If this is the case, a location update is triggered, and another
+ * service invocation (based on the update result) is scheduled. Otherwise, the
+ * service stops itself.
+ *
+ * @param updaterFactory the factory for creating an updater actor
+ * @param retrieverFactory the factory for creating a _LocationRetriever_
+ * @param timeService the time service
+ */
+class LocationTellerService(
+    val updaterFactory: UpdaterActorFactory,
+    val retrieverFactory: LocationRetrieverFactory,
+    val timeService: TimeService
+) : Service(), CoroutineScope {
     private val tag = "LocationTellerService"
 
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.IO
+
+    /**
+     * The pending intent to trigger a future service execution via the alarm
+     * manager.
+     */
     private lateinit var pendingIntent: PendingIntent
 
+    /** The object that retrieves the current location.*/
+    private var locationRetriever: LocationRetriever? = null
+
+    /**
+     * Creates a new instance of _LocationTellerService_ that uses default
+     * factories.
+     */
+    constructor() : this(UpdaterActorFactory(), LocationRetrieverFactory(), ElapsedTimeService)
+
+    @ObsoleteCoroutinesApi
     override fun onCreate() {
         super.onCreate()
         Log.i(tag, "onCreate()")
@@ -155,27 +190,17 @@ class LocationTellerService : Service() {
             this, 0,
             Intent(this, LocationTellerService::class.java), 0
         )
+
+        val updaterActor = updaterFactory.createActor(this, this)
+        if (updaterActor != null) {
+            Log.i(tag, "Configuration complete. Updater actor could be created.")
+            locationRetriever = retrieverFactory.createRetriever(this, updaterActor)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i(tag, "onStartCommand($intent, $flags, $startId)")
-        if (startId < 10) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + 30 * 1000, pendingIntent
-                )
-                Log.i(tag, "Scheduled allow while idle :-)")
-            } else {
-                alarmManager.set(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + 30 * 1000, pendingIntent
-                )
-            }
-        } else {
-            stopSelf()
-        }
+        Log.d(tag, "onStartCommand($intent, $flags, $startId)")
+        tellLocation()
         return START_STICKY
     }
 
@@ -185,4 +210,40 @@ class LocationTellerService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /**
+     * The main function of this service. Checks whether a location update is
+     * now possible. If so, it is triggered.
+     */
+    private fun tellLocation() = launch {
+        val pref = PreferenceManager.getDefaultSharedPreferences(this@LocationTellerService)
+        val retriever = locationRetriever
+        if (retriever != null && pref.getBoolean("trackingEnabled", false)) {
+            Log.i(tag, "Triggering location update.")
+            val nextUpdate = retriever.retrieveAndUpdateLocation()
+            scheduleNextExecution(nextUpdate)
+        } else {
+            Log.i(tag, "No location update possible. Stopping service.")
+            stopSelf()
+        }
+    }
+
+    /**
+     * Prepares the alarm manager to schedule another execution of the service
+     * after the given delay.
+     * @param nextUpdate the delay until the next update (in sec)
+     */
+    private fun scheduleNextExecution(nextUpdate: Int) {
+        Log.i(tag, "Scheduling next service invocation after $nextUpdate seconds.")
+        val nextUpdateTime = timeService.currentTime().currentTime + 1000L * nextUpdate
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP, nextUpdateTime,
+                pendingIntent
+            )
+        } else {
+            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, nextUpdateTime, pendingIntent)
+        }
+    }
 }

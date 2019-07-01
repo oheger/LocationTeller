@@ -15,19 +15,20 @@
  */
 package com.github.oheger.locationteller.track
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.preference.PreferenceManager
-import com.github.oheger.locationteller.server.CurrentTimeService
-import com.github.oheger.locationteller.server.ServerConfig
-import com.github.oheger.locationteller.server.TrackService
+import com.github.oheger.locationteller.server.*
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import io.kotlintest.shouldBe
+import io.kotlintest.shouldNotBe
 import io.kotlintest.specs.StringSpec
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
+import io.mockk.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
@@ -99,6 +100,46 @@ class LocationTellerServiceSpec : StringSpec() {
             retriever.locationUpdateActor shouldBe actor
             retriever.timeService shouldBe CurrentTimeService
         }
+
+        "LocationTellerService should create default dependencies" {
+            val service = LocationTellerService()
+
+            // this test is not really meaningful; the relevant part is the
+            // invocation of the secondary constructor
+            service.retrieverFactory shouldNotBe null
+            service.updaterFactory shouldNotBe null
+            service.timeService shouldBe ElapsedTimeService
+        }
+
+        "LocationTellerService should return null in onBind()" {
+            val helper = TellerServiceTestHelper()
+
+            helper.service.onBind(null) shouldBe null
+        }
+
+        "LocationTellerService should stop itself if tracking is disabled" {
+            val helper = TellerServiceTestHelper(trackingEnabled = false)
+
+            helper.sendStartCommand()
+                .verifyServiceStopped()
+                .verifyNoNextExecutionScheduled()
+        }
+
+        "LocationTellerService should trigger a location update if all criteria are fulfilled" {
+            val helper = TellerServiceTestHelper()
+
+            helper.sendStartCommand()
+                .verifyLocationUpdateTriggered()
+                .verifyNextExecutionScheduled()
+        }
+
+        "LocationTellerService should stop itself if no updater actor could be created" {
+            val helper = TellerServiceTestHelper(actorCanBeCreated = false)
+
+            helper.sendStartCommand()
+                .verifyServiceStopped()
+                .verifyNoNextExecutionScheduled()
+        }
     }
 
     companion object {
@@ -114,21 +155,33 @@ class LocationTellerServiceSpec : StringSpec() {
             locationValidity = 1000, intervalIncrementOnIdle = 50
         )
 
+        /** Constant for the next update interval returned by the retriever.*/
+        const val nextUpdateInterval = 777
+
+        /** The elapsed time to be returned by the time service mock.*/
+        const val elapsedTime = 20190107192211L
+
         /**
          * Installs a mock preferences manager that returns shared preferences
          * initialized with the test configurations.
          * @param context the context
          * @param svrConf the server config to initialize preferences
          * @param trackConf the track config to initialize preferences
+         * @param trackingEnabled flag whether tracking should be enabled
          * @return the mock for the preferences
          */
         private fun preparePreferences(
-            context: Context, svrConf: ServerConfig = defServerConfig,
-            trackConf: TrackConfig = defTrackConfig
+            context: Context?, svrConf: ServerConfig = defServerConfig,
+            trackConf: TrackConfig = defTrackConfig,
+            trackingEnabled: Boolean = true
         ): SharedPreferences {
             mockkStatic(PreferenceManager::class)
-            val pref = createPreferencesMock(svrConf, trackConf)
-            every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
+            val pref = createPreferencesMock(svrConf, trackConf, trackingEnabled)
+            if (context != null) {
+                every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
+            } else {
+                every { PreferenceManager.getDefaultSharedPreferences(any()) } returns pref
+            }
             return pref
         }
 
@@ -137,11 +190,13 @@ class LocationTellerServiceSpec : StringSpec() {
          * the properties for the test configurations.
          * @param svrConf the server config to initialize preferences
          * @param trackConf the track config to initialize preferences
+         * @param trackingEnabled flag whether tracking should be enabled
          * @return the mock preferences object
          */
         private fun createPreferencesMock(
             svrConf: ServerConfig = defServerConfig,
-            trackConf: TrackConfig = defTrackConfig
+            trackConf: TrackConfig = defTrackConfig,
+            trackingEnabled: Boolean = true
         ): SharedPreferences {
             val pref = mockk<SharedPreferences>()
             initProperty(pref, "trackServerUri", svrConf.serverUri)
@@ -152,6 +207,7 @@ class LocationTellerServiceSpec : StringSpec() {
             initProperty(pref, "maxTrackInterval", trackConf.maxTrackInterval)
             initProperty(pref, "intervalIncrementOnIdle", trackConf.intervalIncrementOnIdle)
             initProperty(pref, "locationValidity", trackConf.locationValidity)
+            every { pref.getBoolean("trackingEnabled", false) } returns trackingEnabled
             return pref
         }
 
@@ -190,6 +246,128 @@ class LocationTellerServiceSpec : StringSpec() {
             preparePreferences(context, svrConf, trackConf)
             val factory = UpdaterActorFactory()
             factory.createActor(context, mockk()) shouldBe null
+        }
+
+        /**
+         * A test helper class managing a service instance and its dependencies.
+         * @param trackingEnabled flag whether tracking is enabled
+         * @param actorCanBeCreated flag whether actor creation succeeds
+         */
+        class TellerServiceTestHelper(
+            private val trackingEnabled: Boolean = true,
+            private val actorCanBeCreated: Boolean = true
+        ) {
+            /** The timeout for verifications of asynchronous actions.*/
+            private val timeout = 1000L
+
+            /** Mock for the location retriever.*/
+            private val retriever = mockk<LocationRetriever>()
+
+            /** Mock for the alarm manager.*/
+            private val alarmManager = mockk<AlarmManager>()
+
+            /** Mock for the pending intent.*/
+            private val pendingIntent = mockk<PendingIntent>()
+
+            /** The service to be tested.*/
+            val service = createService()
+
+            /**
+             * Sends a start command to the test service.
+             * @return this test helper
+             */
+            fun sendStartCommand(): TellerServiceTestHelper {
+                service.onStartCommand(null, 0, 0) shouldBe Service.START_STICKY
+                return this
+            }
+
+            /**
+             * Verifies that the test service has stopped itself.
+             * @return this test helper
+             */
+            fun verifyServiceStopped(): TellerServiceTestHelper {
+                verify(timeout = timeout) {
+                    service.stopSelf()
+                }
+                return this
+            }
+
+            /**
+             * Verifies that no future service execution has been scheduled.
+             * @return this test helper
+             */
+            fun verifyNoNextExecutionScheduled(): TellerServiceTestHelper {
+                verify(exactly = 0) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        alarmManager.setAndAllowWhileIdle(any(), any(), any())
+                    } else {
+                        alarmManager.set(any(), any(), any())
+                    }
+                }
+                return this
+            }
+
+            /**
+             * Verifies that a next service execution has been scheduled at the
+             * expected time using the alarm manager.
+             * @return this test helper
+             */
+            fun verifyNextExecutionScheduled(): TellerServiceTestHelper {
+                verify(exactly = 1, timeout = timeout) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        alarmManager.setAndAllowWhileIdle(
+                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                            elapsedTime + 1000 * nextUpdateInterval, pendingIntent
+                        )
+                    } else {
+                        alarmManager.set(
+                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                            elapsedTime + 1000 * nextUpdateInterval, pendingIntent
+                        )
+                    }
+                }
+                return this
+            }
+
+            /**
+             * Verifies that the retriever was alled to trigger a location
+             * update.
+             * @return this test helper
+             */
+            fun verifyLocationUpdateTriggered(): TellerServiceTestHelper {
+                coVerify(timeout = timeout) {
+                    retriever.retrieveAndUpdateLocation()
+                }
+                return this
+            }
+
+            /**
+             * Creates the service instance to be tested. Its _onCreate()_
+             * callback is already called.
+             * @return the test service instance
+             */
+            private fun createService(): LocationTellerService {
+                val updaterFactory = mockk<UpdaterActorFactory>()
+                val retrieverFactory = mockk<LocationRetrieverFactory>()
+                val timeService = mockk<TimeService>()
+                val service = LocationTellerService(updaterFactory, retrieverFactory, timeService)
+                mockkStatic(PendingIntent::class)
+                every { PendingIntent.getService(any(), 0, any(), 0) } returns pendingIntent
+                preparePreferences(null, trackingEnabled = trackingEnabled)
+
+                val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
+                every { updaterFactory.createActor(any(), any()) } returns actor
+                if (actor != null) {
+                    every { retrieverFactory.createRetriever(any(), actor) } returns retriever
+                }
+                coEvery { retriever.retrieveAndUpdateLocation() } returns nextUpdateInterval
+                every { timeService.currentTime() } returns TimeData(elapsedTime)
+
+                val serviceSpy = spyk(service)
+                every { serviceSpy.getSystemService(Context.ALARM_SERVICE) } returns alarmManager
+                serviceSpy.onCreate()
+                return serviceSpy
+            }
         }
     }
 }
