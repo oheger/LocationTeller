@@ -229,7 +229,7 @@ class LocationTellerServiceSpec : StringSpec() {
          * @param value the property value
          */
         private fun initProperty(pref: SharedPreferences, key: String, value: Int) {
-            every { pref.getInt(key, -1) } returns value
+            every { pref.getString(key, "-1") } returns value.toString()
         }
 
         /**

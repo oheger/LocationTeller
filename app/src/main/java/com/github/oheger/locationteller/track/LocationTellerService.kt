@@ -84,6 +84,12 @@ class UpdaterActorFactory {
         /** Shared preferences property for the increment interval.*/
         private const val propLocationValidity = "locationValidity"
 
+        /** Constant for an undefined numeric property.*/
+        private const val undefinedNumber = -1
+
+        /** String value of an undefined numeric property.*/
+        private const val undefinedNumberStr = undefinedNumber.toString()
+
         /**
          * Creates a _ServerConfig_ object from the given preferences. If
          * mandatory properties are missing, result is *null*.
@@ -107,10 +113,10 @@ class UpdaterActorFactory {
          * @return the track configuration or *null*
          */
         private fun createTrackConfig(pref: SharedPreferences): TrackConfig? {
-            val minTrackInterval = pref.getInt(propMinTrackInterval, -1)
-            val maxTrackInterval = pref.getInt(propMaxTrackInterval, -1)
-            val intervalIncrementOnIdle = pref.getInt(propIdleIncrement, -1)
-            val locationValidity = pref.getInt(propLocationValidity, -1)
+            val minTrackInterval = pref.getNumeric(propMinTrackInterval)
+            val maxTrackInterval = pref.getNumeric(propMaxTrackInterval)
+            val intervalIncrementOnIdle = pref.getNumeric(propIdleIncrement)
+            val locationValidity = pref.getNumeric(propLocationValidity)
             return if (minTrackInterval < 0 || maxTrackInterval < 0 || intervalIncrementOnIdle < 0 ||
                 locationValidity < 0
             ) {
@@ -120,6 +126,16 @@ class UpdaterActorFactory {
                 locationValidity
             )
         }
+
+        /**
+         * Extension function to query a numeric property from a preferences
+         * object. From the settings screen, the properties are stored as
+         * strings. Therefore, a conversion has to be done.
+         * @param key the key to be queried
+         * @return the numeric value of this key
+         */
+        private fun SharedPreferences.getNumeric(key: String): Int =
+            getString(key, undefinedNumberStr)?.toInt() ?: undefinedNumber
     }
 }
 
