@@ -22,7 +22,6 @@ import io.ktor.client.response.HttpResponse
 import io.ktor.client.response.readText
 import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
-import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import javax.xml.parsers.SAXParserFactory
@@ -190,8 +189,8 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
          * @return the value for the Authorization header
          */
         private fun authHeader(config: ServerConfig): String {
-            val authBytes = "${config.user}:${config.password}".toByteArray()
-            return "Basic " + Base64.encodeBase64String(authBytes)
+            val authStr = "${config.user}:${config.password}"
+            return "Basic " + Base64.encode(authStr)
         }
 
         /**

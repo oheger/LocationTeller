@@ -3,6 +3,7 @@ apply plugin: 'kotlin'
 
 def versionKtor = '1.2.1'
 def versionCommonsCodec = '1.12'
+def versionCommonsLang = "3.9"
 def versionKotlinTest = '3.3.0'
 def versionWiremock = '2.23.2'
 def versionMockK = '1.9.3'
@@ -10,8 +11,9 @@ def versionMockK = '1.9.3'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "io.ktor:ktor-client-cio:$versionKtor"
-    implementation "commons-codec:commons-codec:$versionCommonsCodec"
     
+    testImplementation "commons-codec:commons-codec:$versionCommonsCodec"
+    testImplementation "org.apache.commons:commons-lang3:$versionCommonsLang"
     testImplementation "io.kotlintest:kotlintest-runner-junit5:$versionKotlinTest"
     testImplementation "com.github.tomakehurst:wiremock:$versionWiremock"
     testImplementation "io.mockk:mockk:$versionMockK"
