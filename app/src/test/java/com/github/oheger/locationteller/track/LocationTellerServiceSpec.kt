@@ -207,7 +207,7 @@ class LocationTellerServiceSpec : StringSpec() {
             initProperty(pref, "maxTrackInterval", trackConf.maxTrackInterval)
             initProperty(pref, "intervalIncrementOnIdle", trackConf.intervalIncrementOnIdle)
             initProperty(pref, "locationValidity", trackConf.locationValidity)
-            every { pref.getBoolean("trackingEnabled", false) } returns trackingEnabled
+            every { pref.getBoolean("trackEnabled", false) } returns trackingEnabled
             return pref
         }
 

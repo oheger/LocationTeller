@@ -234,7 +234,7 @@ class LocationTellerService(
     private fun tellLocation() = launch {
         val pref = PreferenceManager.getDefaultSharedPreferences(this@LocationTellerService)
         val retriever = locationRetriever
-        if (retriever != null && pref.getBoolean("trackingEnabled", false)) {
+        if (retriever != null && pref.getBoolean("trackEnabled", false)) {
             Log.i(tag, "Triggering location update.")
             val nextUpdate = retriever.retrieveAndUpdateLocation()
             scheduleNextExecution(nextUpdate)
