@@ -16,7 +16,10 @@
 package com.github.oheger.locationteller.ui
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
+import android.preference.PreferenceManager
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -25,7 +28,19 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.LocationTellerService
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity() {
+/**
+ * The main activity of this application.
+ *
+ * This activity does not have a visual representation on its own as the whole
+ * UI is provided by different fragments. This class implements some common
+ * management tasks.
+ */
+class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
+    /** Constant for the preferences key for the tracking state.*/
+    private val keyTrackState = "trackEnabled"
+
+    private val logTag = "MainActivity"
+
     private lateinit var appBarConfig: AppBarConfiguration
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +53,36 @@ class MainActivity : AppCompatActivity() {
         appBarConfig = AppBarConfiguration(navCtrl.graph, drawerLayout)
         toolbar.setupWithNavController(navCtrl, appBarConfig)
         nav_view.setupWithNavController(navCtrl)
+    }
 
-        Intent(this, LocationTellerService::class.java).also { startService(it) }
+    override fun onPostResume() {
+        super.onPostResume()
+        PreferenceManager.getDefaultSharedPreferences(this)
+            .registerOnSharedPreferenceChangeListener(this)
+    }
+
+    override fun onPause() {
+        PreferenceManager.getDefaultSharedPreferences(this)
+            .unregisterOnSharedPreferenceChangeListener(this)
+        super.onPause()
+    }
+
+    /**
+     * Handles updates of the shared preferences. If the update affects a
+     * configuration key, tracking is stopped. It then has to be enabled
+     * explicitly by the user again. If the track state is affected, the
+     * service is invoked.
+     * @param sharedPreferences the preferences that have been changed
+     * @param key the key affected
+     */
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
+        Log.d(logTag, "Change of shared properties. Affected key is $key.")
+        if (keyTrackState == key) {
+            Intent(this, LocationTellerService::class.java).also { startService(it) }
+        } else {
+            if (sharedPreferences.getBoolean(keyTrackState, false)) {
+                sharedPreferences.edit().putBoolean(keyTrackState, false).apply()
+            }
+        }
     }
 }
