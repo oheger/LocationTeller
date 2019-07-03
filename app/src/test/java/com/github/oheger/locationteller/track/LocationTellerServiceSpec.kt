@@ -46,7 +46,7 @@ class LocationTellerServiceSpec : StringSpec() {
             mockkStatic("com.github.oheger.locationteller.track.LocationUpdaterKt")
             every { locationUpdaterActor(any(), defTrackConfig, crScope) } answers {
                 val service = arg<TrackService>(0)
-                service.davClient.config shouldBe defServerConfig
+                service.davClient().config shouldBe defServerConfig
                 actor
             }
             preparePreferences(context)

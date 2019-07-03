@@ -40,14 +40,32 @@ import org.slf4j.LoggerFactory
  * updated when operations are executed. Note that this class is not
  * thread-safe! Callers are responsible for a correct synchronization.
  *
- * @param davClient the _DavClient_ used by this instance
+ * @param davClientFactory the factory for creating _DavClient_ instances
  */
-class TrackService(val davClient: DavClient) {
+class TrackService(val davClientFactory: DavClientFactory) {
     /**
      * Stores the tracking state on the server. This field is initialized on
      * first access.
      */
     private var trackState: ServerTrackState? = null
+
+    /** Stores the current _DavClient_ instance.*/
+    private var davClientField: DavClient? = null
+
+    /**
+     * Returns the current DAV client used by this instance. The client is
+     * created on demand.
+     * @return the _DavClient_
+     */
+    fun davClient(): DavClient {
+        val currentClient = davClientField
+        if (currentClient == null) {
+            val newClient = davClientFactory.createDavClient()
+            davClientField = newClient
+            return newClient
+        }
+        return currentClient
+    }
 
     /**
      * Returns a list with the paths of the files with location data that are
@@ -70,7 +88,7 @@ class TrackService(val davClient: DavClient) {
         if (removeFiles.isNotEmpty()) {
             log.info("Removing {} outdated files from server.", removeFiles.size)
             val removePaths = calcRemovePaths(removeFiles, nextState)
-            val removeOpsAsync = removePaths.map { path -> async { davClient.delete(path) } }
+            val removeOpsAsync = removePaths.map { path -> async { davClient().delete(path) } }
             val removeOps = removeOpsAsync.awaitAll()
             if (removeOps.all { it }) {
                 trackState = nextState
@@ -99,17 +117,27 @@ class TrackService(val davClient: DavClient) {
 
         val state = getTrackState()
         if (!state.hasFolder(locationData.time.dateString)) {
-            if (!davClient.createFolder(fileData.folderPath())) {
+            if (!davClient().createFolder(fileData.folderPath())) {
                 log.error("Could not create directory {} for upload!", fileData.folderPath())
                 return false
             }
         }
 
-        val uploadSuccess = davClient.upload(fileData.toPath(), locationData.stringRepresentation())
+        val uploadSuccess = davClient().upload(fileData.toPath(), locationData.stringRepresentation())
         if (uploadSuccess) {
             trackState = state.appendFile(fileData)
         } else log.error("Upload failed for {}!", fileData)
         return uploadSuccess
+    }
+
+    /**
+     * Resets the _DavClient_ used by this instance. This causes the creation
+     * of a new client for the next request.
+     */
+    fun resetClient() {
+        val client = davClient()
+        client.close()
+        davClientField = null
     }
 
     /**
@@ -134,10 +162,10 @@ class TrackService(val davClient: DavClient) {
      */
     private suspend fun initTrackState(): ServerTrackState = coroutineScope {
         log.info("Initializing track state.")
-        val rootFolder = davClient.loadFolder("")
+        val rootFolder = davClient().loadFolder("")
         val trackFoldersAsync = rootFolder.elements
             .filter { davElement -> davElement.isFolder && davElement.name.startsWith(NamePrefix) }
-            .map { async { davClient.loadFolder("/${it.name}") } }
+            .map { async { davClient().loadFolder("/${it.name}") } }
         val trackFolders = trackFoldersAsync.awaitAll()
         val files = trackFolders.flatMap { folder ->
             folder.elements.filter { davElement -> !davElement.isFolder && davElement.name.startsWith(NamePrefix) }
@@ -169,8 +197,7 @@ class TrackService(val davClient: DavClient) {
          * @param config the server configuration
          */
         fun create(config: ServerConfig): TrackService {
-            val client = DavClient.create(config)
-            return TrackService(client)
+            return TrackService(DavClientFactory(config))
         }
 
         /**
@@ -263,6 +290,22 @@ class TrackService(val davClient: DavClient) {
             result.addAll(successFiles)
             result.addAll(successFolderFiles)
             return result
+        }
+
+        /**
+         * A factory class for creating [DavClient] instances.
+         *
+         * A _TrackService_ has such a factory; so it can create new client
+         * instances when necessary.
+         *
+         * @param config the server configuration
+         */
+        class DavClientFactory(val config: ServerConfig) {
+            /**
+             * Creates a new _DavClient_ instance.
+             * @return the new client
+             */
+            fun createDavClient(): DavClient = DavClient.create(config)
         }
     }
 }
