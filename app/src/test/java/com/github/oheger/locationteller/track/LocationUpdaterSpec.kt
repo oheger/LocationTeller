@@ -20,9 +20,7 @@ import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
+import io.mockk.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
 
@@ -31,24 +29,43 @@ import kotlinx.coroutines.channels.SendChannel
  */
 @ObsoleteCoroutinesApi
 class LocationUpdaterSpec : StringSpec() {
+    /**
+     * Creates a mock track service that is prepared to expect the default
+     * invocations.
+     * @return the mock track service
+     */
+    private fun createTrackService(): TrackService {
+        val service = mockk<TrackService>()
+        every { service.resetClient() } just runs
+        return service
+    }
+
     init {
         "LocationUpdaterActor should pass a location update to the track service" {
-            val trackService = mockk<TrackService>()
+            val trackService = createTrackService()
             val locUpdate = locationUpdate(0)
+            val expRefTime =
+                TimeData(locUpdate.locationData.time.currentTime - 1000 * defaultConfig.locationValidity)
             coEvery { trackService.addLocation(locUpdate.locationData) } returns true
+            coEvery { trackService.removeOutdated(expRefTime) } returns true
 
             runActorTest(trackService, defaultConfig) { actor ->
                 actor.send(locUpdate)
                 val nextUpdate = locUpdate.nextTrackDelay.await()
                 nextUpdate shouldBe defaultConfig.minTrackInterval
-                coVerify { trackService.addLocation(locUpdate.locationData) }
+                coVerifyOrder {
+                    trackService.removeOutdated(expRefTime)
+                    trackService.addLocation(locUpdate.locationData)
+                }
+                verify { trackService.resetClient() }
             }
         }
 
         "LocationUpdaterActor should not process an update if there is no change in the location" {
-            val trackService = mockk<TrackService>()
+            val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
             val locUpdate2 = locationUpdate(locUpdate1.locationData.copy(time = TimeData(1)))
+            coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
             runActorTest(trackService, defaultConfig) { actor ->
@@ -57,15 +74,17 @@ class LocationUpdaterSpec : StringSpec() {
                 locUpdate2.nextTrackDelay.await()
                 coVerify(exactly = 1) {
                     trackService.addLocation(any())
+                    trackService.resetClient()
                 }
             }
         }
 
         "LocationUpdaterActor should increase the update interval if the location is the same" {
-            val trackService = mockk<TrackService>()
+            val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
             val locUpdate2 = locationUpdate(locUpdate1.locationData)
             val locUpdate3 = locationUpdate(locUpdate1.locationData)
+            coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
             runActorTest(trackService, defaultConfig) { actor ->
@@ -80,10 +99,11 @@ class LocationUpdaterSpec : StringSpec() {
         }
 
         "LocationUpdaterActor should respect the maximum update interval" {
-            val trackService = mockk<TrackService>()
+            val trackService = createTrackService()
             val config = defaultConfig.copy(intervalIncrementOnIdle = 200)
             val locUpdate1 = locationUpdate(0)
             val locUpdate2 = locationUpdate(locUpdate1.locationData)
+            coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
             runActorTest(trackService, config) { actor ->
@@ -95,10 +115,11 @@ class LocationUpdaterSpec : StringSpec() {
         }
 
         "LocationUpdaterActor should reset the update interval when another change is detected" {
-            val trackService = mockk<TrackService>()
+            val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
             val locUpdate2 = locationUpdate(locUpdate1.locationData)
             val locUpdate3 = locationUpdate(1)
+            coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
             runActorTest(trackService, defaultConfig) { actor ->
@@ -111,8 +132,9 @@ class LocationUpdaterSpec : StringSpec() {
         }
 
         "LocationUpdaterActor should treat an unknown location data as error" {
-            val trackService = mockk<TrackService>()
+            val trackService = createTrackService()
             val locUpdate = locationUpdate(unknownLocation)
+            coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
             runActorTest(trackService, defaultConfig) { actor ->

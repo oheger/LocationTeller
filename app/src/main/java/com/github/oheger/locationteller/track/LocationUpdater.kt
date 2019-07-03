@@ -72,7 +72,13 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
         for (locUpdate in channel) {
             if (locationChanged(locUpdate)) {
                 if (locUpdate.locationData != unknownLocation) {
+                    val outdatedRefTime = TimeData(
+                        locUpdate.locationData.time.currentTime -
+                                trackConfig.locationValidity * 1000
+                    )
+                    trackService.removeOutdated(outdatedRefTime)
                     trackService.addLocation(locUpdate.locationData)
+                    trackService.resetClient()
                 }
                 //TODO implement error handling
                 lastLocation = locUpdate.locationData
