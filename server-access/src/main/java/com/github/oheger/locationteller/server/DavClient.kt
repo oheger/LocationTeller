@@ -16,14 +16,14 @@
 package com.github.oheger.locationteller.server
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.receive
 import io.ktor.client.request.*
 import io.ktor.client.response.HttpResponse
+import io.ktor.client.response.readBytes
 import io.ktor.client.response.readText
 import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import org.slf4j.LoggerFactory
-import java.io.InputStream
+import java.io.ByteArrayInputStream
 import javax.xml.parsers.SAXParserFactory
 
 /**
@@ -77,11 +77,17 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
                 header(HeaderDepth, DepthValue)
                 header(HeaderAuthorization, authorizationHeader)
             }
+            if (!response.status.isSuccess()) {
+                log.error("Failure status ${response.status.value} when loading folder $path.")
+                return DummyFolder
+            }
+            val folderContent = response.readBytes()
+            val contentStream = ByteArrayInputStream(folderContent)
 
             val handler = FolderContentSaxHandler()
             val parserFactory = SAXParserFactory.newInstance()
             val parser = parserFactory.newSAXParser()
-            parser.parse(response.receive<InputStream>(), handler)
+            parser.parse(contentStream, handler)
             return DavFolder(path, handler.folderContent())
         } catch (e: Exception) {
             log.error("Could not load content of folder $resolvedPath.", e)
@@ -137,6 +143,13 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
             log.error("Could not read file $resolvedPath.", e)
             ""
         }
+    }
+
+    /**
+     * Closes this client and releases all resources.
+     */
+    fun close() {
+        httpClient.close()
     }
 
     /**

@@ -24,6 +24,8 @@ import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
+import io.ktor.client.HttpClient
+import io.mockk.*
 
 /**
  * Test class for [DavClient].
@@ -112,8 +114,8 @@ class DavClientSpec : StringSpec() {
             val client = DavClient.create(WireMockSupport.config())
 
             val folder = client.loadFolder(path)
-            folder.path shouldBe ""
             folder.elements shouldHaveSize 0
+            folder.path shouldBe ""
         }
 
         "DavClient should handle folder results with missing elements" {
@@ -221,6 +223,15 @@ class DavClientSpec : StringSpec() {
             val client = DavClient.create(WireMockSupport.config())
 
             client.readFile(path) shouldBe ""
+        }
+
+        "DavClient should close itself" {
+            val httpClient = mockk<HttpClient>()
+            every { httpClient.close() } just runs
+            val client = DavClient(WireMockSupport.config(), httpClient)
+
+            client.close()
+            verify { httpClient.close() }
         }
     }
 }
