@@ -94,6 +94,26 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
+     * Sets the preferences property for the last error to the given timestamp.
+     * @param at the time when the error happened
+     */
+    fun recordError(at: Long) {
+        update { editor -> editor.putLong(propLastError, at) }
+    }
+
+    /**
+     * Sets the preferences property for the last successful update to the
+     * given timestamp. The last error property is cleared.
+     * @param at the time when the update happened
+     */
+    fun recordUpdate(at: Long) {
+        update { editor ->
+            editor.putLong(propLastUpdate, at)
+                .remove(propLastError)
+        }
+    }
+
+    /**
      * Extension function to query a numeric property from a preferences
      * object. From the settings screen, the properties are stored as
      * strings. Therefore, a conversion has to be done.
@@ -131,6 +151,12 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the tracking state.*/
         const val propTrackState = "trackEnabled"
 
+        /** Shared preferences property for the latest update of location data. */
+        const val propLastUpdate = "lastUpdate"
+
+        /** Shared preferences property for the latest error that occurred.*/
+        const val propLastError = "lastError"
+
         /** Constant for an undefined numeric property.*/
         private const val undefinedNumber = -1
 
@@ -138,8 +164,10 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         private const val undefinedNumberStr = undefinedNumber.toString()
 
         /** A set with all properties related to configuration.*/
-        private val configProps = setOf(propServerUri, propBasePath, propUser, propPassword,
-            propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity)
+        private val configProps = setOf(
+            propServerUri, propBasePath, propUser, propPassword,
+            propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity
+        )
 
         /**
          * Creates a _PreferencesHandler_ object based on the given context.

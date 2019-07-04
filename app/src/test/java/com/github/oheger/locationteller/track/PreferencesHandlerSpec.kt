@@ -43,8 +43,12 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should return the current tracking state" {
             val pref = mockk<SharedPreferences>()
-            every { pref.getBoolean(PreferencesHandler.propTrackState,
-                false) } returnsMany listOf(true, false)
+            every {
+                pref.getBoolean(
+                    PreferencesHandler.propTrackState,
+                    false
+                )
+            } returnsMany listOf(true, false)
             val handler = PreferencesHandler(pref)
 
             handler.isTrackingEnabled() shouldBe true
@@ -67,18 +71,54 @@ class PreferencesHandlerSpec : StringSpec() {
         }
 
         "PreferencesHandler should identify configuration properties" {
-            val configProps = listOf(PreferencesHandler.propBasePath, PreferencesHandler.propIdleIncrement,
+            val configProps = listOf(
+                PreferencesHandler.propBasePath, PreferencesHandler.propIdleIncrement,
                 PreferencesHandler.propLocationValidity, PreferencesHandler.propMaxTrackInterval,
                 PreferencesHandler.propMinTrackInterval, PreferencesHandler.propPassword,
-                PreferencesHandler.propUser, PreferencesHandler.propServerUri)
+                PreferencesHandler.propUser, PreferencesHandler.propServerUri
+            )
 
-            configProps.forEach{prop -> PreferencesHandler.isConfigProperty(prop) shouldBe true }
+            configProps.forEach { prop -> PreferencesHandler.isConfigProperty(prop) shouldBe true }
         }
 
         "PreferencesHandler should identify non-configuration properties" {
             val nonConfigProps = listOf(PreferencesHandler.propTrackState, "foo", "bar")
 
             nonConfigProps.forEach { prop -> PreferencesHandler.isConfigProperty(prop) shouldBe false }
+        }
+
+        "PreferencesHandler should record an error" {
+            val errorTime = 20190704213348L
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            every { pref.edit() } returns editor
+            every { editor.putLong(PreferencesHandler.propLastError, errorTime) } returns editor
+            every { editor.apply() } just runs
+            val handler = PreferencesHandler(pref)
+
+            handler.recordError(errorTime)
+            verify {
+                editor.putLong(PreferencesHandler.propLastError, errorTime)
+                editor.apply()
+            }
+        }
+
+        "PreferencesHandler should record an update" {
+            val updateTime = 20190704213752L
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            every { pref.edit() } returns editor
+            every { editor.putLong(PreferencesHandler.propLastUpdate, updateTime) } returns editor
+            every { editor.remove(PreferencesHandler.propLastError) } returns editor
+            every { editor.apply() } just runs
+            val handler = PreferencesHandler(pref)
+
+            handler.recordUpdate(updateTime)
+            verify {
+                editor.putLong(PreferencesHandler.propLastUpdate, updateTime)
+                editor.remove(PreferencesHandler.propLastError)
+                editor.apply()
+            }
         }
     }
 }
