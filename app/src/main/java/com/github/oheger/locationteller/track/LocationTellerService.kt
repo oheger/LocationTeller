@@ -20,18 +20,19 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
 import android.preference.PreferenceManager
 import android.util.Log
 import com.github.oheger.locationteller.server.CurrentTimeService
-import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -50,92 +51,13 @@ class UpdaterActorFactory {
      */
     @ObsoleteCoroutinesApi
     fun createActor(context: Context, crScope: CoroutineScope): SendChannel<LocationUpdate>? {
-        val pref = PreferenceManager.getDefaultSharedPreferences(context)
-        val serverConfig = createServerConfig(pref)
-        val trackConfig = createTrackConfig(pref)
+        val preferences = PreferencesHandler.create(context)
+        val serverConfig = preferences.createServerConfig()
+        val trackConfig = preferences.createTrackConfig()
         return if (serverConfig != null && trackConfig != null) {
             val trackService = TrackService.create(serverConfig)
             locationUpdaterActor(trackService, trackConfig, crScope)
         } else null
-    }
-
-    companion object {
-        /** Shared preferences property for the track server URI.*/
-        private const val propServerUri = "trackServerUri"
-
-        /** Shared preferences property for the base path on the server.*/
-        private const val propBasePath = "trackRelativePath"
-
-        /** Shared preferences property for the user name.*/
-        private const val propUser = "userName"
-
-        /** Shared preferences property for the password.*/
-        private const val propPassword = "password"
-
-        /** Shared preferences property for the minimum track interval.*/
-        private const val propMinTrackInterval = "minTrackInterval"
-
-        /** Shared preferences property for the maximum track interval.*/
-        private const val propMaxTrackInterval = "maxTrackInterval"
-
-        /** Shared preferences property for the increment interval.*/
-        private const val propIdleIncrement = "intervalIncrementOnIdle"
-
-        /** Shared preferences property for the increment interval.*/
-        private const val propLocationValidity = "locationValidity"
-
-        /** Constant for an undefined numeric property.*/
-        private const val undefinedNumber = -1
-
-        /** String value of an undefined numeric property.*/
-        private const val undefinedNumberStr = undefinedNumber.toString()
-
-        /**
-         * Creates a _ServerConfig_ object from the given preferences. If
-         * mandatory properties are missing, result is *null*.
-         * @param pref the preferences
-         * @return the server configuration or *null*
-         */
-        private fun createServerConfig(pref: SharedPreferences): ServerConfig? {
-            val serverUri = pref.getString(propServerUri, null)
-            val basePath = pref.getString(propBasePath, null)
-            val user = pref.getString(propUser, null)
-            val password = pref.getString(propPassword, null)
-            return if (serverUri == null || basePath == null || user == null || password == null) {
-                return null
-            } else ServerConfig(serverUri, basePath, user, password)
-        }
-
-        /**
-         * Creates a _TrackConfig_ object from the given preferences. If
-         * mandatory properties are missing, result is *null*.
-         * @param pref the preferences
-         * @return the track configuration or *null*
-         */
-        private fun createTrackConfig(pref: SharedPreferences): TrackConfig? {
-            val minTrackInterval = pref.getNumeric(propMinTrackInterval)
-            val maxTrackInterval = pref.getNumeric(propMaxTrackInterval)
-            val intervalIncrementOnIdle = pref.getNumeric(propIdleIncrement)
-            val locationValidity = pref.getNumeric(propLocationValidity)
-            return if (minTrackInterval < 0 || maxTrackInterval < 0 || intervalIncrementOnIdle < 0 ||
-                locationValidity < 0
-            ) {
-                return null
-            } else TrackConfig(
-                minTrackInterval, maxTrackInterval, intervalIncrementOnIdle,
-                locationValidity
-            )
-        }
-
-        /**
-         * Extension function to query a numeric property from a preferences
-         * object. From the settings screen, the properties are stored as
-         * strings. Therefore, a conversion has to be done.
-         * @param key the key to be queried
-         * @return the numeric value of this key
-         */
-        private fun SharedPreferences.getNumeric(key: String): Int =
-            getString(key, undefinedNumberStr)?.toInt() ?: undefinedNumber
     }
 }
 
