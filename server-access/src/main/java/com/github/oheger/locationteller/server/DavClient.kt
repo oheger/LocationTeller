@@ -48,13 +48,11 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      * @param content the content of the new file
      * @return a flag whether this operation was successful
      */
-    suspend fun upload(path: String, content: String): Boolean {
-        val response = httpClient.put<HttpResponse>(resolvePath(path)) {
+    suspend fun upload(path: String, content: String): Boolean =
+        httpClient.put<HttpResponse>(resolvePath(path)) {
             body = content
             header(HeaderAuthorization, authorizationHeader)
-        }
-        return response.status.isSuccess()
-    }
+        }.use { it.status.isSuccess() }
 
     /**
      * Loads a folder from the server and returns an object with its content.
@@ -71,24 +69,25 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
     suspend fun loadFolder(path: String): DavFolder {
         val resolvedPath = appendSeparator(resolvePath(path))
         try {
-            val response = httpClient.request<HttpResponse>(resolvedPath) {
+            return httpClient.request<HttpResponse>(resolvedPath) {
                 method = HttpMethod(MethodPropFind)
                 header(HeaderAccept, MediaXml)
                 header(HeaderDepth, DepthValue)
                 header(HeaderAuthorization, authorizationHeader)
-            }
-            if (!response.status.isSuccess()) {
-                log.error("Failure status ${response.status.value} when loading folder $path.")
-                return DummyFolder
-            }
-            val folderContent = response.readBytes()
-            val contentStream = ByteArrayInputStream(folderContent)
+            }.use { response ->
+                if (!response.status.isSuccess()) {
+                    log.error("Failure status ${response.status.value} when loading folder $path.")
+                    return DummyFolder
+                }
+                val folderContent = response.readBytes()
+                val contentStream = ByteArrayInputStream(folderContent)
 
-            val handler = FolderContentSaxHandler()
-            val parserFactory = SAXParserFactory.newInstance()
-            val parser = parserFactory.newSAXParser()
-            parser.parse(contentStream, handler)
-            return DavFolder(path, handler.folderContent())
+                val handler = FolderContentSaxHandler()
+                val parserFactory = SAXParserFactory.newInstance()
+                val parser = parserFactory.newSAXParser()
+                parser.parse(contentStream, handler)
+                DavFolder(path, handler.folderContent())
+            }
         } catch (e: Exception) {
             log.error("Could not load content of folder $resolvedPath.", e)
             return DummyFolder
@@ -100,12 +99,10 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      * @param path the path to the element to be removed
      * @return a flag whether this operation was successful
      */
-    suspend fun delete(path: String): Boolean {
-        val response = httpClient.delete<HttpResponse>(resolvePath(path)) {
+    suspend fun delete(path: String): Boolean =
+        httpClient.delete<HttpResponse>(resolvePath(path)) {
             header(HeaderAuthorization, authorizationHeader)
-        }
-        return response.status.isSuccess()
-    }
+        }.use { it.status.isSuccess() }
 
     /**
      * Creates a folder under the given path.
@@ -114,15 +111,15 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      */
     suspend fun createFolder(path: String): Boolean {
         val resolvedPath = appendSeparator(resolvePath(path))
-        val response = httpClient.request<HttpResponse>(resolvedPath) {
+        return httpClient.request<HttpResponse>(resolvedPath) {
             method = HttpMethod("MKCOL")
             header(HeaderAuthorization, authorizationHeader)
+        }.use { response ->
+            // Status 'Method not allowed' is returned if the folder already exists.
+            // This is treated as success here because for the further proceeding it
+            // only matters that the folder exists.
+            return response.status.isSuccess() || response.status.value == StatusMethodNotAllowed
         }
-
-        // Status 'Method not allowed' is returned if the folder already exists.
-        // This is treated as success here because for the further proceeding it
-        // only matters that the folder exists.
-        return response.status.isSuccess() || response.status.value == StatusMethodNotAllowed
     }
 
     /**
@@ -135,10 +132,9 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
     suspend fun readFile(path: String): String {
         val resolvedPath = resolvePath(path)
         return try {
-            val response = httpClient.get<HttpResponse>(resolvedPath) {
+            return httpClient.get<HttpResponse>(resolvedPath) {
                 header(HeaderAuthorization, authorizationHeader)
-            }
-            response.readText()
+            }.use { it.readText() }
         } catch (e: Exception) {
             log.error("Could not read file $resolvedPath.", e)
             ""
