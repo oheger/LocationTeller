@@ -18,7 +18,6 @@ package com.github.oheger.locationteller.ui
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
@@ -26,6 +25,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.LocationTellerService
+import com.github.oheger.locationteller.track.PreferencesHandler
 import kotlinx.android.synthetic.main.activity_main.*
 
 /**
@@ -36,9 +36,6 @@ import kotlinx.android.synthetic.main.activity_main.*
  * management tasks.
  */
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
-    /** Constant for the preferences key for the tracking state.*/
-    private val keyTrackState = "trackEnabled"
-
     private val logTag = "MainActivity"
 
     private lateinit var appBarConfig: AppBarConfiguration
@@ -57,13 +54,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     override fun onPostResume() {
         super.onPostResume()
-        PreferenceManager.getDefaultSharedPreferences(this)
-            .registerOnSharedPreferenceChangeListener(this)
+        val handler = PreferencesHandler.create(this)
+        handler.preferences.registerOnSharedPreferenceChangeListener(this)
     }
 
     override fun onPause() {
-        PreferenceManager.getDefaultSharedPreferences(this)
-            .unregisterOnSharedPreferenceChangeListener(this)
+        val handler = PreferencesHandler.create(this)
+        handler.preferences.unregisterOnSharedPreferenceChangeListener(this)
         super.onPause()
     }
 
@@ -77,11 +74,12 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
      */
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
         Log.d(logTag, "Change of shared properties. Affected key is $key.")
-        if (keyTrackState == key) {
+        if (PreferencesHandler.propTrackState == key) {
             Intent(this, LocationTellerService::class.java).also { startService(it) }
-        } else {
-            if (sharedPreferences.getBoolean(keyTrackState, false)) {
-                sharedPreferences.edit().putBoolean(keyTrackState, false).apply()
+        } else if (PreferencesHandler.isConfigProperty(key)) {
+            val handler = PreferencesHandler(sharedPreferences)
+            if (handler.isTrackingEnabled()) {
+                handler.setTrackingEnabled(false)
             }
         }
     }

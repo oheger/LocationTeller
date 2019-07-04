@@ -66,6 +66,34 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
+     * Updates a _SharedPreferences_ object. This function obtains an editor
+     * from the preferences, invokes the block on it and finally applies the
+     * changes.
+     * @param block the lambda to update the preferences
+     */
+    fun update(block: SharedPreferences.(SharedPreferences.Editor) -> Unit) {
+        val editor = preferences.edit()
+        block.invoke(preferences, editor)
+        editor.apply()
+    }
+
+    /**
+     * Checks whether tracking is currently active. This is determined by a
+     * special property.
+     * @return a flag whether tracking is active
+     */
+    fun isTrackingEnabled(): Boolean =
+        preferences.getBoolean(propTrackState, false)
+
+    /**
+     * Updates the tracking enabled state in the managed preferences.
+     * @param flag the new tracking state
+     */
+    fun setTrackingEnabled(flag: Boolean) {
+        update { editor -> editor.putBoolean(propTrackState, flag) }
+    }
+
+    /**
      * Extension function to query a numeric property from a preferences
      * object. From the settings screen, the properties are stored as
      * strings. Therefore, a conversion has to be done.
@@ -100,11 +128,18 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the increment interval.*/
         const val propLocationValidity = "locationValidity"
 
+        /** Shared preferences property for the tracking state.*/
+        const val propTrackState = "trackEnabled"
+
         /** Constant for an undefined numeric property.*/
         private const val undefinedNumber = -1
 
         /** String value of an undefined numeric property.*/
         private const val undefinedNumberStr = undefinedNumber.toString()
+
+        /** A set with all properties related to configuration.*/
+        private val configProps = setOf(propServerUri, propBasePath, propUser, propPassword,
+            propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity)
 
         /**
          * Creates a _PreferencesHandler_ object based on the given context.
@@ -115,5 +150,14 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             val pref = PreferenceManager.getDefaultSharedPreferences(context)
             return PreferencesHandler(pref)
         }
+
+        /**
+         * Checks whether the given property is related to the configuration
+         * of the application. (Other properties contain persistent application
+         * state.)
+         * @param prop the property in question
+         * @return *true* for a configuration property; *false* otherwise
+         */
+        fun isConfigProperty(prop: String): Boolean = configProps.contains(prop)
     }
 }

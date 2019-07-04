@@ -22,7 +22,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.preference.PreferenceManager
 import android.util.Log
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
@@ -154,9 +153,9 @@ class LocationTellerService(
      * now possible. If so, it is triggered.
      */
     private fun tellLocation() = launch {
-        val pref = PreferenceManager.getDefaultSharedPreferences(this@LocationTellerService)
+        val handler = PreferencesHandler.create(this@LocationTellerService)
         val retriever = locationRetriever
-        if (retriever != null && pref.getBoolean("trackEnabled", false)) {
+        if (retriever != null && handler.isTrackingEnabled()) {
             Log.i(tag, "Triggering location update.")
             val nextUpdate = retriever.retrieveAndUpdateLocation()
             scheduleNextExecution(nextUpdate)
