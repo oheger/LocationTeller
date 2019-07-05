@@ -17,19 +17,21 @@ package com.github.oheger.locationteller.ui
 
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RadioGroup
+import android.widget.TextView
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.track.PreferencesHandler
 import kotlinx.android.synthetic.main.fragment_track.*
+import java.text.DateFormat
+import java.util.*
 
 /**
  * A fragment that allows enabling or disabling the tracking functionality.
  */
-class TrackFragment : androidx.fragment.app.Fragment() {
+class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnSharedPreferenceChangeListener {
     private val logTag = "TrackFragment"
 
     override fun onCreateView(
@@ -43,19 +45,71 @@ class TrackFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        switchTrackEnabled.isChecked = sharedPreferences().getBoolean("trackEnabled", false)
         switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
             Log.i(logTag, "Set track enabled state to $checked.")
-            with(sharedPreferences().edit()) {
-                putBoolean("trackEnabled", checked)
-                apply()
-            }
+            fetchPreferences().setTrackingEnabled(checked)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        initUI()
+        PreferencesHandler.registerListener(context!!, this)
+    }
+
+    override fun onPause() {
+        PreferencesHandler.unregisterListener(context!!, this)
+        super.onPause()
+    }
+
+    /**
+     * Reacts on changes on preferences keys. If the key affected impacts the
+     * UI of this fragment, it is updated.
+     */
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
+        if (PreferencesHandler.propLastUpdate == key || PreferencesHandler.propLastError == key ||
+            PreferencesHandler.propTrackState == key
+        ) {
+            initUI()
         }
     }
 
     /**
-     * Returns the shared preferences object.
-     * @return the shared preferences
+     * Returns a handler for the current preferences.
+     * @return the _PreferencesHandler_
      */
-    private fun sharedPreferences(): SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+    private fun fetchPreferences(): PreferencesHandler = PreferencesHandler.create(context!!)
+
+    /**
+     * Initializes the UI of this fragment based on the current preferences
+     * values.
+     */
+    private fun initUI() {
+        val prefHandler = fetchPreferences()
+        switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
+
+        val formatter = DateFormat.getTimeInstance(DateFormat.MEDIUM)
+        initTimeComponent(labError, txtLastErrorTime, formatter, prefHandler.lastError())
+        initTimeComponent(textView2, txtLastUpdateTime, formatter, prefHandler.lastUpdate())
+    }
+
+    /**
+     * Initializes a time component with a nullable time. If the time is
+     * defined, it is set for the field, and the field is made visible.
+     * Otherwise, the field is removed.
+     * @param label the label view
+     * @param field the field view
+     * @param formatter the formatter object
+     * @param date the date to be displayed
+     */
+    private fun initTimeComponent(label: View, field: TextView, formatter: DateFormat, date: Date?) {
+        if (date != null) {
+            label.visibility = View.VISIBLE
+            field.visibility = View.VISIBLE
+            field.text = formatter.format(date)
+        } else {
+            label.visibility = View.GONE
+            field.visibility = View.GONE
+        }
+    }
 }

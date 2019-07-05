@@ -52,15 +52,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         nav_view.setupWithNavController(navCtrl)
     }
 
-    override fun onPostResume() {
-        super.onPostResume()
-        val handler = PreferencesHandler.create(this)
-        handler.preferences.registerOnSharedPreferenceChangeListener(this)
+    override fun onResume() {
+        super.onResume()
+        PreferencesHandler.registerListener(this, this)
     }
 
     override fun onPause() {
-        val handler = PreferencesHandler.create(this)
-        handler.preferences.unregisterOnSharedPreferenceChangeListener(this)
+        PreferencesHandler.unregisterListener(this, this)
         super.onPause()
     }
 

@@ -19,4 +19,5 @@
     <string name="pref_password">Password</string>
     <string name="lab_track_enabled">Tracking enabled</string>
     <string name="lab_last_location_update">Last location update:</string>
+    <string name="lab_last_error">Last error:</string>
 </resources>
