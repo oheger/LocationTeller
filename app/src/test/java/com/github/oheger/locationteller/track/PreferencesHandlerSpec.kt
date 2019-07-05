@@ -15,7 +15,9 @@
  */
 package com.github.oheger.locationteller.track
 
+import android.content.Context
 import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
@@ -119,6 +121,68 @@ class PreferencesHandlerSpec : StringSpec() {
                 editor.remove(PreferencesHandler.propLastError)
                 editor.apply()
             }
+        }
+
+        "PreferencesHandler should return the last error time" {
+            val errorTime = 20190705180422L
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(PreferencesHandler.propLastError) } returns true
+            every { pref.getLong(PreferencesHandler.propLastError, 0) } returns errorTime
+            val handler = PreferencesHandler(pref)
+
+            val errorDate = handler.lastError()
+            errorDate!!.time shouldBe errorTime
+        }
+
+        "PreferencesHandler should return null for the last error if undefined" {
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(PreferencesHandler.propLastError) } returns false
+            val handler = PreferencesHandler(pref)
+
+            handler.lastError() shouldBe null
+        }
+
+        "PreferencesHandler should return the last update time" {
+            val updateTime = 20190705181104L
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(PreferencesHandler.propLastUpdate) } returns true
+            every { pref.getLong(PreferencesHandler.propLastUpdate, 0) } returns updateTime
+            val handler = PreferencesHandler(pref)
+
+            val errorDate = handler.lastUpdate()
+            errorDate!!.time shouldBe updateTime
+        }
+
+        "PreferencesHandler should return null for the last update if undefined" {
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(PreferencesHandler.propLastUpdate) } returns false
+            val handler = PreferencesHandler(pref)
+
+            handler.lastUpdate() shouldBe null
+        }
+
+        "PreferencesHandler should support the registration of change listeners" {
+            mockkStatic(PreferenceManager::class)
+            val pref = mockk<SharedPreferences>()
+            val context = mockk<Context>()
+            val listener = mockk<SharedPreferences.OnSharedPreferenceChangeListener>()
+            every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
+            every { pref.registerOnSharedPreferenceChangeListener(listener) } just runs
+
+            PreferencesHandler.registerListener(context, listener)
+            verify { pref.registerOnSharedPreferenceChangeListener(listener) }
+        }
+
+        "PreferencesHandler should support removing of change listeners" {
+            mockkStatic(PreferenceManager::class)
+            val pref = mockk<SharedPreferences>()
+            val context = mockk<Context>()
+            val listener = mockk<SharedPreferences.OnSharedPreferenceChangeListener>()
+            every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
+            every { pref.unregisterOnSharedPreferenceChangeListener(listener) } just runs
+
+            PreferencesHandler.unregisterListener(context, listener)
+            verify { pref.unregisterOnSharedPreferenceChangeListener(listener) }
         }
     }
 }

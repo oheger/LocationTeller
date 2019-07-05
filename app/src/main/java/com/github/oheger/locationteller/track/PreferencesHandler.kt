@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import com.github.oheger.locationteller.server.ServerConfig
+import java.util.*
 
 /**
  * A class managing access to the preferences for the location teller
@@ -114,6 +115,36 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
+     * Returns a _Date_ with the last error that happened. Result is *null* if
+     * the last update was successful.
+     * @return the date of the last error
+     */
+    fun lastError(): Date? = preferences.getDate(propLastError)
+
+    /**
+     * Returns a _Date_ when the last updated took place. Result is *null* if
+     * no update has been recorded so far.
+     * @return the date of the last update
+     */
+    fun lastUpdate(): Date? = preferences.getDate(propLastUpdate)
+
+    /**
+     * Registers the given change listener at the managed preferences.
+     * @param listener the listener to be registered
+     */
+    fun registerListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    /**
+     * Removes the given change listener from the managed preferences.
+     * @param listener the listener to be removed
+     */
+    fun unregisterListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        preferences.unregisterOnSharedPreferenceChangeListener(listener)
+    }
+
+    /**
      * Extension function to query a numeric property from a preferences
      * object. From the settings screen, the properties are stored as
      * strings. Therefore, a conversion has to be done.
@@ -122,6 +153,19 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      */
     private fun SharedPreferences.getNumeric(key: String): Int =
         getString(key, undefinedNumberStr)?.toInt() ?: undefinedNumber
+
+    /**
+     * Extension function to query a _Date_ property from a preferences
+     * object. The actual type of the property is _Long_. If it is defined, it
+     * is converted to a _Date_. Otherwise, result is *null*.
+     * @param key the key to be queried
+     * @return the _Date_ value of the property or *null*
+     */
+    private fun SharedPreferences.getDate(key: String): Date? =
+        if (contains(key)) {
+            val time = getLong(key, 0)
+            Date(time)
+        } else null
 
     companion object {
         /** Shared preferences property for the track server URI.*/
@@ -187,5 +231,23 @@ class PreferencesHandler(val preferences: SharedPreferences) {
          * @return *true* for a configuration property; *false* otherwise
          */
         fun isConfigProperty(prop: String): Boolean = configProps.contains(prop)
+
+        /**
+         * Registers a preferences change listener at the default preferences.
+         * @param context the current context
+         * @param listener the listener
+         */
+        fun registerListener(context: Context, listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+            create(context).registerListener(listener)
+        }
+
+        /**
+         * Removes the given change listener from the default preferences.
+         * @param context the current context
+         * @param listener the listener
+         */
+        fun unregisterListener(context: Context, listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+            create(context).unregisterListener(listener)
+        }
     }
 }
