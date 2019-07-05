@@ -157,7 +157,7 @@ class LocationTellerService(
         val retriever = locationRetriever
         if (retriever != null && handler.isTrackingEnabled()) {
             Log.i(tag, "Triggering location update.")
-            val nextUpdate = retriever.retrieveAndUpdateLocation()
+            val nextUpdate = retriever.retrieveAndUpdateLocation(handler)
             scheduleNextExecution(nextUpdate)
         } else {
             Log.i(tag, "No location update possible. Stopping service.")

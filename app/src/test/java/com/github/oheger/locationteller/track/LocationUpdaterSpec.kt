@@ -57,7 +57,10 @@ class LocationUpdaterSpec : StringSpec() {
                     trackService.removeOutdated(expRefTime)
                     trackService.addLocation(locUpdate.locationData)
                 }
-                verify { trackService.resetClient() }
+                verify {
+                    trackService.resetClient()
+                    locUpdate.prefHandler.recordUpdate(locUpdate.locationData.time.currentTime)
+                }
             }
         }
 
@@ -75,6 +78,10 @@ class LocationUpdaterSpec : StringSpec() {
                 coVerify(exactly = 1) {
                     trackService.addLocation(any())
                     trackService.resetClient()
+                }
+                verify(exactly = 0) {
+                    locUpdate2.prefHandler.recordUpdate(any())
+                    locUpdate2.prefHandler.recordError(any())
                 }
             }
         }
@@ -131,11 +138,29 @@ class LocationUpdaterSpec : StringSpec() {
             }
         }
 
+        "LocationUpdaterActor should record an error if an update fails" {
+            val trackService = createTrackService()
+            val prefHandler = mockk<PreferencesHandler>()
+            val locUpdate = locationUpdate(locationData(1), prefHandler)
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returns false
+            every { prefHandler.recordError(locUpdate.locationData.time.currentTime) } just runs
+
+            runActorTest(trackService, defaultConfig) { actor ->
+                actor.send(locUpdate)
+            }
+            verify {
+                prefHandler.recordError(locUpdate.locationData.time.currentTime)
+            }
+        }
+
         "LocationUpdaterActor should treat an unknown location data as error" {
             val trackService = createTrackService()
-            val locUpdate = locationUpdate(unknownLocation)
+            val prefHandler = mockk<PreferencesHandler>()
+            val locUpdate = locationUpdate(unknownLocation, prefHandler)
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
+            every { prefHandler.recordError(locUpdate.locationData.time.currentTime) } just runs
 
             runActorTest(trackService, defaultConfig) { actor ->
                 actor.send(locationUpdate(2))
@@ -143,6 +168,7 @@ class LocationUpdaterSpec : StringSpec() {
                 locUpdate.nextTrackDelay.await() shouldBe defaultConfig.minTrackInterval
             }
             coVerify(exactly = 0) { trackService.addLocation(unknownLocation) }
+            verify(exactly = 0) { prefHandler.recordUpdate(any()) }
         }
     }
 
@@ -167,8 +193,11 @@ class LocationUpdaterSpec : StringSpec() {
          * @param locData the _LocationData_
          * @return the update object for this data
          */
-        private fun locationUpdate(locData: LocationData): LocationUpdate =
-            LocationUpdate(locData, CompletableDeferred())
+        private fun locationUpdate(
+            locData: LocationData,
+            prefHandler: PreferencesHandler = createPrefHandler()
+        ): LocationUpdate =
+            LocationUpdate(locData, CompletableDeferred(), prefHandler)
 
         /**
          * Convenience function to create _LocationUpdate_ object for a test
@@ -178,6 +207,12 @@ class LocationUpdaterSpec : StringSpec() {
          */
         private fun locationUpdate(index: Int): LocationUpdate =
             locationUpdate(locationData(index))
+
+        /**
+         * Creates a mock for a _PreferencesHandler_.
+         * @return the mock handler
+         */
+        private fun createPrefHandler(): PreferencesHandler = mockk(relaxed = true)
 
         /**
          * Executes a test on an actor. The actor is obtained, and the given

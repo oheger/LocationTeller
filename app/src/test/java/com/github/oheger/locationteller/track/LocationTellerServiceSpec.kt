@@ -330,13 +330,13 @@ class LocationTellerServiceSpec : StringSpec() {
             }
 
             /**
-             * Verifies that the retriever was alled to trigger a location
+             * Verifies that the retriever was called to trigger a location
              * update.
              * @return this test helper
              */
             fun verifyLocationUpdateTriggered(): TellerServiceTestHelper {
                 coVerify(timeout = timeout) {
-                    retriever.retrieveAndUpdateLocation()
+                    retriever.retrieveAndUpdateLocation(any())
                 }
                 return this
             }
@@ -353,14 +353,17 @@ class LocationTellerServiceSpec : StringSpec() {
                 val service = LocationTellerService(updaterFactory, retrieverFactory, timeService)
                 mockkStatic(PendingIntent::class)
                 every { PendingIntent.getService(any(), 0, any(), 0) } returns pendingIntent
-                preparePreferences(null, trackingEnabled = trackingEnabled)
+                val prefs = preparePreferences(null, trackingEnabled = trackingEnabled)
 
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
                 every { updaterFactory.createActor(any(), any()) } returns actor
                 if (actor != null) {
                     every { retrieverFactory.createRetriever(any(), actor) } returns retriever
                 }
-                coEvery { retriever.retrieveAndUpdateLocation() } returns nextUpdateInterval
+                coEvery { retriever.retrieveAndUpdateLocation(any()) } answers {
+                    arg<PreferencesHandler>(0).preferences shouldBe prefs
+                    nextUpdateInterval
+                }
                 every { timeService.currentTime() } returns TimeData(elapsedTime)
 
                 val serviceSpy = spyk(service)

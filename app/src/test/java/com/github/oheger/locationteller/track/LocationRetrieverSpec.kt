@@ -85,6 +85,7 @@ class LocationRetrieverSpec : StringSpec() {
             val actor = mockk<SendChannel<LocationUpdate>>()
             val timeService = mockk<TimeService>()
             val location = mockk<Location>()
+            val prefHandler = mockk<PreferencesHandler>()
             val task = createPreparedTaskMock()
             val locClient = createLocationClient(task)
             every { location.latitude } returns latitude
@@ -97,11 +98,12 @@ class LocationRetrieverSpec : StringSpec() {
                 locUpdate.locationData.latitude shouldBeExactly latitude
                 locUpdate.locationData.longitude shouldBeExactly longitude
                 locUpdate.locationData.time shouldBe currentTime
+                locUpdate.prefHandler shouldBe prefHandler
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
             val retriever = LocationRetriever(locClient, actor, timeService)
 
-            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
+            retriever.retrieveAndUpdateLocation(prefHandler) shouldBe nextUpdate
         }
 
         "LocationRetriever should handle a failure when retrieving the location" {
@@ -111,7 +113,7 @@ class LocationRetrieverSpec : StringSpec() {
             every { task.exception } returns Exception("No location")
             val retriever = LocationRetriever(locClient, actor, mockk())
 
-            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
+            retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
         }
     }
 

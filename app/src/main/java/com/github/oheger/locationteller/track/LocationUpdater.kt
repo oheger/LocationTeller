@@ -34,12 +34,21 @@ val unknownLocation = LocationData(0.0, 0.0, TimeData(0))
  * Data class for the messages processed by location updater actor.
  *
  * The message contains a new location and a _CompletableDeferred_ that is used
- * to communicate the next update time to the caller.
+ * to communicate the next update time to the caller. Also, a
+ * [PreferencesHandler] is contained allowing access to the shared preferences
+ * of the application.
  */
 data class LocationUpdate(
     val locationData: LocationData,
-    val nextTrackDelay: CompletableDeferred<Int>
-)
+    val nextTrackDelay: CompletableDeferred<Int>,
+    val prefHandler: PreferencesHandler
+) {
+    /**
+     * Returns the time of this update.
+     * @return the update time
+     */
+    fun updateTime(): Long = locationData.time.currentTime
+}
 
 /**
  * A function providing an actor that guards adding new location data via a
@@ -77,7 +86,11 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                                 trackConfig.locationValidity * 1000
                     )
                     trackService.removeOutdated(outdatedRefTime)
-                    trackService.addLocation(locUpdate.locationData)
+                    if (trackService.addLocation(locUpdate.locationData)) {
+                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime())
+                    } else {
+                        locUpdate.prefHandler.recordError(locUpdate.updateTime())
+                    }
                     trackService.resetClient()
                 }
                 //TODO implement error handling
