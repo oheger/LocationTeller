@@ -19,36 +19,36 @@ import android.location.Location
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.android.gms.tasks.Task
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import io.kotlintest.TestCase
+import io.kotlintest.TestResult
+import io.kotlintest.extensions.TestListener
+import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.matchers.doubles.shouldBeExactly
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Test class for [LocationRetriever].
  */
+@ExperimentalCoroutinesApi
 class LocationRetrieverSpec : StringSpec() {
     /** Constant for the next update time to be returned by the mock actor.*/
     private val nextUpdate = 42
 
-    /**
-     * Creates a mock task that is prepared to handle the registration of a
-     * completion listener.
-     * @param success the success flag to be returned by the task
-     * @return the mock task
-     */
-    private fun createPreparedTaskMock(success: Boolean = true): Task<Location> {
-        val task = mockk<Task<Location>>()
-        every { task.addOnCompleteListener(any()) } answers {
-            arg<OnCompleteListener<Location>>(0).onComplete(task)
-            task
-        }
-        every { task.isSuccessful } returns success
-        return task
-    }
+    override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 
     /**
      * Creates a mock for an updater actor that is prepared to expect a message
@@ -66,15 +66,14 @@ class LocationRetrieverSpec : StringSpec() {
     }
 
     /**
-     * Creates a mock for a location client that is prepared to return the
-     * given task when asked for the last location.
-     * @param task the task to be returned by the mock
-     * @return the mock location client
+     * Installs a mock dispatcher for the main thread.
+     * @return the mock dispatcher
      */
-    private fun createLocationClient(task: Task<Location>): FusedLocationProviderClient {
-        val locClient = mockk<FusedLocationProviderClient>()
-        every { locClient.lastLocation } returns task
-        return locClient
+    @ExperimentalCoroutinesApi
+    private fun initDispatcher(): MockDispatcher {
+        val dispatcher = MockDispatcher()
+        Dispatchers.setMain(dispatcher)
+        return dispatcher
     }
 
     init {
@@ -85,14 +84,25 @@ class LocationRetrieverSpec : StringSpec() {
             val actor = mockk<SendChannel<LocationUpdate>>()
             val timeService = mockk<TimeService>()
             val location = mockk<Location>()
+            val locResult = mockk<LocationResult>()
             val prefHandler = mockk<PreferencesHandler>()
-            val task = createPreparedTaskMock()
-            val locClient = createLocationClient(task)
+            val locClient = mockk<FusedLocationProviderClient>()
+            val refCallback = AtomicReference<LocationCallback>()
             every { location.latitude } returns latitude
             every { location.longitude } returns longitude
-            every { locClient.lastLocation } returns task
+            every { locResult.lastLocation } returns location
+            every { locClient.requestLocationUpdates(any(), any(), null) } answers {
+                val request = arg<LocationRequest>(0)
+                request.interval shouldBe 5000L
+                request.fastestInterval shouldBe request.interval
+                request.priority shouldBe LocationRequest.PRIORITY_HIGH_ACCURACY
+                val callback = arg<LocationCallback>(1)
+                callback.onLocationResult(locResult)
+                refCallback.set(callback)
+                null
+            }
+            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             every { timeService.currentTime() } returns currentTime
-            every { task.result } returns location
             coEvery { actor.send(any()) } answers {
                 val locUpdate = arg<LocationUpdate>(0)
                 locUpdate.locationData.latitude shouldBeExactly latitude
@@ -101,20 +111,53 @@ class LocationRetrieverSpec : StringSpec() {
                 locUpdate.prefHandler shouldBe prefHandler
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
+            val dispatcher = initDispatcher()
             val retriever = LocationRetriever(locClient, actor, timeService)
 
             retriever.retrieveAndUpdateLocation(prefHandler) shouldBe nextUpdate
+            dispatcher.tasks shouldHaveSize 1
+            verify { locClient.removeLocationUpdates(refCallback.get()) }
         }
 
         "LocationRetriever should handle a failure when retrieving the location" {
             val actor = createMockActorExpectingError()
-            val task = createPreparedTaskMock(success = false)
-            val locClient = createLocationClient(task)
-            every { task.exception } returns Exception("No location")
+            val locClient = mockk<FusedLocationProviderClient>()
+            every { locClient.requestLocationUpdates(any(), any(), null) } answers {
+                val callback = arg<LocationCallback>(1)
+                callback.onLocationResult(null)
+                null
+            }
+            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
+            initDispatcher()
             val retriever = LocationRetriever(locClient, actor, mockk())
 
             retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
+            coVerify { actor.send(any()) }
         }
     }
 
+    /**
+     * A mock dispatcher implementation. This is used to check whether some
+     * actions are correctly executed on the main thread.
+     */
+    class MockDispatcher : CoroutineDispatcher() {
+        /** Stores the tasks that have been dispatched.*/
+        val tasks = mutableListOf<Runnable>()
+
+        /**
+         * This implementation records the task to be executed and executes it
+         * directly.
+         */
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            tasks += block
+            block.run()
+        }
+    }
+
+    object ResetDispatcherListener : TestListener {
+        @ExperimentalCoroutinesApi
+        override fun afterTest(testCase: TestCase, result: TestResult) {
+            Dispatchers.resetMain()
+        }
+    }
 }

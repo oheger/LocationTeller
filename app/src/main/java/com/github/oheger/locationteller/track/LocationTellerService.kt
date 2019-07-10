@@ -23,6 +23,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.server.TrackService
@@ -133,6 +135,7 @@ class LocationTellerService(
             Log.i(tag, "Configuration complete. Updater actor could be created.")
             locationRetriever = retrieverFactory.createRetriever(this, updaterActor)
         }
+        startForegroundService()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -153,12 +156,14 @@ class LocationTellerService(
      * now possible. If so, it is triggered.
      */
     private fun tellLocation() = launch {
+        scheduleNextExecution(300)
         val handler = PreferencesHandler.create(this@LocationTellerService)
+        handler.recordError(System.currentTimeMillis())
         val retriever = locationRetriever
         if (retriever != null && handler.isTrackingEnabled()) {
-            Log.i(tag, "Triggering location update.")
-            val nextUpdate = retriever.retrieveAndUpdateLocation(handler)
-            scheduleNextExecution(nextUpdate)
+                Log.i(tag, "Triggering location update.")
+                val nextUpdate = retriever.retrieveAndUpdateLocation(handler)
+                scheduleNextExecution(nextUpdate)
         } else {
             Log.i(tag, "No location update possible. Stopping service.")
             stopSelf()
@@ -175,6 +180,7 @@ class LocationTellerService(
         val nextUpdateTime = timeService.currentTime().currentTime + 1000L * nextUpdate
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Log.i(tag, "Even if idle!")
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP, nextUpdateTime,
                 pendingIntent
@@ -182,5 +188,11 @@ class LocationTellerService(
         } else {
             alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, nextUpdateTime, pendingIntent)
         }
+    }
+
+    private fun startForegroundService() {
+         val builder = NotificationCompat.Builder(this, "trackChannel")
+             .setSmallIcon(R.drawable.ic_launcher_foreground)
+        startForeground(1, builder.build())
     }
 }

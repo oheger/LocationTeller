@@ -20,8 +20,14 @@ import android.util.Log
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeService
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -41,9 +47,6 @@ class LocationRetriever(
     val locationUpdateActor: SendChannel<LocationUpdate>,
     val timeService: TimeService
 ) {
-    /** Tag for logging.*/
-    private val tag = "LocationRetriever"
-
     /**
      * Sends the last known location to the actor for updating the server. The
      * result is the duration in seconds when the next location update should
@@ -64,14 +67,11 @@ class LocationRetriever(
      * this object.
      * @return the last known location
      */
-    private suspend fun fetchLocation(): Location? = suspendCoroutine { cont ->
-        locationClient.lastLocation.addOnCompleteListener { task ->
-            val location = if (task.isSuccessful) task.result
-            else {
-                Log.e(tag, "Error when retrieving location!", task.exception)
-                null
-            }
-            cont.resumeWith(Result.success(location))
+    private suspend fun fetchLocation(): Location? = withContext(Dispatchers.Main) {
+        suspendCoroutine<Location?> { cont ->
+            val callback = createLocationCallback(cont)
+            locationClient.requestLocationUpdates(locationRequest, callback, null)
+            Log.d(tag, "Requested location update.")
         }
     }
 
@@ -93,5 +93,35 @@ class LocationRetriever(
     private fun locationUpdateFor(location: Location?, prefHandler: PreferencesHandler): LocationUpdate {
         val locData = location?.toLocationData() ?: unknownLocation
         return LocationUpdate(locData, CompletableDeferred(), prefHandler)
+    }
+
+    /**
+     * Creates a callback to be invoked when a new location is available. This
+     * location is returned as result of the _fetchLocation()_ co-routine.
+     * @param cont the continuation object
+     * @return the callback to receive a location
+     */
+    private fun createLocationCallback(cont: Continuation<Location?>): LocationCallback =
+        object : LocationCallback() {
+            override fun onLocationResult(result: LocationResult?) {
+                Log.d(tag, "Got location result $result.")
+                locationClient.removeLocationUpdates(this)
+                cont.resumeWith(Result.success(result?.lastLocation))
+            }
+        }
+
+    companion object {
+        /** Tag for logging.*/
+        private const val tag = "LocationRetriever"
+
+        /** The interval to request updates from the location provider.*/
+        private const val updateInterval = 5000L
+
+        /** The request for a location update.*/
+        private val locationRequest = LocationRequest.create().apply {
+            interval = updateInterval
+            fastestInterval = updateInterval
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        }
     }
 }
