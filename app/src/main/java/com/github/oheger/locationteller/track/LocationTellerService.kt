@@ -152,18 +152,24 @@ class LocationTellerService(
     override fun onBind(intent: Intent?): IBinder? = null
 
     /**
+     * Obtains a builder for creating the notification required for the
+     * foreground service.
+     * @return the notification builder
+     */
+    internal fun notificationBuilder(): NotificationCompat.Builder =
+        NotificationCompat.Builder(this, "trackChannel")
+
+    /**
      * The main function of this service. Checks whether a location update is
      * now possible. If so, it is triggered.
      */
     private fun tellLocation() = launch {
-        scheduleNextExecution(300)
         val handler = PreferencesHandler.create(this@LocationTellerService)
-        handler.recordError(System.currentTimeMillis())
         val retriever = locationRetriever
         if (retriever != null && handler.isTrackingEnabled()) {
-                Log.i(tag, "Triggering location update.")
-                val nextUpdate = retriever.retrieveAndUpdateLocation(handler)
-                scheduleNextExecution(nextUpdate)
+            Log.i(tag, "Triggering location update.")
+            val nextUpdate = retriever.retrieveAndUpdateLocation(handler)
+            scheduleNextExecution(nextUpdate)
         } else {
             Log.i(tag, "No location update possible. Stopping service.")
             stopSelf()
@@ -190,9 +196,13 @@ class LocationTellerService(
         }
     }
 
+    /**
+     * Starts this service as a foreground service. This is needed to keep the
+     * service active.
+     */
     private fun startForegroundService() {
-         val builder = NotificationCompat.Builder(this, "trackChannel")
-             .setSmallIcon(R.drawable.ic_launcher_foreground)
+        val builder = notificationBuilder()
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
         startForeground(1, builder.build())
     }
 }

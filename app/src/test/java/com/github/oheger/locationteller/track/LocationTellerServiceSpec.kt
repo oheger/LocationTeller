@@ -16,12 +16,14 @@
 package com.github.oheger.locationteller.track
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import android.preference.PreferenceManager
+import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -139,6 +141,13 @@ class LocationTellerServiceSpec : StringSpec() {
             helper.sendStartCommand()
                 .verifyServiceStopped()
                 .verifyNoNextExecutionScheduled()
+        }
+
+        "LocationTellerService should start itself as foreground service" {
+            val helper = TellerServiceTestHelper()
+
+            helper.sendStartCommand()
+                .verifyForegroundServiceStarted()
         }
     }
 
@@ -269,6 +278,9 @@ class LocationTellerServiceSpec : StringSpec() {
             /** Mock for the pending intent.*/
             private val pendingIntent = mockk<PendingIntent>()
 
+            /** Mock for the notification produced by the mocked builder.*/
+            private val notification = mockk<Notification>()
+
             /** The service to be tested.*/
             val service = createService()
 
@@ -342,6 +354,15 @@ class LocationTellerServiceSpec : StringSpec() {
             }
 
             /**
+             * Verifies that the service starts itself as foreground service.
+             * @return this test helper
+             */
+            fun verifyForegroundServiceStarted(): TellerServiceTestHelper {
+                verify { service.startForeground(any(), notification) }
+                return this
+            }
+
+            /**
              * Creates the service instance to be tested. Its _onCreate()_
              * callback is already called.
              * @return the test service instance
@@ -366,8 +387,13 @@ class LocationTellerServiceSpec : StringSpec() {
                 }
                 every { timeService.currentTime() } returns TimeData(elapsedTime)
 
+                val notificationBuilder = mockk<NotificationCompat.Builder>()
+                every { notificationBuilder.setSmallIcon(any()) } returns notificationBuilder
+                every { notificationBuilder.build() } returns notification
+
                 val serviceSpy = spyk(service)
                 every { serviceSpy.getSystemService(Context.ALARM_SERVICE) } returns alarmManager
+                every { serviceSpy.notificationBuilder() } returns notificationBuilder
                 serviceSpy.onCreate()
                 return serviceSpy
             }
