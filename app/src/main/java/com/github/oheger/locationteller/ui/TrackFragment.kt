@@ -26,6 +26,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.PreferencesHandler
 import kotlinx.android.synthetic.main.fragment_track.*
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.*
 
 /**
@@ -68,7 +69,7 @@ class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnShar
      */
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
         if (PreferencesHandler.propLastUpdate == key || PreferencesHandler.propLastError == key ||
-            PreferencesHandler.propTrackState == key
+            PreferencesHandler.propLastCheck == key || PreferencesHandler.propTrackState == key
         ) {
             initUI()
         }
@@ -88,8 +89,9 @@ class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnShar
         val prefHandler = fetchPreferences()
         switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
 
-        val formatter = DateFormat.getTimeInstance(DateFormat.MEDIUM)
+        val formatter = SimpleDateFormat("kk:mm:ss", Locale.getDefault())
         initTimeComponent(labError, txtLastErrorTime, formatter, prefHandler.lastError())
+        initTimeComponent(labCheck, txtLastCheckTime, formatter, prefHandler.lastCheck())
         initTimeComponent(textView2, txtLastUpdateTime, formatter, prefHandler.lastUpdate())
     }
 

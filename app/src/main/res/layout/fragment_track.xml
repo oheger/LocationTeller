@@ -20,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/labError"
-        app:layout_constraintBottom_toTopOf="@+id/txtLastUpdateTime"
+        app:layout_constraintBottom_toTopOf="@+id/txtLastCheckTime"
         app:layout_constraintStart_toStartOf="parent"
         android:textColor="#ff0000"
         android:text="@string/lab_last_error" />
@@ -29,9 +29,26 @@
         android:id="@+id/txtLastErrorTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        tools:text="01:11:55"
         app:layout_constraintBaseline_toBaselineOf="@+id/labError"
         app:layout_constraintLeft_toRightOf="@+id/labError"
         android:textColor="#ff0000" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/labCheck"
+        app:layout_constraintBottom_toTopOf="@+id/txtLastUpdateTime"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="@string/lab_last_check" />
+
+    <TextView
+        android:id="@+id/txtLastCheckTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="21:27:18"
+        app:layout_constraintBaseline_toBaselineOf="@+id/labCheck"
+        app:layout_constraintLeft_toRightOf="@+id/labCheck" />
 
     <TextView
         android:id="@+id/textView2"

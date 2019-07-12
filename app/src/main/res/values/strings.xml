@@ -20,4 +20,5 @@
     <string name="lab_track_enabled">Tracking enabled</string>
     <string name="lab_last_location_update">Last location update:</string>
     <string name="lab_last_error">Last error:</string>
+    <string name="lab_last_check">Last check:</string>
 </resources>
