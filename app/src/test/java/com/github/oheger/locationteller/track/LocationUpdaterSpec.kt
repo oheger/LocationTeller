@@ -59,6 +59,7 @@ class LocationUpdaterSpec : StringSpec() {
                 }
                 verify {
                     trackService.resetClient()
+                    locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime)
                     locUpdate.prefHandler.recordUpdate(locUpdate.locationData.time.currentTime)
                 }
             }
@@ -79,6 +80,7 @@ class LocationUpdaterSpec : StringSpec() {
                     trackService.addLocation(any())
                     trackService.resetClient()
                 }
+                verify { locUpdate2.prefHandler.recordCheck(locUpdate2.locationData.time.currentTime) }
                 verify(exactly = 0) {
                     locUpdate2.prefHandler.recordUpdate(any())
                     locUpdate2.prefHandler.recordError(any())
@@ -145,6 +147,7 @@ class LocationUpdaterSpec : StringSpec() {
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns false
             every { prefHandler.recordError(locUpdate.locationData.time.currentTime) } just runs
+            every { prefHandler.recordCheck(locUpdate.locationData.time.currentTime) } just runs
 
             runActorTest(trackService, defaultConfig) { actor ->
                 actor.send(locUpdate)
@@ -160,6 +163,7 @@ class LocationUpdaterSpec : StringSpec() {
             val locUpdate = locationUpdate(unknownLocation, prefHandler)
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
+            every { prefHandler.recordCheck(any()) } just runs
             every { prefHandler.recordError(locUpdate.locationData.time.currentTime) } just runs
 
             runActorTest(trackService, defaultConfig) { actor ->
@@ -169,6 +173,7 @@ class LocationUpdaterSpec : StringSpec() {
             }
             coVerify(exactly = 0) { trackService.addLocation(unknownLocation) }
             verify(exactly = 0) { prefHandler.recordUpdate(any()) }
+            verify { locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime) }
         }
     }
 
