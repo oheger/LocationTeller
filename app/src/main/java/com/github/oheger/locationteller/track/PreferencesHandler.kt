@@ -115,6 +115,15 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
+     * Sets the preferences property for the last check time to the given
+     * timestamp.
+     * @param at the time when the last check has happened
+     */
+    fun recordCheck(at: Long) {
+        update { editor -> editor.putLong(propLastCheck, at) }
+    }
+
+    /**
      * Returns a _Date_ with the last error that happened. Result is *null* if
      * the last update was successful.
      * @return the date of the last error
@@ -127,6 +136,15 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the date of the last update
      */
     fun lastUpdate(): Date? = preferences.getDate(propLastUpdate)
+
+    /**
+     * Returns a _Date_ when the last check for a location update took place.
+     * This timestamp is recorded any time the service is invoked, even if
+     * there was no change in the location. Result is *null* if no check time
+     * has been recorded so far.
+     * @return the date of the last check
+     */
+    fun lastCheck(): Date? = preferences.getDate(propLastCheck)
 
     /**
      * Registers the given change listener at the managed preferences.
@@ -200,6 +218,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
 
         /** Shared preferences property for the latest error that occurred.*/
         const val propLastError = "lastError"
+
+        /** Shared preferences property for the last check for an update. */
+        const val propLastCheck = "lastCheck"
 
         /** Constant for an undefined numeric property.*/
         private const val undefinedNumber = -1

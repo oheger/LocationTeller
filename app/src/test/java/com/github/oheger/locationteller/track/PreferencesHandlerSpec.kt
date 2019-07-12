@@ -123,6 +123,22 @@ class PreferencesHandlerSpec : StringSpec() {
             }
         }
 
+        "PreferencesHandler should record a check" {
+            val checkTime = 20190711222122L
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            every { pref.edit() } returns editor
+            every { editor.putLong(PreferencesHandler.propLastCheck, checkTime) } returns editor
+            every { editor.apply() } just runs
+            val handler = PreferencesHandler(pref)
+
+            handler.recordCheck(checkTime)
+            verify {
+                editor.putLong(PreferencesHandler.propLastCheck, checkTime)
+                editor.apply()
+            }
+        }
+
         "PreferencesHandler should return the last error time" {
             val errorTime = 20190705180422L
             val pref = mockk<SharedPreferences>()
@@ -149,8 +165,8 @@ class PreferencesHandlerSpec : StringSpec() {
             every { pref.getLong(PreferencesHandler.propLastUpdate, 0) } returns updateTime
             val handler = PreferencesHandler(pref)
 
-            val errorDate = handler.lastUpdate()
-            errorDate!!.time shouldBe updateTime
+            val updateDate = handler.lastUpdate()
+            updateDate!!.time shouldBe updateTime
         }
 
         "PreferencesHandler should return null for the last update if undefined" {
@@ -159,6 +175,25 @@ class PreferencesHandlerSpec : StringSpec() {
             val handler = PreferencesHandler(pref)
 
             handler.lastUpdate() shouldBe null
+        }
+
+        "PreferencesHandler should return the last check time" {
+            val checkTime = 20190711222611L
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(PreferencesHandler.propLastCheck) } returns true
+            every { pref.getLong(PreferencesHandler.propLastCheck, 0) } returns checkTime
+            val handler = PreferencesHandler(pref)
+
+            val checkDate = handler.lastCheck()
+            checkDate!!.time shouldBe checkTime
+        }
+
+        "PreferencesHandler should return null for the last check if undefined" {
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(PreferencesHandler.propLastCheck) } returns false
+            val handler = PreferencesHandler(pref)
+
+            handler.lastCheck() shouldBe null
         }
 
         "PreferencesHandler should support the registration of change listeners" {
