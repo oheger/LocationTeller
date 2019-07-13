@@ -20,7 +20,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -119,7 +118,7 @@ class LocationTellerService(
      * Creates a new instance of _LocationTellerService_ that uses default
      * factories.
      */
-    constructor() : this(UpdaterActorFactory(), LocationRetrieverFactory(), ElapsedTimeService)
+    constructor() : this(UpdaterActorFactory(), LocationRetrieverFactory(), CurrentTimeService)
 
     @ObsoleteCoroutinesApi
     override fun onCreate() {
@@ -160,6 +159,15 @@ class LocationTellerService(
         NotificationCompat.Builder(this, "trackChannel")
 
     /**
+     * Calculates the time for the next update based on the current time as
+     * reported by the time service.
+     * @param nextUpdate the next update time in seconds
+     * @return the time when to schedule the next update
+     */
+    internal fun calculateNextUpdateTime(nextUpdate: Int) =
+        timeService.currentTime().currentTime + 1000L * nextUpdate
+
+    /**
      * The main function of this service. Checks whether a location update is
      * now possible. If so, it is triggered.
      */
@@ -183,17 +191,10 @@ class LocationTellerService(
      */
     private fun scheduleNextExecution(nextUpdate: Int) {
         Log.i(tag, "Scheduling next service invocation after $nextUpdate seconds.")
-        val nextUpdateTime = timeService.currentTime().currentTime + 1000L * nextUpdate
+        val nextUpdateTime = calculateNextUpdateTime(nextUpdate)
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Log.i(tag, "Even if idle!")
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP, nextUpdateTime,
-                pendingIntent
-            )
-        } else {
-            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, nextUpdateTime, pendingIntent)
-        }
+        val alarmInfo = AlarmManager.AlarmClockInfo(nextUpdateTime, pendingIntent)
+        alarmManager.setAlarmClock(alarmInfo, pendingIntent)
     }
 
     /**

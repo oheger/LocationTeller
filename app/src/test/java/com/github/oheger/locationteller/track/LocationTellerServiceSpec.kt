@@ -21,7 +21,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Build
 import android.preference.PreferenceManager
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
@@ -110,7 +109,7 @@ class LocationTellerServiceSpec : StringSpec() {
             // invocation of the secondary constructor
             service.retrieverFactory shouldNotBe null
             service.updaterFactory shouldNotBe null
-            service.timeService shouldBe ElapsedTimeService
+            service.timeService shouldBe CurrentTimeService
         }
 
         "LocationTellerService should return null in onBind()" {
@@ -148,6 +147,13 @@ class LocationTellerServiceSpec : StringSpec() {
 
             helper.sendStartCommand()
                 .verifyForegroundServiceStarted()
+        }
+
+        "LocationTellerService should calculate a correct time for the next update" {
+            val expTime = nextUpdateInterval * 1000L + elapsedTime
+            val helper = TellerServiceTestHelper()
+
+            helper.service.calculateNextUpdateTime(nextUpdateInterval) shouldBe expTime
         }
     }
 
@@ -273,7 +279,7 @@ class LocationTellerServiceSpec : StringSpec() {
             private val retriever = mockk<LocationRetriever>()
 
             /** Mock for the alarm manager.*/
-            private val alarmManager = mockk<AlarmManager>()
+            private val alarmManager = createAlarmManager()
 
             /** Mock for the pending intent.*/
             private val pendingIntent = mockk<PendingIntent>()
@@ -310,11 +316,7 @@ class LocationTellerServiceSpec : StringSpec() {
              */
             fun verifyNoNextExecutionScheduled(): TellerServiceTestHelper {
                 verify(exactly = 0) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        alarmManager.setAndAllowWhileIdle(any(), any(), any())
-                    } else {
-                        alarmManager.set(any(), any(), any())
-                    }
+                    alarmManager.setAlarmClock(any(), any())
                 }
                 return this
             }
@@ -326,17 +328,7 @@ class LocationTellerServiceSpec : StringSpec() {
              */
             fun verifyNextExecutionScheduled(): TellerServiceTestHelper {
                 verify(exactly = 1, timeout = timeout) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        alarmManager.setAndAllowWhileIdle(
-                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                            elapsedTime + 1000 * nextUpdateInterval, pendingIntent
-                        )
-                    } else {
-                        alarmManager.set(
-                            AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                            elapsedTime + 1000 * nextUpdateInterval, pendingIntent
-                        )
-                    }
+                    alarmManager.setAlarmClock(any(), any())
                 }
                 return this
             }
@@ -360,6 +352,17 @@ class LocationTellerServiceSpec : StringSpec() {
             fun verifyForegroundServiceStarted(): TellerServiceTestHelper {
                 verify { service.startForeground(any(), notification) }
                 return this
+            }
+
+            /**
+             * Creates a mock for the alarm manager. The mock is prepared to
+             * expect schedules for another alarm.
+             * @return the mock alarm manager
+             */
+            private fun createAlarmManager(): AlarmManager {
+                val alarmManager = mockk<AlarmManager>()
+                every { alarmManager.setAlarmClock(any(), any()) } just runs
+                return alarmManager
             }
 
             /**
