@@ -13,7 +13,7 @@ android {
     buildToolsVersion "29.0.0"
     defaultConfig {
         applicationId "com.github.oheger.locationteller"
-        minSdkVersion 15
+        minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
