@@ -109,6 +109,7 @@ class LocationRetrieverSpec : StringSpec() {
                 locUpdate.locationData.longitude shouldBeExactly longitude
                 locUpdate.locationData.time shouldBe currentTime
                 locUpdate.prefHandler shouldBe prefHandler
+                locUpdate.orgLocation shouldBe location
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
             val dispatcher = initDispatcher()
