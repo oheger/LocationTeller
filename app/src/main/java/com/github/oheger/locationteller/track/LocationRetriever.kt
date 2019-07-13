@@ -92,7 +92,8 @@ class LocationRetriever(
      */
     private fun locationUpdateFor(location: Location?, prefHandler: PreferencesHandler): LocationUpdate {
         val locData = location?.toLocationData() ?: unknownLocation
-        return LocationUpdate(locData, CompletableDeferred(), prefHandler)
+        //TODO set correct original location
+        return LocationUpdate(locData, null, CompletableDeferred(), prefHandler)
     }
 
     /**

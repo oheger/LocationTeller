@@ -15,12 +15,14 @@
  */
 package com.github.oheger.locationteller.track
 
+import android.location.Location
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.channels.last
 import kotlin.math.min
 
 /**
@@ -31,15 +33,25 @@ import kotlin.math.min
 val unknownLocation = LocationData(0.0, 0.0, TimeData(0))
 
 /**
+ * Constant for a minimum location delta to trigger a location update. If the
+ * difference between the new location and the last location (in meters) is
+ * less than this value, the locations are considered the same, and no update
+ * is done.
+ */
+const val MinimumLocationDelta = 3.0f
+
+/**
  * Data class for the messages processed by location updater actor.
  *
- * The message contains a new location and a _CompletableDeferred_ that is used
- * to communicate the next update time to the caller. Also, a
+ * The message contains a new location data object, the original _Location_
+ * retrieved from the fused location provider, and a _CompletableDeferred_ that
+ * is used to communicate the next update time to the caller. Also, a
  * [PreferencesHandler] is contained allowing access to the shared preferences
  * of the application.
  */
 data class LocationUpdate(
     val locationData: LocationData,
+    val orgLocation: Location?,
     val nextTrackDelay: CompletableDeferred<Int>,
     val prefHandler: PreferencesHandler
 ) {
@@ -70,18 +82,17 @@ data class LocationUpdate(
 fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, crScope: CoroutineScope):
         SendChannel<LocationUpdate> {
     return crScope.actor {
-        var lastLocation = LocationData(0.0, 0.0, TimeData(0))
+        var lastLocation: Location? = null
 
         var updateInterval = trackConfig.minTrackInterval
 
-        fun locationChanged(locationUpdate: LocationUpdate): Boolean =
-            locationUpdate.locationData.latitude != lastLocation.latitude ||
-                    locationUpdate.locationData.longitude != lastLocation.longitude
+        fun locationChanged(locationUpdate: Location?): Boolean = lastLocation == null ||
+                locationUpdate?.distanceTo(lastLocation) ?: MinimumLocationDelta >= MinimumLocationDelta
 
         for (locUpdate in channel) {
             locUpdate.prefHandler.recordCheck(locUpdate.updateTime())
-            if (locationChanged(locUpdate)) {
-                if (locUpdate.locationData != unknownLocation) {
+            if (locationChanged(locUpdate.orgLocation)) {
+                if (locUpdate.orgLocation != null) {
                     val outdatedRefTime = TimeData(
                         locUpdate.locationData.time.currentTime -
                                 trackConfig.locationValidity * 1000
@@ -95,7 +106,10 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     trackService.resetClient()
                 }
                 //TODO implement error handling
-                lastLocation = locUpdate.locationData
+
+                if (locUpdate.orgLocation != null) {
+                    lastLocation = locUpdate.orgLocation
+                }
                 updateInterval = trackConfig.minTrackInterval
             } else {
                 updateInterval = min(

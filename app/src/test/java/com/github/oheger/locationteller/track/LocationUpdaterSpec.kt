@@ -15,14 +15,17 @@
  */
 package com.github.oheger.locationteller.track
 
+import android.location.Location
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.runBlocking
 
 /**
  * Test class for the actor that executes location updates.
@@ -68,7 +71,12 @@ class LocationUpdaterSpec : StringSpec() {
         "LocationUpdaterActor should not process an update if there is no change in the location" {
             val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
-            val locUpdate2 = locationUpdate(locUpdate1.locationData.copy(time = TimeData(1)))
+            val loc2 = mockk<Location>()
+            every { loc2.distanceTo(locUpdate1.orgLocation) } returns MinimumLocationDelta - 0.1f
+            val locUpdate2 = locationUpdate(
+                locUpdate1.locationData.copy(time = TimeData(1)),
+                orgLocation = loc2
+            )
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
@@ -91,8 +99,8 @@ class LocationUpdaterSpec : StringSpec() {
         "LocationUpdaterActor should increase the update interval if the location is the same" {
             val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
-            val locUpdate2 = locationUpdate(locUpdate1.locationData)
-            val locUpdate3 = locationUpdate(locUpdate1.locationData)
+            val locUpdate2 = locationUpdate(locationData(1), orgLocation = createLocation(1f))
+            val locUpdate3 = locationUpdate(locationData(2), orgLocation = createLocation(0f))
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
@@ -111,7 +119,7 @@ class LocationUpdaterSpec : StringSpec() {
             val trackService = createTrackService()
             val config = defaultConfig.copy(intervalIncrementOnIdle = 200)
             val locUpdate1 = locationUpdate(0)
-            val locUpdate2 = locationUpdate(locUpdate1.locationData)
+            val locUpdate2 = locationUpdate(locationData(1), orgLocation = createLocation(0f))
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
 
@@ -126,7 +134,7 @@ class LocationUpdaterSpec : StringSpec() {
         "LocationUpdaterActor should reset the update interval when another change is detected" {
             val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
-            val locUpdate2 = locationUpdate(locUpdate1.locationData)
+            val locUpdate2 = locationUpdate(locationData(1), orgLocation = createLocation(0f))
             val locUpdate3 = locationUpdate(1)
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
@@ -160,7 +168,7 @@ class LocationUpdaterSpec : StringSpec() {
         "LocationUpdaterActor should treat an unknown location data as error" {
             val trackService = createTrackService()
             val prefHandler = mockk<PreferencesHandler>()
-            val locUpdate = locationUpdate(unknownLocation, prefHandler)
+            val locUpdate = locationUpdate(unknownLocation, prefHandler, orgLocation = null)
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
             every { prefHandler.recordCheck(any()) } just runs
@@ -174,6 +182,26 @@ class LocationUpdaterSpec : StringSpec() {
             coVerify(exactly = 0) { trackService.addLocation(unknownLocation) }
             verify(exactly = 0) { prefHandler.recordUpdate(any()) }
             verify { locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime) }
+        }
+
+        "LocationUpdaterActor should not store a null location as last location" {
+            val trackService = createTrackService()
+            val locUpdate1 = locationUpdate(0)
+            val locUpdate2 = locationUpdate(locData = unknownLocation, orgLocation = null)
+            val loc = mockk<Location>()
+            every { loc.distanceTo(locUpdate1.orgLocation) } returns 1f
+            val locUpdate3 = locationUpdate(locUpdate1.locationData, orgLocation = loc)
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returns true
+
+            runActorTest(trackService, defaultConfig) { actor ->
+                actor.send(locUpdate1)
+                actor.send(locUpdate2)
+                actor.send(locUpdate3)
+            }
+            verify {
+                loc.distanceTo(locUpdate1.orgLocation)
+            }
         }
     }
 
@@ -200,9 +228,10 @@ class LocationUpdaterSpec : StringSpec() {
          */
         private fun locationUpdate(
             locData: LocationData,
-            prefHandler: PreferencesHandler = createPrefHandler()
+            prefHandler: PreferencesHandler = createPrefHandler(),
+            orgLocation: Location? = createLocation()
         ): LocationUpdate =
-            LocationUpdate(locData, CompletableDeferred(), prefHandler)
+            LocationUpdate(locData, orgLocation, CompletableDeferred(), prefHandler)
 
         /**
          * Convenience function to create _LocationUpdate_ object for a test
@@ -218,6 +247,18 @@ class LocationUpdaterSpec : StringSpec() {
          * @return the mock handler
          */
         private fun createPrefHandler(): PreferencesHandler = mockk(relaxed = true)
+
+        /**
+         * Creates a mock for a _Location_ object. The mock is prepared to
+         * calculate the distance to another location.
+         * @param distance the distance to be returned
+         * @return the mock location
+         */
+        private fun createLocation(distance: Float = MinimumLocationDelta): Location {
+            val location = mockk<Location>()
+            every { location.distanceTo(any()) } returns distance
+            return location
+        }
 
         /**
          * Executes a test on an actor. The actor is obtained, and the given
