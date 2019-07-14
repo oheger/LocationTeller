@@ -33,6 +33,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -124,6 +128,11 @@ class LocationTellerService(
     override fun onCreate() {
         super.onCreate()
         Log.i(tag, "onCreate()")
+
+        if (Thread.getDefaultUncaughtExceptionHandler() !is ExceptionLogger) {
+            Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))
+        }
+
         pendingIntent = PendingIntent.getService(
             this, 0,
             Intent(this, LocationTellerService::class.java), 0
@@ -205,5 +214,19 @@ class LocationTellerService(
         val builder = notificationBuilder()
             .setSmallIcon(R.drawable.ic_launcher_foreground)
         startForeground(1, builder.build())
+    }
+
+    class ExceptionLogger(private val context: Context) : Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(t: Thread?, e: Throwable) {
+            val bos = ByteArrayOutputStream()
+            val out = PrintStream(bos)
+            e.printStackTrace(out)
+            out.flush()
+            val format = SimpleDateFormat("yyyy-MM-dd_HH_mm_ss", Locale.getDefault())
+            val fileName = format.format(Date()) + ".log"
+            context.openFileOutput(fileName, Context.MODE_PRIVATE).use { stream ->
+                stream.write(bos.toByteArray())
+            }
+        }
     }
 }

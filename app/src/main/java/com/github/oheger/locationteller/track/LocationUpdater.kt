@@ -16,13 +16,15 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
+import android.util.Log
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
-import kotlinx.coroutines.channels.last
 import kotlin.math.min
 
 /**
@@ -86,8 +88,17 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
 
         var updateInterval = trackConfig.minTrackInterval
 
-        fun locationChanged(locationUpdate: Location?): Boolean = lastLocation == null ||
-                locationUpdate?.distanceTo(lastLocation) ?: MinimumLocationDelta >= MinimumLocationDelta
+        fun locationChanged(locationUpdate: Location?): Boolean {
+            if (lastLocation == null) {
+                Log.d("locationUpdater", "Last location is null.")
+                return true
+            }
+
+            Log.d("locationUpdater", "Updated location is $locationUpdate.")
+            val distance = locationUpdate?.distanceTo(lastLocation) ?: MinimumLocationDelta
+            Log.d("locationUpdater", "Distance is $distance m.")
+            return distance >= MinimumLocationDelta
+        }
 
         for (locUpdate in channel) {
             locUpdate.prefHandler.recordCheck(locUpdate.updateTime())
