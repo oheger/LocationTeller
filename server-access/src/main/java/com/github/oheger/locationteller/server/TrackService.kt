@@ -19,6 +19,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
+import java.util.*
+import java.util.regex.Pattern
 
 /**
  * A class providing functionality to interact with a server to retrieve
@@ -131,6 +133,25 @@ class TrackService(val davClientFactory: DavClientFactory) {
     }
 
     /**
+     * Reads a file with location data from the server. The content of this
+     * file is read and parsed to a _LocationData_ object. If this fails,
+     * result is *null*.
+     * @param file the path to the file to be read
+     * @return the extracted _LocationData_ or *null*
+     */
+    suspend fun readLocation(file: String): LocationData? {
+        val refTime = refTimeFromPath(file)
+        if (refTime != null) {
+            val fileData = fileDataFromPath(file)
+            if (getTrackState().files.contains(fileData)) {
+                val content = davClient().readFile(file)
+                return LocationData.parse(content, refTime)
+            }
+        }
+        return null
+    }
+
+    /**
      * Resets the _DavClient_ used by this instance. This causes the creation
      * of a new client for the next request.
      */
@@ -189,6 +210,10 @@ class TrackService(val davClientFactory: DavClientFactory) {
         /** The length of a file reference (HH_MM_SS).*/
         private const val FileRefLength = 8
 
+        /** Regular expression for parsing the time values from a file path.*/
+        private val patTimestamp =
+            Pattern.compile("""/$NamePrefix(\d{4})-(\d{2})-(\d{2})/$NamePrefix(\d{2})_(\d{2})_(\d{2})""")
+
         private val log = LoggerFactory.getLogger(TrackService::class.java)
 
         /**
@@ -244,6 +269,29 @@ class TrackService(val davClientFactory: DavClientFactory) {
          */
         private fun folderRefFromPath(path: String) =
             path.substring(PrefixLength + 1, PrefixLength + 1 + FolderRefLength)
+
+        /**
+         * Extracts the time from a path of a location data file. This function
+         * tests whether the path references a valid location file. If so, the
+         * timestamp of this location is extracted based on naming conventions.
+         * Otherwise, result is *null*.
+         * @param path the path to a location file
+         * @return the time of this location file or *null*
+         */
+        private fun refTimeFromPath(path: String): TimeData? {
+            val matcher = patTimestamp.matcher(path)
+            if (matcher.matches()) {
+                val cal = Calendar.getInstance().apply {
+                    clear()
+                    set(
+                        matcher.group(1).toInt(), matcher.group(2).toInt() - 1, matcher.group(3).toInt(),
+                        matcher.group(4).toInt(), matcher.group(5).toInt(), matcher.group(6).toInt()
+                    )
+                }
+                return TimeData(cal.timeInMillis)
+            }
+            return null
+        }
 
         /**
          * Determines the paths of files and folders that need to be removed

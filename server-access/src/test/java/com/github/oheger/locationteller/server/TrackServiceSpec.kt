@@ -198,6 +198,43 @@ class TrackServiceSpec : StringSpec() {
             verify(exactly = 2) { factory.createDavClient() }
             verify(exactly = 1) { client.close() }
         }
+
+        "TrackService should return null if an invalid location file path is requested" {
+            val davClient = createPreparedDavClient()
+            val service = TrackService(clientFactory(davClient))
+
+            service.readLocation("/non/existing/file") shouldBe null
+        }
+
+        "TrackService should read a valid location file" {
+            val latitude = 48.1234
+            val longitude = 8.7564
+            val time = referenceTime(19, 10, 5, 10)
+            val expLocData = LocationData(latitude, longitude, time)
+            val path = expectedFiles[0]
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.readFile(path) } returns "$latitude;$longitude"
+            val service = TrackService(clientFactory(davClient))
+
+            service.readLocation(path) shouldBe expLocData
+        }
+
+        "TrackService should return null if a location file cannot be resolved" {
+            val path = expectedFiles[2].replace('1', '2')
+            val davClient = createPreparedDavClient()
+            val service = TrackService(clientFactory(davClient))
+
+            service.readLocation(path) shouldBe null
+        }
+
+        "TrackService should return null if a location file could not be loaded" {
+            val path = expectedFiles[1]
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.readFile(path) } returns ""
+            val service = TrackService(clientFactory(davClient))
+
+            service.readLocation(path) shouldBe null
+        }
     }
 
     companion object {
