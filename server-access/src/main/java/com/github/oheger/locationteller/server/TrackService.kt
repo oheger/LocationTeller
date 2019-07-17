@@ -152,6 +152,20 @@ class TrackService(val davClientFactory: DavClientFactory) {
     }
 
     /**
+     * Reads all files with location data specified in the given list from the
+     * server. The resulting map contains only the files that could be loaded
+     * successfully.
+     * @param files the files to be loaded
+     * @return a map that assigns file paths with corresponding location data
+     */
+    suspend fun readLocations(files: List<String>): Map<String, LocationData> = coroutineScope {
+        val locations = files.map { async { readLocation(it) } }.awaitAll()
+        val locationsMap = files.zip(locations).toMap()
+        @Suppress("UNCHECKED_CAST")  // null values are filtered out
+        locationsMap.filterValues { it != null } as Map<String, LocationData>
+    }
+
+    /**
      * Resets the _DavClient_ used by this instance. This causes the creation
      * of a new client for the next request.
      */

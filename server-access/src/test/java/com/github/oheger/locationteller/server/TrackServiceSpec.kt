@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.server
 
 import io.kotlintest.matchers.collections.shouldContain
+import io.kotlintest.matchers.collections.shouldContainExactly
 import io.kotlintest.matchers.collections.shouldNotContain
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
@@ -235,6 +236,36 @@ class TrackServiceSpec : StringSpec() {
 
             service.readLocation(path) shouldBe null
         }
+
+        "TrackService should load multiple location files from the server" {
+            val fileCount = 3
+            val files = expectedFiles.take(fileCount)
+            val locations = (0 until fileCount).map { locationDataForFile(it) }
+            val pairs = files.zip(locations)
+            val davClient = createPreparedDavClient()
+            pairs.forEach { pair ->
+                coEvery { davClient.readFile(pair.first) } returns pair.second.stringRepresentation()
+            }
+            val service = TrackService(clientFactory(davClient))
+
+            val locationMap = service.readLocations(files)
+            locationMap.keys shouldContainExactly files
+            pairs.forEach { pair ->
+                locationMap[pair.first] shouldBe pair.second
+            }
+        }
+
+        "TrackService should filter out failed location files when loading multiple elements" {
+            val davClient = createPreparedDavClient()
+            val locationData = locationDataForFile(0)
+            coEvery { davClient.readFile(expectedFiles[0]) } returns locationData.stringRepresentation()
+            coEvery { davClient.readFile(expectedFiles[1]) } returns ""
+            val service = TrackService(clientFactory(davClient))
+
+            val locationMap = service.readLocations(expectedFiles.take(2))
+            locationMap.size shouldBe 1
+            locationMap[expectedFiles[0]] shouldBe locationData
+        }
     }
 
     companion object {
@@ -290,18 +321,21 @@ class TrackServiceSpec : StringSpec() {
             )
         )
 
+        /** A list with timestamps that correspond to the test files. */
+        private val fileTimes = listOf(
+            referenceTime(19, 10, 5, 10),
+            referenceTime(19, 12, 18, 27),
+            referenceTime(20, 11, 11, 11),
+            referenceTime(20, 19, 28, 45),
+            referenceTime(21, 6, 5, 58),
+            referenceTime(21, 14, 19, 33),
+            referenceTime(21, 22, 2, 29)
+        )
+
         /**
          * A list with the test files contained on the track server.
          */
-        val expectedFiles = listOf(
-            filePath(folder1, "10_05_10"),
-            filePath(folder1, "12_18_27"),
-            filePath(folder2, "11_11_11"),
-            filePath(folder2, "19_28_45"),
-            filePath(folder3, "06_05_58"),
-            filePath(folder3, "14_19_33"),
-            filePath(folder3, "22_02_29")
-        )
+        val expectedFiles = fileTimes.map { pathFromTime(it) }
 
         /**
          * Generates the name of a file or folder with location information based
@@ -318,15 +352,6 @@ class TrackServiceSpec : StringSpec() {
          * @return the path of this folder
          */
         private fun folderPath(folder: DavFolder): String = "${folder.path}/"
-
-        /**
-         * Generates the path to a location file.
-         * @param folder the folder the file is located in
-         * @param fileName the name of the file (without prefix)
-         * @return the resulting file name
-         */
-        private fun filePath(folder: DavFolder, fileName: String): String =
-            "${folderPath(folder)}${elementName(fileName)}"
 
         /**
          * Creates an element with tracking data based on the given information.
@@ -367,6 +392,19 @@ class TrackServiceSpec : StringSpec() {
          */
         private fun pathFromTime(time: TimeData) =
             "${folderPathFromTime(time)}${TrackService.NamePrefix}${time.timeString}"
+
+        /**
+         * Generates a test _LocationData_ object for a test file path.
+         * @param index the index of the test file
+         * @return a _LocationData_ object for this file
+         */
+        private fun locationDataForFile(index: Int): LocationData {
+            val secs = expectedFiles[index].takeLast(2).toInt()
+            return LocationData(
+                48.0 + secs / 10.0, 8.0 + secs / 10.0,
+                fileTimes[index]
+            )
+        }
 
         /**
          * Prepares expectations for the given client mock to return test data
