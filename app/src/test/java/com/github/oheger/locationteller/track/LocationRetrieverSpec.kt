@@ -16,29 +16,23 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
+import com.github.oheger.locationteller.MockDispatcher
+import com.github.oheger.locationteller.ResetDispatcherListener
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
-import io.kotlintest.TestCase
-import io.kotlintest.TestResult
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.matchers.doubles.shouldBeExactly
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.CoroutineContext
 
 /**
  * Test class for [LocationRetriever].
@@ -70,11 +64,7 @@ class LocationRetrieverSpec : StringSpec() {
      * @return the mock dispatcher
      */
     @ExperimentalCoroutinesApi
-    private fun initDispatcher(): MockDispatcher {
-        val dispatcher = MockDispatcher()
-        Dispatchers.setMain(dispatcher)
-        return dispatcher
-    }
+    private fun initDispatcher(): MockDispatcher = MockDispatcher.installAsMain()
 
     init {
         "LocationRetriever should pass a location data to the actor" {
@@ -134,31 +124,6 @@ class LocationRetrieverSpec : StringSpec() {
 
             retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
             coVerify { actor.send(any()) }
-        }
-    }
-
-    /**
-     * A mock dispatcher implementation. This is used to check whether some
-     * actions are correctly executed on the main thread.
-     */
-    class MockDispatcher : CoroutineDispatcher() {
-        /** Stores the tasks that have been dispatched.*/
-        val tasks = mutableListOf<Runnable>()
-
-        /**
-         * This implementation records the task to be executed and executes it
-         * directly.
-         */
-        override fun dispatch(context: CoroutineContext, block: Runnable) {
-            tasks += block
-            block.run()
-        }
-    }
-
-    object ResetDispatcherListener : TestListener {
-        @ExperimentalCoroutinesApi
-        override fun afterTest(testCase: TestCase, result: TestResult) {
-            Dispatchers.resetMain()
         }
     }
 }
