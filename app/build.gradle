@@ -53,7 +53,8 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:17.0.0'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versionCoroutines"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$versionCoroutines"
-    
+    implementation 'com.google.android.gms:play-services-maps:17.0.0'
+
     implementation project(":server-access")
 
     testImplementation "io.kotlintest:kotlintest-runner-junit5:$versionKotlinTest"
