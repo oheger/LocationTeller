@@ -15,9 +15,9 @@
  */
 package com.github.oheger.locationteller.map
 
-import com.github.oheger.locationteller.server.LocationData
-import com.github.oheger.locationteller.server.TimeData
-import com.google.android.gms.maps.model.LatLng
+import com.github.oheger.locationteller.map.LocationTestHelper.createFiles
+import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerDataMap
+import com.github.oheger.locationteller.map.LocationTestHelper.createState
 import io.kotlintest.matchers.collections.shouldContainExactly
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
@@ -67,62 +67,4 @@ class LocationFileStateSpec : StringSpec() {
         }
     }
 
-    companion object {
-        /** A prefix for generated test file names.*/
-        private const val filePrefix = "file"
-
-        /**
-         * Generates the name of a test file.
-         * @param index the index of the test file
-         * @return the name of this test file
-         */
-        private fun createFile(index: Int): String = "$filePrefix$index"
-
-        /**
-         * Generates a list with test files based on the given range.
-         * @param range defines the indices of the test files
-         * @return a list with the names of all test files
-         */
-        private fun createFiles(range: IntRange): List<String> =
-            range.map { createFile(it) }
-
-        /**
-         * Creates a test marker data with the given index.
-         * @param index the index of this marker
-         * @return the marker data with this index
-         */
-        private fun createMarkerData(index: Int): MarkerData {
-            val locData = LocationData(
-                41.0 + index / 10.0, 9.0 - index / 10.0,
-                TimeData(20190716213000L + index)
-            )
-            val pos = LatLng(locData.latitude, locData.longitude)
-            return MarkerData(locData, pos)
-        }
-
-        /**
-         * Generates a map from file names to marker data in the given range of
-         * indices.
-         * @param range defines the indices for the test data
-         * @return a map with the test data
-         */
-        private fun createMarkerDataMap(range: IntRange): MutableMap<String, MarkerData> {
-            val result = mutableMapOf<String, MarkerData>()
-            for (idx in range) {
-                val fileName = createFile(idx)
-                val marker = createMarkerData(idx)
-                result[fileName] = marker
-            }
-            return result
-        }
-
-        /**
-         * Creates a _LocationFileState_ object that contains data about the
-         * test files in the given range.
-         * @param range defines the indices of the test files in the state
-         * @return the state object containing these test files
-         */
-        private fun createState(range: IntRange): LocationFileState =
-            LocationFileState(createFiles(range), createMarkerDataMap(range))
-    }
 }
