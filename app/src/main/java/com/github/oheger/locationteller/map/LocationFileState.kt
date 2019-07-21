@@ -49,6 +49,16 @@ data class LocationFileState(
     fun stateChanged(newFiles: List<String>): Boolean = newFiles != files
 
     /**
+     * Returns the most recent _MarkerData_ object. This is the marker that
+     * corresponds to the latest location file uploaded to the server. If the
+     * state is empty, result is *null*.
+     * @return the most recent _MarkerData_ or *null*
+     */
+    fun recentMarker(): MarkerData? =
+        if (markerData.isNotEmpty()) markerData[files.last()]
+        else null
+
+    /**
      * Returns a list that contains only the newFiles from the passed in list that
      * are not contained in this state. For these newFiles no location information
      * is available and has to be retrieved first from the server.

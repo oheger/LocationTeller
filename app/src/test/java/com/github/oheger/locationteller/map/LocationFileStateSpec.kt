@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.map
 
 import com.github.oheger.locationteller.map.LocationTestHelper.createFiles
+import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerDataMap
 import com.github.oheger.locationteller.map.LocationTestHelper.createState
 import io.kotlintest.matchers.collections.shouldContainExactly
@@ -64,6 +65,19 @@ class LocationFileStateSpec : StringSpec() {
 
             val markerMap = state.getKnownMarkers(newFiles)
             markerMap.isEmpty() shouldBe true
+        }
+
+        "LocationFileState should return the most recent marker data" {
+            val state = createState(1..16)
+            val exp = createMarkerData(16)
+
+            state.recentMarker() shouldBe exp
+        }
+
+        "LocationFileState should return null for the recent marker if empty" {
+            val state = LocationFileState(emptyList(), emptyMap())
+
+            state.recentMarker() shouldBe null
         }
     }
 
