@@ -35,7 +35,7 @@ import kotlin.coroutines.CoroutineContext
 
 class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, CoroutineScope {
     override val coroutineContext: CoroutineContext
-        get() = Dispatchers.IO
+        get() = Dispatchers.Main
 
     private val logTag = "MapFragment"
 
@@ -56,7 +56,11 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         val prefHandler = PreferencesHandler.create(context!!)
         val config = prefHandler.createServerConfig()
         if (config != null && map != null) {
-            launch { MapUpdater.updateMap(config, map, LocationFileState(emptyList(), emptyMap())) }
+            launch {
+                val state = MapUpdater.updateMap(config, map, LocationFileState(emptyList(), emptyMap()))
+                MapUpdater.zoomToAllMarkers(map, state)
+                MapUpdater.centerRecentMarker(map, state)
+            }
         }
     }
 }

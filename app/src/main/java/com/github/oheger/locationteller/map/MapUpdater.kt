@@ -17,8 +17,11 @@ package com.github.oheger.locationteller.map
 
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,6 +43,12 @@ object MapUpdater {
         { config -> TrackService.create(config) }
 
     /**
+     * Constant for the default zoom level. This is used when there are not
+     * enough markers available to calculate a bounding box.
+     */
+    private const val defaultZoomLevel = 15f
+
+    /**
      * Updates the given map with the new state fetched from the server if
      * necessary. The updated state is returned which becomes the current
      * state for the next update.
@@ -53,15 +62,60 @@ object MapUpdater {
         config: ServerConfig, map: GoogleMap, currentState: LocationFileState,
         trackServerFactory: (ServerConfig) -> TrackService = defaultTrackServerFactory
     ):
-            LocationFileState {
+            LocationFileState = withContext(Dispatchers.IO) {
         val trackService = trackServerFactory(config)
         val filesOnServer = trackService.filesOnServer()
-        return if (currentState.stateChanged(filesOnServer)) {
+        if (currentState.stateChanged(filesOnServer)) {
             val knownData = createMarkerDataMap(currentState, filesOnServer, trackService)
             val newState = createNewLocationState(filesOnServer, knownData)
             updateMarkers(map, newState)
             newState
         } else currentState
+    }
+
+    /**
+     * Sets the map to a zoom level and position so that all the markers in the
+     * given state are visible. Note that this function must be called on the
+     * main thread.
+     * @param map the map
+     * @param state the state with all the markers in question
+     */
+    fun zoomToAllMarkers(map: GoogleMap, state: LocationFileState) {
+        if (state.markerData.isNotEmpty()) {
+            if (state.markerData.size == 1) {
+                val position = state.markerData.values.iterator().next().position
+                val cameraUpdate = CameraUpdateFactory.newLatLngZoom(position, defaultZoomLevel)
+                map.moveCamera(cameraUpdate)
+            } else {
+                val boundsBuilder = LatLngBounds.builder().apply {
+                    for (markerData in state.markerData.values) {
+                        include(markerData.position)
+                    }
+                }
+                val cameraUpdate = CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 0)
+                map.moveCamera(cameraUpdate)
+            }
+        }
+    }
+
+    /**
+     * Moves the camera of the map, so that the most recent marker is in the
+     * center. The zoom level is not changed. If the state is empty, this
+     * function has no effect.
+     * @param map the map
+     * @param state the current state
+     */
+    fun centerRecentMarker(map: GoogleMap, state: LocationFileState) {
+        val recentMarker = state.recentMarker()
+        if (recentMarker != null) {
+            val currentZoom = map.cameraPosition.zoom
+            val cameraPosition = CameraPosition.Builder()
+                .target(recentMarker.position)
+                .zoom(currentZoom)
+                .build()
+            val cameraUpdate = CameraUpdateFactory.newCameraPosition(cameraPosition)
+            map.moveCamera(cameraUpdate)
+        }
     }
 
     /**
