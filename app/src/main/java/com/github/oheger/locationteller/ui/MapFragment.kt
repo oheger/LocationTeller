@@ -24,6 +24,7 @@ import androidx.fragment.app.Fragment
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
+import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -57,7 +58,9 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         val config = prefHandler.createServerConfig()
         if (config != null && map != null) {
             launch {
-                val state = MapUpdater.updateMap(config, map, LocationFileState(emptyList(), emptyMap()))
+                val state = MapUpdater.updateMap(config, map, LocationFileState(emptyList(), emptyMap()),
+                    MarkerFactory(), 0
+                )
                 MapUpdater.zoomToAllMarkers(map, state)
                 MapUpdater.centerRecentMarker(map, state)
             }

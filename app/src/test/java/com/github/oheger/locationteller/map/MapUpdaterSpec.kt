@@ -57,6 +57,7 @@ class MapUpdaterSpec : StringSpec() {
             val map = mockk<GoogleMap>()
             val state = mockk<LocationFileState>()
             val service = createMockService()
+            every { state.files } returns emptyList()
             every { state.stateChanged(serverFiles) } returns false
 
             invokeUpdater(map, state, service) shouldBe state
@@ -67,19 +68,18 @@ class MapUpdaterSpec : StringSpec() {
             val state = createState(1..2)
             val service = createMockService()
             val newFiles = createFiles(3..4)
-            val expMarkers = createMarkerDataMap(1..4)
             coEvery { service.readLocations(newFiles) } returns createLocationDataMap(3..4)
             every { map.clear() } just runs
-            val markers = trackAddedMarkers(map)
+            val markerFactory = mockk<MarkerFactory>()
+            val expMarkers = prepareMarkerFactory(markerFactory, createState(1..4))
+            val actMarkers = trackAddedMarkers(map)
             val mockDispatcher = MockDispatcher.installAsMain()
 
-            val newState = invokeUpdater(map, state, service)
+            val newState = invokeUpdater(map, state, service, markerFactory = markerFactory)
             newState shouldBe createState(1..4)
             verify { map.clear() }
-            markers shouldHaveSize expMarkers.size
-            val positions = markers.map { it.position }
-            val expPositions = expMarkers.values.map { it.position }
-            positions shouldContainExactlyInAnyOrder expPositions
+            actMarkers shouldHaveSize expMarkers.size
+            actMarkers shouldContainExactlyInAnyOrder expMarkers
             mockDispatcher.tasks shouldHaveSize 1
         }
 
@@ -92,7 +92,7 @@ class MapUpdaterSpec : StringSpec() {
             val markers = trackAddedMarkers(map)
             MockDispatcher.installAsMain()
 
-            val newState = invokeUpdater(map, state, service)
+            val newState = invokeUpdater(map, state, service, markerFactory = createRelaxedMarkerFactory())
             newState shouldBe createState(1..4)
             verify { map.clear() }
             markers shouldHaveSize expMarkers.size
@@ -108,7 +108,7 @@ class MapUpdaterSpec : StringSpec() {
             trackAddedMarkers(map)
             MockDispatcher.installAsMain()
 
-            val newState = invokeUpdater(map, state, service)
+            val newState = invokeUpdater(map, state, service, markerFactory = createRelaxedMarkerFactory())
             newState shouldBe createState(1..3)
         }
 
@@ -192,6 +192,9 @@ class MapUpdaterSpec : StringSpec() {
     }
 
     companion object {
+        /** Constant for the current time.*/
+        private const val time = 20190722181704L
+
         /** A test server configuration used by this class.*/
         private val serverConfig = ServerConfig(
             serverUri = "https://test-track.org",
@@ -219,15 +222,20 @@ class MapUpdaterSpec : StringSpec() {
          * @param map the mock for the map
          * @param currentState the current file state
          * @param service the mock track service
+         * @param markerFactory an optional marker factory
          * @return the result of the invocation
          */
-        private suspend fun invokeUpdater(map: GoogleMap, currentState: LocationFileState, service: TrackService):
+        private suspend fun invokeUpdater(
+            map: GoogleMap, currentState: LocationFileState, service: TrackService,
+            markerFactory: MarkerFactory? = null
+        ):
                 LocationFileState {
             val serviceFactory: (ServerConfig) -> TrackService = { config ->
                 config shouldBe serverConfig
                 service
             }
-            return MapUpdater.updateMap(serverConfig, map, currentState, serviceFactory)
+            val currentMarkerFactory = markerFactory ?: createMarkerFactory(currentState)
+            return MapUpdater.updateMap(serverConfig, map, currentState, currentMarkerFactory, time, serviceFactory)
         }
 
         /**
@@ -244,6 +252,45 @@ class MapUpdaterSpec : StringSpec() {
                 null
             }
             return markers
+        }
+
+        /**
+         * Prepares a mock for a marker factory to create markers for the given
+         * state. For each marker a mock options is generated. The list
+         * returned contains exactly these mock marker options.
+         */
+        private fun prepareMarkerFactory(factory: MarkerFactory, state: LocationFileState): List<MarkerOptions> {
+            val markerOptions = mutableListOf<MarkerOptions>()
+            state.files.forEach { file ->
+                val option = mockk<MarkerOptions>()
+                every { factory.createMarker(state, file, time) } returns option
+                markerOptions.add(option)
+            }
+            return markerOptions
+        }
+
+        /**
+         * Creates a mock marker factory that answers requests based on the
+         * given state object. This function can be used if the concrete
+         * options created by the factory are irrelevant.
+         * @param state the state
+         * @return the mock marker factory
+         */
+        private fun createMarkerFactory(state: LocationFileState): MarkerFactory {
+            val factory = mockk<MarkerFactory>()
+            prepareMarkerFactory(factory, state)
+            return factory
+        }
+
+        /**
+         * Creates a mock for a marker factory that does not check its input,
+         * but always returns new mock marker options.
+         * @return the 'relaxed' marker factory
+         */
+        private fun createRelaxedMarkerFactory(): MarkerFactory {
+            val factory = mockk<MarkerFactory>()
+            every { factory.createMarker(any(), any(), time) } returns mockk()
+            return factory
         }
     }
 }

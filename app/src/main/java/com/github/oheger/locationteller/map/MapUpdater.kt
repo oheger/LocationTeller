@@ -22,7 +22,6 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -55,11 +54,14 @@ object MapUpdater {
      * @param config the server configuration
      * @param map the map to be updated
      * @param currentState the current state of location data
+     * @param markerFactory the factory for creating markers
+     * @param currentTime the current time
      * @param trackServerFactory the factory for a _TrackService_ instance
      * @return the updated state of location data
      */
     suspend fun updateMap(
         config: ServerConfig, map: GoogleMap, currentState: LocationFileState,
+        markerFactory: MarkerFactory, currentTime: Long,
         trackServerFactory: (ServerConfig) -> TrackService = defaultTrackServerFactory
     ):
             LocationFileState = withContext(Dispatchers.IO) {
@@ -68,7 +70,7 @@ object MapUpdater {
         if (currentState.stateChanged(filesOnServer)) {
             val knownData = createMarkerDataMap(currentState, filesOnServer, trackService)
             val newState = createNewLocationState(filesOnServer, knownData)
-            updateMarkers(map, newState)
+            updateMarkers(map, newState, markerFactory, currentTime)
             newState
         } else currentState
     }
@@ -163,10 +165,13 @@ object MapUpdater {
      * @param map the map to be updated
      * @param state the current state of location data
      */
-    private suspend fun updateMarkers(map: GoogleMap, state: LocationFileState) = withContext(Dispatchers.Main) {
+    private suspend fun updateMarkers(
+        map: GoogleMap, state: LocationFileState, markerFactory: MarkerFactory,
+        time: Long
+    ) = withContext(Dispatchers.Main) {
         map.clear()
-        state.markerData.values.forEach { marker ->
-            val options = MarkerOptions().position(marker.position)
+        state.files.forEach { file ->
+            val options = markerFactory.createMarker(state, file, time)
             map.addMarker(options)
         }
     }
