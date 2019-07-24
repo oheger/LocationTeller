@@ -59,7 +59,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         if (config != null && map != null) {
             launch {
                 val state = MapUpdater.updateMap(config, map, LocationFileState(emptyList(), emptyMap()),
-                    MarkerFactory(), 0
+                    MarkerFactory.create(context!!), 0
                 )
                 MapUpdater.zoomToAllMarkers(map, state)
                 MapUpdater.centerRecentMarker(map, state)
