@@ -25,6 +25,10 @@ import com.github.oheger.locationteller.map.LocationTestHelper.createState
 import com.github.oheger.locationteller.server.TimeData
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import io.kotlintest.matchers.floats.shouldBeGreaterThan
+import io.kotlintest.matchers.floats.shouldBeGreaterThanOrEqual
+import io.kotlintest.matchers.floats.shouldBeLessThan
+import io.kotlintest.matchers.floats.shouldBeLessThanOrEqual
 import io.kotlintest.shouldBe
 import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
@@ -104,6 +108,55 @@ class MarkerFactorySpec : StringSpec() {
 
             options.title shouldBe "4 $unitDay"
         }
+
+        "MarkerFactory should set the alpha of the most recent marker to 1" {
+            val marker = createMarkerDataWithTime(currentTime - 5 * 24 * 60 * 60 * 1000)
+            val options = createOptionsForMarker(marker)
+
+            options.alpha shouldBe 1f
+        }
+
+        "MarkerFactory should set the alpha for markers in the minute range" {
+            val marker1 = createMarkerDataWithTime(currentTime - 3 * 60 * 1000)
+            val marker2 = createMarkerDataWithTime(currentTime - 59 * 60 * 1000)
+            val state = createStateWithData(marker2, marker1, currentMarker)
+            val factory = createFactory()
+
+            val options1 = factory.createMarker(state, state.files.first(), currentTime)
+            val options2 = factory.createMarker(state, state.files[1], currentTime)
+            options2.alpha shouldBeLessThan 1f
+            options2.alpha shouldBeGreaterThan 0.9f
+            options2.alpha shouldBeGreaterThan options1.alpha
+            options1.alpha shouldBeGreaterThanOrEqual 0.75f
+        }
+
+        "MarkerFactory should set the alpha for markers in the hours range" {
+            val deltaHour = 60 * 60 * 1000
+            val marker1 = createMarkerDataWithTime(currentTime - 23 * deltaHour - 60)
+            val marker2 = createMarkerDataWithTime(currentTime - 1 * deltaHour)
+            val state = createStateWithData(marker2, marker1, currentMarker)
+            val factory = createFactory()
+
+            val options2 = factory.createMarker(state, state.files.first(), currentTime)
+            val options1 = factory.createMarker(state, state.files[1], currentTime)
+            options2.alpha shouldBeLessThanOrEqual 0.7f
+            options2.alpha shouldBeGreaterThan 0.68f
+            options2.alpha shouldBeGreaterThan options1.alpha
+            options1.alpha shouldBeGreaterThan 0.5f
+        }
+
+        "MarkerFactory should set the alpha for markers in the days range" {
+            val deltaDay = (24 * 60 * 60 + 1) * 1000L
+            val marker1 = createMarkerDataWithTime(currentTime - deltaDay)
+            val marker2 = createMarkerDataWithTime(currentTime - 50 * deltaDay)
+            val state = createStateWithData(marker2, marker1, currentMarker)
+            val factory = createFactory()
+
+            val options2 = factory.createMarker(state, state.files.first(), currentTime)
+            val options1 = factory.createMarker(state, state.files[1], currentTime)
+            options1.alpha shouldBe 0.4f
+            options2.alpha shouldBe 0.4f
+        }
     }
 
     companion object {
@@ -122,6 +175,9 @@ class MarkerFactorySpec : StringSpec() {
         /** The current time passed to the factory.*/
         private const val currentTime = 20190723220948L
 
+        /** Constant for a marker created at the current reference time.*/
+        private val currentMarker = createMarkerDataWithTime(currentTime)
+
         /**
          * Creates a _MarkerData_ object with the given timestamp.
          * @param time the time of the marker
@@ -133,13 +189,15 @@ class MarkerFactorySpec : StringSpec() {
         }
 
         /**
-         * Creates a state object that contains only the single marker data.
-         * @param data the _MarkerData_
+         * Creates a state object that contains exactly the given marker data
+         * objects.
+         * @param data the _MarkerData_ objects
          * @return the state
          */
-        private fun createStateWithData(data: MarkerData): LocationFileState {
-            val key = data.locationData.time.timeString
-            return LocationFileState(listOf(key), mapOf(key to data))
+        private fun createStateWithData(vararg data: MarkerData): LocationFileState {
+            val keys = data.map { it.locationData.time.timeString }
+            val mappings = keys.zip(data)
+            return LocationFileState(keys, mappings.toMap())
         }
 
         /**

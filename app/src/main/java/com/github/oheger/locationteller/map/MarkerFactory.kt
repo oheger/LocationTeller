@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.map
 
 import android.content.Context
+import android.util.Log
 import com.github.oheger.locationteller.R
 import com.google.android.gms.maps.model.MarkerOptions
 
@@ -43,11 +44,20 @@ class MarkerFactory(
      */
     fun createMarker(state: LocationFileState, key: String, time: Long): MarkerOptions {
         val data = state.markerData[key] ?: throw IllegalArgumentException("Cannot resolve key $key in state $state!")
-        return MarkerOptions()
+        val options = MarkerOptions()
             .position(data.position)
             .title(createTitle(data, time))
+            .alpha(calcAlpha(data, time, data === state.recentMarker()))
+        return options
     }
 
+    /**
+     * Generates a title for the given _MarkerData_ object based on the age of
+     * this marker. Uses a suitable time unit.
+     * @param data the _MarkerData_
+     * @param time the reference time
+     * @return a title for the marker
+     */
     private fun createTitle(data: MarkerData, time: Long): String {
         val deltaSec = (time - data.locationData.time.currentTime) / 1000
         if (deltaSec < 60) {
@@ -67,6 +77,27 @@ class MarkerFactory(
             }
         }
     }
+
+    /**
+     * Calculates an alpha value for a marker based on its age. There are
+     * different areas of alpha values corresponding to the time units. The
+     * most recent marker is always assigned an alpha value of 1.0.
+     * @param data the _MarkerData_
+     * @param time the reference time
+     * @param isRecent flag whether this is the most recent marker
+     * @return an alpha value for this marker
+     */
+    private fun calcAlpha(data: MarkerData, time: Long, isRecent: Boolean): Float =
+        if (isRecent) 1f
+        else {
+            val deltaMin = (time - data.locationData.time.currentTime) / 1000 / 60
+            if (deltaMin < 60) 1.0f - (1.0f - 0.75f) * (deltaMin / 60f)
+            else {
+                val deltaHour = deltaMin / 60
+                if (deltaHour < 24) 0.7f - (0.7f - 0.5f) * (deltaHour / 24f)
+                else 0.4f
+            }
+        }
 
     companion object {
         /**
