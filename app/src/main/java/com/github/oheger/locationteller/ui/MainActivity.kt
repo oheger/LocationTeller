@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -27,6 +28,10 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.PreferencesHandler
 import kotlinx.android.synthetic.main.activity_main.*
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 /**
  * The main activity of this application.
@@ -50,6 +55,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         appBarConfig = AppBarConfiguration(navCtrl.graph, drawerLayout)
         toolbar.setupWithNavController(navCtrl, appBarConfig)
         nav_view.setupWithNavController(navCtrl)
+
+        if (Thread.getDefaultUncaughtExceptionHandler() !is ExceptionLogger) {
+            Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))
+        }
     }
 
     override fun onResume() {
@@ -78,6 +87,20 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             val handler = PreferencesHandler(sharedPreferences)
             if (handler.isTrackingEnabled()) {
                 handler.setTrackingEnabled(false)
+            }
+        }
+    }
+
+    class ExceptionLogger(private val context: Context) : Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(t: Thread?, e: Throwable) {
+            val bos = ByteArrayOutputStream()
+            val out = PrintStream(bos)
+            e.printStackTrace(out)
+            out.flush()
+            val format = SimpleDateFormat("yyyy-MM-dd_HH_mm_ss", Locale.getDefault())
+            val fileName = format.format(Date()) + ".log"
+            context.openFileOutput(fileName, Context.MODE_PRIVATE).use { stream ->
+                stream.write(bos.toByteArray())
             }
         }
     }
