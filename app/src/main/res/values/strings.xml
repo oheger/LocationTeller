@@ -27,4 +27,7 @@
     <string name="time_minutes">min</string>
     <string name="time_hours">h</string>
     <string name="time_days">d</string>
+    <string name="item_center_to_recent">Center to recent</string>
+    <string name="item_zoom_tracked_area">Zoom tracked area</string>
+    <string name="item_auto_center">Auto center</string>
 </resources>

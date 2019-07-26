@@ -17,10 +17,7 @@ package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
+import android.view.*
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
@@ -40,7 +37,16 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
 
     private val logTag = "MapFragment"
 
+    /** The map element. */
     private var map: GoogleMap? = null
+
+    /** The current state of location data.*/
+    private var state: LocationFileState? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,18 +58,63 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         return view
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_map, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.item_center -> {
+                centerToRecentMarker()
+                true
+            }
+            R.id.item_zoomArea -> {
+                zoomToTrackedArea()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     override fun onMapReady(map: GoogleMap?) {
         Log.i(logTag, "Map is ready")
+        this.map = map
         val prefHandler = PreferencesHandler.create(context!!)
         val config = prefHandler.createServerConfig()
         if (config != null && map != null) {
             launch {
-                val state = MapUpdater.updateMap(config, map, LocationFileState(emptyList(), emptyMap()),
-                    MarkerFactory.create(context!!), 0
+                val currentState = MapUpdater.updateMap(
+                    config, map, LocationFileState(emptyList(), emptyMap()),
+                    MarkerFactory.create(context!!), System.currentTimeMillis()
                 )
-                MapUpdater.zoomToAllMarkers(map, state)
-                MapUpdater.centerRecentMarker(map, state)
+                MapUpdater.zoomToAllMarkers(map, currentState)
+                MapUpdater.centerRecentMarker(map, currentState)
+                state = currentState
             }
+        }
+    }
+
+    /**
+     * Changes the map view, so that the most recent marker is in the center.
+     */
+    private fun centerToRecentMarker() {
+        val currentMap = map
+        val currentState = state
+        if (currentMap != null && currentState != null) {
+            MapUpdater.centerRecentMarker(currentMap, currentState)
+        }
+    }
+
+    /**
+     * Changes the map view to a zoom level, so that all markers available are
+     * visible.
+     */
+    private fun zoomToTrackedArea() {
+        val currentMap = map
+        val currentState = state
+        if (currentMap != null && currentState != null) {
+            MapUpdater.zoomToAllMarkers(currentMap, currentState)
         }
     }
 }
