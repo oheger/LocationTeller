@@ -16,12 +16,15 @@
 package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.SystemClock
 import android.util.Log
 import android.view.*
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerFactory
+import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -31,21 +34,49 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * A fragment class to display the location information read from the server
+ * on a maps view.
+ */
 class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main
 
-    private val logTag = "MapFragment"
+    /** The handler for scheduling delayed tasks.*/
+    private lateinit var handler: Handler
+
+    /** The handler for accessing preferences.*/
+    private lateinit var preferencesHandler: PreferencesHandler
 
     /** The map element. */
     private var map: GoogleMap? = null
+
+    /** The current server configuration. */
+    private var serverConfig: ServerConfig? = null
+
+    /** The update interval for location data. */
+    private var updateInterval: Long = 0
+
+    /**
+     * A flag that indicates whether automatic updates are possible. This flag
+     * is *true* when all prerequisites for querying the server are met.
+     */
+    private var canUpdate: Boolean = false
 
     /** The current state of location data.*/
     private var state: LocationFileState? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Log.i(logTag, "onCreate()")
         setHasOptionsMenu(true)
+        handler = Handler()
+        preferencesHandler = PreferencesHandler.create(requireContext())
+        serverConfig = preferencesHandler.createServerConfig()
+        val trackConfig = preferencesHandler.createTrackConfig()
+        updateInterval = (trackConfig?.minTrackInterval ?: defaultUpdateInterval) * 1000L
+        Log.i(logTag, "Set update interval to $updateInterval ms.")
     }
 
     override fun onCreateView(
@@ -77,20 +108,51 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         }
     }
 
+    override fun onPause() {
+        cancelPendingUpdates()
+        super.onPause()
+    }
+
+    /**
+     * Notifies this object that the map is now ready. If possible, the first
+     * update operation is started.
+     */
     override fun onMapReady(map: GoogleMap?) {
         Log.i(logTag, "Map is ready")
         this.map = map
-        val prefHandler = PreferencesHandler.create(context!!)
-        val config = prefHandler.createServerConfig()
-        if (config != null && map != null) {
+        canUpdate = serverConfig != null && map != null
+        Log.i(logTag, "Location updates possible: $canUpdate.")
+        updateState(true)
+    }
+
+    /**
+     * Updates the location state by fetching new location data from the server
+     * and updating the map view if necessary. The boolean parameter indicates
+     * whether the view should be initialized, i.e. a meaningful zoom level
+     * and position should be set. Note that this method is called only if all
+     * prerequisites for an update operation are fulfilled; therefore, the
+     * !! operator can be used to state that fields are not *null*.
+     * @param initView flag whether the view should be initialized
+     */
+    private fun updateState(initView: Boolean) {
+        if (canUpdate) {
+            Log.i(logTag, "Triggering update operation.")
+            val currentMap = map!!
             launch {
                 val currentState = MapUpdater.updateMap(
-                    config, map, LocationFileState(emptyList(), emptyMap()),
-                    MarkerFactory.create(context!!), System.currentTimeMillis()
+                    serverConfig!!, currentMap, LocationFileState(emptyList(), emptyMap()),
+                    MarkerFactory.create(requireContext()), System.currentTimeMillis()
                 )
-                MapUpdater.zoomToAllMarkers(map, currentState)
-                MapUpdater.centerRecentMarker(map, currentState)
+                if (initView) {
+                    MapUpdater.zoomToAllMarkers(currentMap, currentState)
+                    MapUpdater.centerRecentMarker(currentMap, currentState)
+                }
                 state = currentState
+
+                handler.postAtTime(
+                    { updateState(false) }, updateToken,
+                    SystemClock.uptimeMillis() + updateInterval
+                )
             }
         }
     }
@@ -116,5 +178,31 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         if (currentMap != null && currentState != null) {
             MapUpdater.zoomToAllMarkers(currentMap, currentState)
         }
+    }
+
+    /**
+     * Cancels pending update operations that might have been scheduled using
+     * this fragment's handler.
+     */
+    private fun cancelPendingUpdates() {
+        handler.removeCallbacksAndMessages(updateToken)
+    }
+
+    companion object {
+        /** Tag for log operations.*/
+        private const val logTag = "MapFragment"
+
+        /**
+         * An update interval (in seconds) that is used when the corresponding
+         * value in the tracking configuration is undefined.
+         */
+        private const val defaultUpdateInterval = 120
+
+        /**
+         * A token used when posting delayed update operations using the
+         * fragment's handler. With this token tasks can be removed again when
+         * the fragment becomes inactive or an update is requested manually.
+         */
+        private const val updateToken = "MAP_UPDATES"
     }
 }
