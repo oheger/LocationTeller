@@ -74,6 +74,13 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     /** The current state of location data.*/
     private var state: LocationFileState? = null
 
+    /**
+     * Flag whether the map should be centered automatically to the most recent
+     * marker when a new state is received. This is associated with a menu
+     * item.
+     */
+    private var autoCenter = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -119,6 +126,11 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
                 updateState(initView = false)
                 true
             }
+            R.id.item_autoCenter -> {
+                autoCenter = !item.isChecked
+                item.isChecked = autoCenter
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -161,6 +173,8 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
                 )
                 if (initView) {
                     MapUpdater.zoomToAllMarkers(currentMap, currentState)
+                }
+                if (initView || (autoCenter && currentState != state)) {
                     MapUpdater.centerRecentMarker(currentMap, currentState)
                 }
                 newStateArrived(currentState)
