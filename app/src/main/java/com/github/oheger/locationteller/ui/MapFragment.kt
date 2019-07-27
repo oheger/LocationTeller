@@ -24,6 +24,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerFactory
+import com.github.oheger.locationteller.map.TimeDeltaFormatter
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
@@ -47,6 +48,12 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
 
     /** The handler for accessing preferences.*/
     private lateinit var preferencesHandler: PreferencesHandler
+
+    /** The formatter for time delta values.*/
+    private lateinit var deltaFormatter: TimeDeltaFormatter
+
+    /** The factory for markers on the map. */
+    private lateinit var markerFactory: MarkerFactory
 
     /** The map element. */
     private var map: GoogleMap? = null
@@ -72,6 +79,8 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         Log.i(logTag, "onCreate()")
         setHasOptionsMenu(true)
         handler = Handler()
+        deltaFormatter = TimeDeltaFormatter.create(requireContext())
+        markerFactory = MarkerFactory(deltaFormatter)
         preferencesHandler = PreferencesHandler.create(requireContext())
         serverConfig = preferencesHandler.createServerConfig()
         val trackConfig = preferencesHandler.createTrackConfig()
@@ -141,7 +150,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
             launch {
                 val currentState = MapUpdater.updateMap(
                     serverConfig!!, currentMap, LocationFileState(emptyList(), emptyMap()),
-                    MarkerFactory.create(requireContext()), System.currentTimeMillis()
+                    markerFactory, System.currentTimeMillis()
                 )
                 if (initView) {
                     MapUpdater.zoomToAllMarkers(currentMap, currentState)

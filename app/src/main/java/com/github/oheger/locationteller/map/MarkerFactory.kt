@@ -15,23 +15,17 @@
  */
 package com.github.oheger.locationteller.map
 
-import android.content.Context
-import android.util.Log
-import com.github.oheger.locationteller.R
 import com.google.android.gms.maps.model.MarkerOptions
 
 /**
  * A class for creating map markers from _MarkerData_ objects.
  *
  * This class is used by [MapUpdater] to generate the markers that are to be
- * added to the map. In order to assign time information to markers, different
- * temporal units are used. The names of these units are passed to the
- * constructor.
+ * added to the map.
+ *
+ * @param deltaFormatter the formatter for time deltas
  */
-class MarkerFactory(
-    private val unitSec: String, private val unitMin: String, private val unitHour: String,
-    private val unitDay: String
-) {
+class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
     /**
      * Creates a _MarkerOptions_ object that corresponds to the given input
      * parameters. The _MarkerData_ that is the basis for the options to be
@@ -44,11 +38,10 @@ class MarkerFactory(
      */
     fun createMarker(state: LocationFileState, key: String, time: Long): MarkerOptions {
         val data = state.markerData[key] ?: throw IllegalArgumentException("Cannot resolve key $key in state $state!")
-        val options = MarkerOptions()
+        return MarkerOptions()
             .position(data.position)
             .title(createTitle(data, time))
             .alpha(calcAlpha(data, time, data === state.recentMarker()))
-        return options
     }
 
     /**
@@ -58,25 +51,8 @@ class MarkerFactory(
      * @param time the reference time
      * @return a title for the marker
      */
-    private fun createTitle(data: MarkerData, time: Long): String {
-        val deltaSec = (time - data.locationData.time.currentTime) / 1000
-        if (deltaSec < 60) {
-            return "$deltaSec $unitSec"
-        } else {
-            val deltaMin = deltaSec / 60
-            return if (deltaMin < 60) {
-                "$deltaMin $unitMin"
-            } else {
-                val deltaHour = deltaMin / 60
-                if (deltaHour < 24) {
-                    "$deltaHour $unitHour"
-                } else {
-                    val deltaDay = deltaHour / 24
-                    "$deltaDay $unitDay"
-                }
-            }
-        }
-    }
+    private fun createTitle(data: MarkerData, time: Long): String =
+        deltaFormatter.formatTimeDelta(time - data.locationData.time.currentTime)
 
     /**
      * Calculates an alpha value for a marker based on its age. There are
@@ -98,22 +74,4 @@ class MarkerFactory(
                 else 0.4f
             }
         }
-
-    companion object {
-        /**
-         * Creates a new instance of _MarkerFactory_ and initializes it from
-         * the given context object.
-         * @param context the context
-         * @return the newly created instance
-         */
-        fun create(context: Context): MarkerFactory {
-            val resources = context.resources
-            return MarkerFactory(
-                resources.getString(R.string.time_secs),
-                resources.getString(R.string.time_minutes),
-                resources.getString(R.string.time_hours),
-                resources.getString(R.string.time_days)
-            )
-        }
-    }
 }

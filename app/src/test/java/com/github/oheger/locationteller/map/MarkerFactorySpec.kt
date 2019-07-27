@@ -15,9 +15,6 @@
  */
 package com.github.oheger.locationteller.map
 
-import android.content.Context
-import android.content.res.Resources
-import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationTestHelper.createFile
 import com.github.oheger.locationteller.map.LocationTestHelper.createLocationData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
@@ -34,6 +31,7 @@ import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 
 /**
  * Test class for _MarkerFactory_.
@@ -60,53 +58,14 @@ class MarkerFactorySpec : StringSpec() {
             }
         }
 
-        "MarkerFactory should set a title using the seconds time unit" {
-            val data = createMarkerDataWithTime(currentTime - 59 * 1000L)
-            val options = createOptionsForMarker(data)
+        "MarkerFactory should set a title using the time formatter" {
+            val delta = 987123L
+            val data = createMarkerDataWithTime(currentTime - delta)
+            val factory = createFactory()
+            val options = callFactoryForMarker(data, factory)
 
-            options.title shouldBe "59 $unitSec"
-        }
-
-        "MarkerFactory should set a title using the minutes time unit for a delta > 1 minute" {
-            val data = createMarkerDataWithTime(currentTime - 60 * 1000L)
-            val options = createOptionsForMarker(data)
-
-            options.title shouldBe "1 $unitMin"
-        }
-
-        "MarkerFactory should set a title using the minutes time unit for a delta < 1 hour" {
-            val data = createMarkerDataWithTime(currentTime - 60 * 60 * 1000L + 1)
-            val options = createOptionsForMarker(data)
-
-            options.title shouldBe "59 $unitMin"
-        }
-
-        "MarkerFactory should set a title using the hours time unit for a delta >= 1 hour" {
-            val delta = createMarkerDataWithTime(currentTime - 60 * 60 * 1000L)
-            val options = createOptionsForMarker(delta)
-
-            options.title shouldBe "1 $unitHour"
-        }
-
-        "MarkerFactory should set a title using the hours time unit for a delta < 1 day" {
-            val delta = createMarkerDataWithTime(currentTime - 24 * 60 * 60 * 1000L + 1)
-            val options = createOptionsForMarker(delta)
-
-            options.title shouldBe "23 $unitHour"
-        }
-
-        "MarkerFactory should set a title using the days time unit for a delta >= 1 day" {
-            val delta = createMarkerDataWithTime(currentTime - 24 * 60 * 60 * 1000L)
-            val options = createOptionsForMarker(delta)
-
-            options.title shouldBe "1 $unitDay"
-        }
-
-        "MarkerFactory should set a title using the days time unit for larger deltas" {
-            val delta = createMarkerDataWithTime(currentTime - 5 * 24 * 60 * 60 * 1000L + 1)
-            val options = createOptionsForMarker(delta)
-
-            options.title shouldBe "4 $unitDay"
+            options.title shouldBe title
+            verify { factory.deltaFormatter.formatTimeDelta(delta) }
         }
 
         "MarkerFactory should set the alpha of the most recent marker to 1" {
@@ -160,20 +119,11 @@ class MarkerFactorySpec : StringSpec() {
     }
 
     companion object {
-        /** Time unit for seconds.*/
-        private const val unitSec = "s"
-
-        /** Time unit for minutes.*/
-        private const val unitMin = "m"
-
-        /** Time unit for hours.*/
-        private const val unitHour = "h"
-
-        /** Time unit for days.*/
-        private const val unitDay = "d"
-
         /** The current time passed to the factory.*/
         private const val currentTime = 20190723220948L
+
+        /** The title to be returned in marker options. */
+        private const val title = "formattedTimeDelta"
 
         /** Constant for a marker created at the current reference time.*/
         private val currentMarker = createMarkerDataWithTime(currentTime)
@@ -207,31 +157,32 @@ class MarkerFactorySpec : StringSpec() {
          * @param data the test _MarkerData_
          * @return the options created for this data
          */
-        private fun createOptionsForMarker(data: MarkerData): MarkerOptions {
-            val state = createStateWithData(data)
-            return createFactory().createMarker(state, state.files.first(), currentTime)
-        }
+        private fun createOptionsForMarker(data: MarkerData): MarkerOptions =
+            callFactoryForMarker(data, createFactory())
 
         /**
-         * Creates an Android context that is prepared to return resources for
-         * the time units used by the factory.
+         * Invokes the given factory on a specific marker data object and
+         * returns the result.
+         * @param data the _MarkerData_
+         * @param factory the test factory
+         * @return the result produced by the factory
          */
-        private fun createContext(): Context {
-            val context = mockk<Context>()
-            val resources = mockk<Resources>()
-            every { context.resources } returns resources
-            every { resources.getString(R.string.time_secs) } returns unitSec
-            every { resources.getString(R.string.time_minutes) } returns unitMin
-            every { resources.getString(R.string.time_hours) } returns unitHour
-            every { resources.getString(R.string.time_days) } returns unitDay
-            return context
+        private fun callFactoryForMarker(
+            data: MarkerData,
+            factory: MarkerFactory
+        ): MarkerOptions {
+            val state = createStateWithData(data)
+            return factory.createMarker(state, state.files.first(), currentTime)
         }
 
         /**
          * Creates a marker factory with a mock context.
          * @return the marker factory
          */
-        private fun createFactory(): MarkerFactory =
-            MarkerFactory.create(createContext())
+        private fun createFactory(): MarkerFactory {
+            val formatter = mockk<TimeDeltaFormatter>()
+            every { formatter.formatTimeDelta(any()) } returns title
+            return MarkerFactory(formatter)
+        }
     }
 }
