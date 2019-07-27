@@ -31,7 +31,8 @@
     <string name="item_center_to_recent">Center to recent</string>
     <string name="item_zoom_tracked_area">Zoom tracked area</string>
     <string name="item_auto_center">Auto center</string>
-    
+    <string name="item_update_map">Update</string>
+
     <string name="map_status_updating">updating…</string>
     <string name="map_status">%1$d locations, newest %2$s</string>
     <string name="map_status_empty">no locations</string>

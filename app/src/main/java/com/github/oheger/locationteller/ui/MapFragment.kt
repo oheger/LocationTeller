@@ -114,6 +114,11 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
                 zoomToTrackedArea()
                 true
             }
+            R.id.item_updateMap -> {
+                cancelPendingUpdates()
+                updateState(initView = false)
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -145,10 +150,10 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
      * @param initView flag whether the view should be initialized
      */
     private fun updateState(initView: Boolean) {
-        if (canUpdate) {
+        val currentMap = map
+        if (canUpdate && currentMap != null) {
             Log.i(logTag, "Triggering update operation.")
             updateInProgress()
-            val currentMap = map!!
             launch {
                 val currentState = MapUpdater.updateMap(
                     serverConfig!!, currentMap, LocationFileState(emptyList(), emptyMap()),
@@ -158,7 +163,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
                     MapUpdater.zoomToAllMarkers(currentMap, currentState)
                     MapUpdater.centerRecentMarker(currentMap, currentState)
                 }
-                updateState(currentState)
+                newStateArrived(currentState)
 
                 handler.postAtTime(
                     { updateState(false) }, updateToken,
@@ -180,7 +185,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
      * Updates the state after it has been retrieved from the server.
      * @param newState the new state
      */
-    private fun updateState(newState: LocationFileState) {
+    private fun newStateArrived(newState: LocationFileState) {
         Log.i(logTag, "Got new state.")
         state = newState
         mapProgressBar.visibility = View.INVISIBLE
