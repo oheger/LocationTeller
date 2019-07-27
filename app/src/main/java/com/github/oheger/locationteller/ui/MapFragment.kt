@@ -30,6 +30,7 @@ import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import kotlinx.android.synthetic.main.fragment_map.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -146,6 +147,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     private fun updateState(initView: Boolean) {
         if (canUpdate) {
             Log.i(logTag, "Triggering update operation.")
+            updateInProgress()
             val currentMap = map!!
             launch {
                 val currentState = MapUpdater.updateMap(
@@ -156,7 +158,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
                     MapUpdater.zoomToAllMarkers(currentMap, currentState)
                     MapUpdater.centerRecentMarker(currentMap, currentState)
                 }
-                state = currentState
+                updateState(currentState)
 
                 handler.postAtTime(
                     { updateState(false) }, updateToken,
@@ -165,6 +167,39 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
             }
         }
     }
+
+    /**
+     * Updates the UI when an update operation starts.
+     */
+    private fun updateInProgress() {
+        mapProgressBar.visibility = View.VISIBLE
+        mapStatusLine.text = getString(R.string.map_status_updating)
+    }
+
+    /**
+     * Updates the state after it has been retrieved from the server.
+     * @param newState the new state
+     */
+    private fun updateState(newState: LocationFileState) {
+        Log.i(logTag, "Got new state.")
+        state = newState
+        mapProgressBar.visibility = View.INVISIBLE
+        val statusText = if (newState.files.isEmpty()) getString(R.string.map_status_empty)
+        else getString(R.string.map_status, newState.files.size, recentMarkerTime(newState))
+        mapStatusLine.text = statusText
+    }
+
+    /**
+     * Returns a string for the age of the most recent marker in the given
+     * state. This is used to update the status line after new state data has
+     * been retrieved.
+     * @param newState the updated state
+     */
+    private fun recentMarkerTime(newState: LocationFileState): String =
+        deltaFormatter.formatTimeDelta(
+            System.currentTimeMillis() -
+                    (newState.recentMarker()?.locationData?.time?.currentTime ?: 0)
+        )
 
     /**
      * Changes the map view, so that the most recent marker is in the center.
