@@ -24,8 +24,6 @@ import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import io.ktor.client.HttpClient
-import io.mockk.*
 
 /**
  * Test class for [DavClient].
@@ -141,6 +139,27 @@ class DavClientSpec : StringSpec() {
             folder.elements shouldHaveSize 0
         }
 
+        "DavClient should handle a folder result without content" {
+            stubFor(
+                request("PROPFIND", serverPath("/"))
+                    .willReturn(aResponse().withStatus(200))
+            )
+            val client = DavClient.create(WireMockSupport.config())
+
+            val folder = client.loadFolder("/")
+            folder.path shouldBe ""
+            folder.elements shouldHaveSize 0
+        }
+
+        "DavClient should handle an invalid XML response for a folder" {
+            stubFolderRequest("/", "folder_invalid.txt")
+            val client = DavClient.create(WireMockSupport.config())
+
+            val folder = client.loadFolder("/")
+            folder.path shouldBe ""
+            folder.elements shouldHaveSize 0
+        }
+
         "DavClient should delete an element from the server" {
             val path = "data/test.txt"
             stubFor(
@@ -223,15 +242,6 @@ class DavClientSpec : StringSpec() {
             val client = DavClient.create(WireMockSupport.config())
 
             client.readFile(path) shouldBe ""
-        }
-
-        "DavClient should close itself" {
-            val httpClient = mockk<HttpClient>()
-            every { httpClient.close() } just runs
-            val client = DavClient(WireMockSupport.config(), httpClient)
-
-            client.close()
-            verify { httpClient.close() }
         }
     }
 }

@@ -190,14 +190,12 @@ class TrackServiceSpec : StringSpec() {
 
         "TrackService should support the reset of its client" {
             val client = mockk<DavClient>()
-            every { client.close() } just runs
             val factory = clientFactory(client)
             val service = TrackService(factory)
 
             service.resetClient()
             service.davClient()
             verify(exactly = 2) { factory.createDavClient() }
-            verify(exactly = 1) { client.close() }
         }
 
         "TrackService should return null if an invalid location file path is requested" {

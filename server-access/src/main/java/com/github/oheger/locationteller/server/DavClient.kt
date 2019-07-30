@@ -15,14 +15,10 @@
  */
 package com.github.oheger.locationteller.server
 
-import io.ktor.client.HttpClient
-import io.ktor.client.request.*
-import io.ktor.client.response.HttpResponse
-import io.ktor.client.response.readBytes
-import io.ktor.client.response.readText
-import io.ktor.http.HttpMethod
-import io.ktor.http.isSuccess
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
+import org.xml.sax.SAXParseException
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.SAXParserFactory
 
@@ -33,9 +29,9 @@ import javax.xml.parsers.SAXParserFactory
  * to the server and to retrieve location data stored there.
  *
  * @param config the server configuration
- * @param httpClient the client for sending HTTP requests
+ * @param trackHttpClient the client for sending HTTP requests
  */
-class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
+class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttpClient) {
     private val log = LoggerFactory.getLogger(DavClient::class.java)
 
     /** The authorization header.*/
@@ -48,11 +44,15 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      * @param content the content of the new file
      * @return a flag whether this operation was successful
      */
-    suspend fun upload(path: String, content: String): Boolean =
-        httpClient.put<HttpResponse>(resolvePath(path)) {
-            body = content
-            header(HeaderAuthorization, authorizationHeader)
-        }.use { it.status.isSuccess() }
+    suspend fun upload(path: String, content: String): Boolean {
+        val request = Request.Builder()
+            .url(resolvePath(path))
+            .put(content.toRequestBody())
+            .header(HeaderAuthorization, authorizationHeader)
+            .build()
+        val response = trackHttpClient.update(request)
+        return response.successful
+    }
 
     /**
      * Loads a folder from the server and returns an object with its content.
@@ -68,30 +68,17 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      */
     suspend fun loadFolder(path: String): DavFolder {
         val resolvedPath = appendSeparator(resolvePath(path))
-        try {
-            return httpClient.request<HttpResponse>(resolvedPath) {
-                method = HttpMethod(MethodPropFind)
-                header(HeaderAccept, MediaXml)
-                header(HeaderDepth, DepthValue)
-                header(HeaderAuthorization, authorizationHeader)
-            }.use { response ->
-                if (!response.status.isSuccess()) {
-                    log.error("Failure status ${response.status.value} when loading folder $path.")
-                    return DummyFolder
-                }
-                val folderContent = response.readBytes()
-                val contentStream = ByteArrayInputStream(folderContent)
-
-                val handler = FolderContentSaxHandler()
-                val parserFactory = SAXParserFactory.newInstance()
-                val parser = parserFactory.newSAXParser()
-                parser.parse(contentStream, handler)
-                DavFolder(path, handler.folderContent())
-            }
-        } catch (e: Exception) {
-            log.error("Could not load content of folder $resolvedPath.", e)
-            return DummyFolder
-        }
+        val request = Request.Builder()
+            .url(resolvedPath)
+            .header(HeaderAccept, MediaXml)
+            .header(HeaderDepth, DepthValue)
+            .header(HeaderAuthorization, authorizationHeader)
+            .method(MethodPropFind, null)
+            .build()
+        val response = trackHttpClient.request(request)
+        return if (response.successful) {
+            parseFolderContent(response, path)
+        } else DummyFolder
     }
 
     /**
@@ -99,10 +86,15 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      * @param path the path to the element to be removed
      * @return a flag whether this operation was successful
      */
-    suspend fun delete(path: String): Boolean =
-        httpClient.delete<HttpResponse>(resolvePath(path)) {
-            header(HeaderAuthorization, authorizationHeader)
-        }.use { it.status.isSuccess() }
+    suspend fun delete(path: String): Boolean {
+        val request = Request.Builder()
+            .url(resolvePath(path))
+            .header(HeaderAuthorization, authorizationHeader)
+            .delete()
+            .build()
+        val response = trackHttpClient.update(request)
+        return response.successful
+    }
 
     /**
      * Creates a folder under the given path.
@@ -111,15 +103,16 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      */
     suspend fun createFolder(path: String): Boolean {
         val resolvedPath = appendSeparator(resolvePath(path))
-        return httpClient.request<HttpResponse>(resolvedPath) {
-            method = HttpMethod("MKCOL")
-            header(HeaderAuthorization, authorizationHeader)
-        }.use { response ->
-            // Status 'Method not allowed' is returned if the folder already exists.
-            // This is treated as success here because for the further proceeding it
-            // only matters that the folder exists.
-            return response.status.isSuccess() || response.status.value == StatusMethodNotAllowed
-        }
+        val request = Request.Builder()
+            .url(resolvedPath)
+            .method("MKCOL", null)
+            .header(HeaderAuthorization, authorizationHeader)
+            .build()
+        val response = trackHttpClient.update(request)
+        // Status 'Method not allowed' is returned if the folder already exists.
+        // This is treated as success here because for the further proceeding it
+        // only matters that the folder exists.
+        return response.successful || response.status == StatusMethodNotAllowed
     }
 
     /**
@@ -131,21 +124,33 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
      */
     suspend fun readFile(path: String): String {
         val resolvedPath = resolvePath(path)
-        return try {
-            return httpClient.get<HttpResponse>(resolvedPath) {
-                header(HeaderAuthorization, authorizationHeader)
-            }.use { it.readText() }
-        } catch (e: Exception) {
-            log.error("Could not read file $resolvedPath.", e)
-            ""
-        }
+        val request = Request.Builder()
+            .url(resolvedPath)
+            .header(HeaderAuthorization, authorizationHeader)
+            .get()
+            .build()
+        val response = trackHttpClient.request(request)
+        return response.content
     }
 
     /**
-     * Closes this client and releases all resources.
+     * Parses the content of an XML folder document returned by the server.
+     * The data is transformed to a _DavFolder_ object.
+     * @param response the server response to be parsed
+     * @param path the path that was requested
      */
-    fun close() {
-        httpClient.close()
+    private fun parseFolderContent(response: HttpResponse, path: String): DavFolder {
+        val contentStream = ByteArrayInputStream(response.content.toByteArray())
+        val handler = FolderContentSaxHandler()
+        val parserFactory = SAXParserFactory.newInstance()
+        val parser = parserFactory.newSAXParser()
+        try {
+            parser.parse(contentStream, handler)
+        } catch (e: SAXParseException) {
+            log.error("Could not parse folder response for $path.", e)
+            return DummyFolder
+        }
+        return DavFolder(path, handler.folderContent())
     }
 
     /**
@@ -187,8 +192,8 @@ class DavClient(val config: ServerConfig, private val httpClient: HttpClient) {
          * @return the new client instance
          */
         fun create(config: ServerConfig): DavClient {
-            val httpClient = HttpClient()
-            return DavClient(config, httpClient)
+            val trackHttpClient = TrackHttpClient.create()
+            return DavClient(config, trackHttpClient)
         }
 
         /**

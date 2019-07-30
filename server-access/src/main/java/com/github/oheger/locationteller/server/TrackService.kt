@@ -171,7 +171,6 @@ class TrackService(val davClientFactory: DavClientFactory) {
      */
     fun resetClient() {
         val client = davClient()
-        client.close()
         davClientField = null
     }
 
