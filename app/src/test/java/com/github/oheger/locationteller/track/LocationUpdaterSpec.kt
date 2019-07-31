@@ -37,11 +37,7 @@ class LocationUpdaterSpec : StringSpec() {
      * invocations.
      * @return the mock track service
      */
-    private fun createTrackService(): TrackService {
-        val service = mockk<TrackService>()
-        every { service.resetClient() } just runs
-        return service
-    }
+    private fun createTrackService(): TrackService = mockk()
 
     init {
         "LocationUpdaterActor should pass a location update to the track service" {
@@ -61,7 +57,6 @@ class LocationUpdaterSpec : StringSpec() {
                     trackService.addLocation(locUpdate.locationData)
                 }
                 verify {
-                    trackService.resetClient()
                     locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime)
                     locUpdate.prefHandler.recordUpdate(locUpdate.locationData.time.currentTime)
                 }
@@ -86,7 +81,6 @@ class LocationUpdaterSpec : StringSpec() {
                 locUpdate2.nextTrackDelay.await()
                 coVerify(exactly = 1) {
                     trackService.addLocation(any())
-                    trackService.resetClient()
                 }
                 verify { locUpdate2.prefHandler.recordCheck(locUpdate2.locationData.time.currentTime) }
                 verify(exactly = 0) {

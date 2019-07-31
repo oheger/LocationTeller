@@ -50,7 +50,7 @@ class MapUpdaterSpec : StringSpec() {
     init {
         "MapUpdater should define a default track server factory" {
             val service = MapUpdater.defaultTrackServerFactory(serverConfig)
-            service.davClient().config shouldBe serverConfig
+            service.davClient.config shouldBe serverConfig
         }
 
         "MapUpdater should not update anything if there is not change" {

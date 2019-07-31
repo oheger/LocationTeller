@@ -114,7 +114,6 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     } else {
                         locUpdate.prefHandler.recordError(locUpdate.updateTime())
                     }
-                    trackService.resetClient()
                 }
                 //TODO implement error handling
 

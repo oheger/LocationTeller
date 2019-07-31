@@ -32,14 +32,12 @@ class TrackServiceSpec : StringSpec() {
             val config = ServerConfig("someUri", "somePath", "user", "pwd")
 
             val service = TrackService.create(config)
-            service.davClientFactory.config shouldBe config
-            val client = service.davClientFactory.createDavClient()
-            client.config shouldBe config
+            service.davClient.config shouldBe config
         }
 
         "TrackService should determine the files on the server" {
             val davClient = createPreparedDavClient()
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.filesOnServer() shouldBe expectedFiles
         }
@@ -49,7 +47,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 12, 0, 0)
             coEvery { davClient.delete(folderPath(folder1)) } returns true
             coEvery { davClient.delete(expectedFiles[2]) } returns true
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe true
             service.filesOnServer() shouldBe expectedFiles.drop(3)
@@ -58,7 +56,7 @@ class TrackServiceSpec : StringSpec() {
         "TrackService should handle the case that no outdated files need to be removed" {
             val davClient = createPreparedDavClient()
             val refTime = referenceTime(18, 21, 57, 5)
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
             val oldFiles = service.filesOnServer()
 
             service.removeOutdated(refTime) shouldBe true
@@ -70,7 +68,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 19, 28, 46)
             coEvery { davClient.delete(folderPath(folder1)) } returns true
             coEvery { davClient.delete(folderPath(folder2)) } returns true
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe true
         }
@@ -79,7 +77,7 @@ class TrackServiceSpec : StringSpec() {
             val davClient = createPreparedDavClient()
             val refTime = referenceTime(21, 12, 0, 0)
             coEvery { davClient.delete(any()) } returns false
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe false
             service.filesOnServer() shouldBe expectedFiles
@@ -90,7 +88,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 12, 0, 0)
             coEvery { davClient.delete(folderPath(folder1)) } returns false
             coEvery { davClient.delete(expectedFiles[2]) } returns true
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe false
             val files = service.filesOnServer()
@@ -104,7 +102,7 @@ class TrackServiceSpec : StringSpec() {
             val refTime = referenceTime(20, 12, 0, 0)
             coEvery { davClient.delete(folderPath(folder1)) } returns true
             coEvery { davClient.delete(expectedFiles[2]) } returns false
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.removeOutdated(refTime) shouldBe false
             val files = service.filesOnServer()
@@ -119,7 +117,7 @@ class TrackServiceSpec : StringSpec() {
             val locData = LocationData(123.456, 789.321, refTime)
             val davClient = createPreparedDavClient()
             coEvery { davClient.upload(expPath, locData.stringRepresentation()) } returns true
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.addLocation(locData) shouldBe true
             coVerify { davClient.upload(expPath, locData.stringRepresentation()) }
@@ -130,7 +128,7 @@ class TrackServiceSpec : StringSpec() {
             val locData = LocationData(123.456, 789.321, refTime)
             val davClient = createPreparedDavClient()
             coEvery { davClient.upload(any(), any()) } returns false
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.addLocation(locData) shouldBe false
         }
@@ -143,7 +141,7 @@ class TrackServiceSpec : StringSpec() {
             val davClient = createPreparedDavClient()
             coEvery { davClient.createFolder(folderPath) } returns true
             coEvery { davClient.upload(expPath, locData.stringRepresentation()) } returns true
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.addLocation(locData) shouldBe true
             coVerifyOrder {
@@ -158,7 +156,7 @@ class TrackServiceSpec : StringSpec() {
             val locData = LocationData(123.456, 789.321, refTime)
             val davClient = createPreparedDavClient()
             coEvery { davClient.createFolder(folderPath) } returns false
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.addLocation(locData) shouldBe false
         }
@@ -170,7 +168,7 @@ class TrackServiceSpec : StringSpec() {
             coEvery { davClient.createFolder(any()) } returns true
             coEvery { davClient.upload(any(), any()) } returns true
             coEvery { davClient.delete(any()) } returns true
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
             service.addLocation(locData)
 
             service.removeOutdated(referenceTime(25, 21, 50, 9))
@@ -182,25 +180,15 @@ class TrackServiceSpec : StringSpec() {
             val locData = LocationData(123.456, 789.321, refTime)
             val davClient = createPreparedDavClient()
             coEvery { davClient.upload(any(), any()) } returns false
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
             service.addLocation(locData)
 
             service.filesOnServer() shouldNotContain pathFromTime(refTime)
         }
 
-        "TrackService should support the reset of its client" {
-            val client = mockk<DavClient>()
-            val factory = clientFactory(client)
-            val service = TrackService(factory)
-
-            service.resetClient()
-            service.davClient()
-            verify(exactly = 2) { factory.createDavClient() }
-        }
-
         "TrackService should return null if an invalid location file path is requested" {
             val davClient = createPreparedDavClient()
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.readLocation("/non/existing/file") shouldBe null
         }
@@ -213,7 +201,7 @@ class TrackServiceSpec : StringSpec() {
             val path = expectedFiles[0]
             val davClient = createPreparedDavClient()
             coEvery { davClient.readFile(path) } returns "$latitude;$longitude"
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.readLocation(path) shouldBe expLocData
         }
@@ -221,7 +209,7 @@ class TrackServiceSpec : StringSpec() {
         "TrackService should return null if a location file cannot be resolved" {
             val path = expectedFiles[2].replace('1', '2')
             val davClient = createPreparedDavClient()
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.readLocation(path) shouldBe null
         }
@@ -230,7 +218,7 @@ class TrackServiceSpec : StringSpec() {
             val path = expectedFiles[1]
             val davClient = createPreparedDavClient()
             coEvery { davClient.readFile(path) } returns ""
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             service.readLocation(path) shouldBe null
         }
@@ -244,7 +232,7 @@ class TrackServiceSpec : StringSpec() {
             pairs.forEach { pair ->
                 coEvery { davClient.readFile(pair.first) } returns pair.second.stringRepresentation()
             }
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             val locationMap = service.readLocations(files)
             locationMap.keys shouldContainExactly files
@@ -258,7 +246,7 @@ class TrackServiceSpec : StringSpec() {
             val locationData = locationDataForFile(0)
             coEvery { davClient.readFile(expectedFiles[0]) } returns locationData.stringRepresentation()
             coEvery { davClient.readFile(expectedFiles[1]) } returns ""
-            val service = TrackService(clientFactory(davClient))
+            val service = TrackService(davClient)
 
             val locationMap = service.readLocations(expectedFiles.take(2))
             locationMap.size shouldBe 1
@@ -424,17 +412,5 @@ class TrackServiceSpec : StringSpec() {
          * @return the prepared mock client
          */
         private fun createPreparedDavClient(): DavClient = prepareDavClientForFolders(mockk())
-
-        /**
-         * Creates a mock factory for DAV clients that always returns the
-         * given client.
-         * @param client the client to be returned
-         * @return the factory
-         */
-        private fun clientFactory(client: DavClient): TrackService.Companion.DavClientFactory {
-            val factory = mockk<TrackService.Companion.DavClientFactory>()
-            every { factory.createDavClient() } returns client
-            return factory
-        }
     }
 }
