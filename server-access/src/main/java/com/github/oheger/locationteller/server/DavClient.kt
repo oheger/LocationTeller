@@ -185,14 +185,17 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
         /** Constant for a dummy folder to be returned in case of an error.*/
         private val DummyFolder = DavFolder("", listOf())
 
+        /** The default timeout value for HTTP requests.*/
+        private const val requestTimeout = 15000L
+
         /**
          * Creates a new instance of [DavClient] that is configured with a
          * default HTTP client.
          * @param config the server configuration
          * @return the new client instance
          */
-        fun create(config: ServerConfig): DavClient {
-            val trackHttpClient = TrackHttpClient.create()
+        fun create(config: ServerConfig, timeoutMillis: Long = requestTimeout): DavClient {
+            val trackHttpClient = TrackHttpClient.create(timeoutMillis)
             return DavClient(config, trackHttpClient)
         }
 

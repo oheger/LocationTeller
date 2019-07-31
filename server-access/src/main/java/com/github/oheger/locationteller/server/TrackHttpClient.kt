@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.server
 import okhttp3.*
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
 
@@ -123,10 +124,11 @@ class TrackHttpClient private constructor(private val client: OkHttpClient) {
 
         /**
          * Creates a new instance of _TrackHttpClient_.
+         * @param timeoutMillis the timeout for calls
          * @return the new client instance
          */
-        fun create(): TrackHttpClient {
-            val client = OkHttpClient()
+        fun create(timeoutMillis: Long): TrackHttpClient {
+            val client = OkHttpClient.Builder().callTimeout(timeoutMillis, TimeUnit.MILLISECONDS).build()
             return TrackHttpClient(client)
         }
     }

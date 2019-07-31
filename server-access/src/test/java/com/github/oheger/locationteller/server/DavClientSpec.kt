@@ -243,5 +243,22 @@ class DavClientSpec : StringSpec() {
 
             client.readFile(path) shouldBe ""
         }
+
+        "DavClient should apply the timeout when doing requests" {
+            val timeout = 500
+            val path = "/my/error/timeout.txt"
+            stubFor(
+                authorized(
+                    put(serverPath(path))
+                        .willReturn(
+                            aResponse().withStatus(200)
+                                .withFixedDelay(2 * timeout)
+                        )
+                )
+            )
+            val client = DavClient.create(WireMockSupport.config(), timeout.toLong())
+
+            client.upload(path, "someData") shouldBe false
+        }
     }
 }
