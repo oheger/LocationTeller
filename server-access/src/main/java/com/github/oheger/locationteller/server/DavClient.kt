@@ -45,11 +45,9 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
      * @return a flag whether this operation was successful
      */
     suspend fun upload(path: String, content: String): Boolean {
-        val request = Request.Builder()
-            .url(resolvePath(path))
-            .put(content.toRequestBody())
-            .header(HeaderAuthorization, authorizationHeader)
-            .build()
+        val request = createRequest(resolvePath(path)) {
+            put(content.toRequestBody())
+        }
         val response = trackHttpClient.update(request)
         return response.successful
     }
@@ -68,13 +66,11 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
      */
     suspend fun loadFolder(path: String): DavFolder {
         val resolvedPath = appendSeparator(resolvePath(path))
-        val request = Request.Builder()
-            .url(resolvedPath)
-            .header(HeaderAccept, MediaXml)
-            .header(HeaderDepth, DepthValue)
-            .header(HeaderAuthorization, authorizationHeader)
-            .method(MethodPropFind, null)
-            .build()
+        val request = createRequest(resolvedPath) {
+            header(HeaderAccept, MediaXml)
+            header(HeaderDepth, DepthValue)
+            method(MethodPropFind, null)
+        }
         val response = trackHttpClient.request(request)
         return if (response.successful) {
             parseFolderContent(response, path)
@@ -87,11 +83,9 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
      * @return a flag whether this operation was successful
      */
     suspend fun delete(path: String): Boolean {
-        val request = Request.Builder()
-            .url(resolvePath(path))
-            .header(HeaderAuthorization, authorizationHeader)
-            .delete()
-            .build()
+        val request = createRequest(resolvePath(path)) {
+            delete()
+        }
         val response = trackHttpClient.update(request)
         return response.successful
     }
@@ -103,11 +97,9 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
      */
     suspend fun createFolder(path: String): Boolean {
         val resolvedPath = appendSeparator(resolvePath(path))
-        val request = Request.Builder()
-            .url(resolvedPath)
-            .method("MKCOL", null)
-            .header(HeaderAuthorization, authorizationHeader)
-            .build()
+        val request = createRequest(resolvedPath) {
+            method("MKCOL", null)
+        }
         val response = trackHttpClient.update(request)
         // Status 'Method not allowed' is returned if the folder already exists.
         // This is treated as success here because for the further proceeding it
@@ -124,11 +116,7 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
      */
     suspend fun readFile(path: String): String {
         val resolvedPath = resolvePath(path)
-        val request = Request.Builder()
-            .url(resolvedPath)
-            .header(HeaderAuthorization, authorizationHeader)
-            .get()
-            .build()
+        val request = createRequest(resolvedPath) {}
         val response = trackHttpClient.request(request)
         return response.content
     }
@@ -159,6 +147,23 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
      * @return the resolved path
      */
     private fun resolvePath(path: String) = "${config.serverUri}${config.basePath}$path"
+
+    /**
+     * Convenience function to create and initialize request objects. A builder
+     * is already created and configured with the URI and the default
+     * authorization header. Further properties of the request can be
+     * initialized in the passed in block.
+     * @param uri the URI of the request
+     * @param block the block that initializes the request
+     * @return the initialized request
+     */
+    private fun createRequest(uri: String, block: Request.Builder.() -> Unit): Request {
+        val builder = Request.Builder()
+            .url(uri)
+            .header(HeaderAuthorization, authorizationHeader)
+        builder.block()
+        return builder.build()
+    }
 
     companion object {
         /** Name of the authorization header.*/
