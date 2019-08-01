@@ -14,6 +14,7 @@
     <string name="pref_max_track_interval">Maximum track interval (sec)</string>
     <string name="pref_interval_idle_increment">Track interval increment on idle (sec)</string>
     <string name="pref_validity_time">Validity time of a location (sec)</string>
+    <string name="pref_location_update_threshold">Threshold for location updates (m)</string>
     <string name="pref_server_uri">Track server URI</string>
     <string name="pref_server_path">Relative path</string>
     <string name="pref_user">User name</string>
@@ -27,7 +28,7 @@
     <string name="time_minutes">min</string>
     <string name="time_hours">h</string>
     <string name="time_days">d</string>
-    
+
     <string name="item_center_to_recent">Center to recent</string>
     <string name="item_zoom_tracked_area">Zoom tracked area</string>
     <string name="item_auto_center">Auto center</string>

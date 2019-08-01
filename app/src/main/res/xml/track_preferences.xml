@@ -29,4 +29,11 @@
         android:singleLine="true"
         android:title="@string/pref_validity_time"
         app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        android:key="locationUpdateThreshold"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_location_update_threshold"
+        app:useSimpleSummaryProvider="true" />
 </PreferenceScreen>

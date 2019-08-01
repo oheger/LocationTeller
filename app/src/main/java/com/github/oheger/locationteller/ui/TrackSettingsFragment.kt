@@ -41,7 +41,8 @@ class TrackSettingsFragment : PreferenceFragmentCompat() {
             pref?.setOnBindEditTextListener(numberBindListener)
         }
 
-        listOf("minTrackInterval", "maxTrackInterval", "intervalIncrementOnIdle", "locationValidity")
+        listOf("minTrackInterval", "maxTrackInterval", "intervalIncrementOnIdle", "locationValidity",
+            "locationUpdateThreshold")
             .forEach { makeNumericSetting(it) }
     }
 }
