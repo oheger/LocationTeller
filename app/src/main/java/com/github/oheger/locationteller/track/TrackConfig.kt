@@ -24,10 +24,13 @@ package com.github.oheger.locationteller.track
  * interval if the location has not changed
  * @param locationValidity the time (in sec) how long a location should stay
  * on the server
+ * @param locationUpdateThreshold the threshold for the distance (in meters)
+ * between the current location and the last one before an update is reported
  */
 data class TrackConfig(
     val minTrackInterval: Int,
     val maxTrackInterval: Int,
     val intervalIncrementOnIdle: Int,
-    val locationValidity: Int
+    val locationValidity: Int,
+    val locationUpdateThreshold: Int
 )

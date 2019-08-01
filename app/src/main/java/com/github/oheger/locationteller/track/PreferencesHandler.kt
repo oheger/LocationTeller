@@ -56,13 +56,15 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         val maxTrackInterval = preferences.getNumeric(propMaxTrackInterval)
         val intervalIncrementOnIdle = preferences.getNumeric(propIdleIncrement)
         val locationValidity = preferences.getNumeric(propLocationValidity)
+        val locationUpdateThreshold = preferences.getNumeric(propLocationUpdateThreshold)
         return if (minTrackInterval < 0 || maxTrackInterval < 0 || intervalIncrementOnIdle < 0 ||
             locationValidity < 0
         ) {
             return null
         } else TrackConfig(
             minTrackInterval, maxTrackInterval, intervalIncrementOnIdle,
-            locationValidity
+            locationValidity,
+            if (locationUpdateThreshold <= 0) defaultLocationUpdateThreshold else locationUpdateThreshold
         )
     }
 
@@ -210,6 +212,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the increment interval.*/
         const val propLocationValidity = "locationValidity"
 
+        /** Shared preferences property for the location update threshold.*/
+        const val propLocationUpdateThreshold = "locationUpdateThreshold"
+
         /** Shared preferences property for the tracking state.*/
         const val propTrackState = "trackEnabled"
 
@@ -222,6 +227,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the last check for an update. */
         const val propLastCheck = "lastCheck"
 
+        /** A default value for the location update threshold property. */
+        const val defaultLocationUpdateThreshold = 10
+
         /** Constant for an undefined numeric property.*/
         private const val undefinedNumber = -1
 
@@ -231,7 +239,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** A set with all properties related to configuration.*/
         private val configProps = setOf(
             propServerUri, propBasePath, propUser, propPassword,
-            propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity
+            propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity,
+            propLocationUpdateThreshold
         )
 
         /**

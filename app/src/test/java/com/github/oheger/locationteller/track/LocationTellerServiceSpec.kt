@@ -167,7 +167,8 @@ class LocationTellerServiceSpec : StringSpec() {
         /** A default test track configuration.*/
         private val defTrackConfig = TrackConfig(
             minTrackInterval = 42, maxTrackInterval = 727,
-            locationValidity = 1000, intervalIncrementOnIdle = 50
+            locationValidity = 1000, intervalIncrementOnIdle = 50,
+            locationUpdateThreshold = 22
         )
 
         /** Constant for the next update interval returned by the retriever.*/
@@ -222,6 +223,7 @@ class LocationTellerServiceSpec : StringSpec() {
             initProperty(pref, "maxTrackInterval", trackConf.maxTrackInterval)
             initProperty(pref, "intervalIncrementOnIdle", trackConf.intervalIncrementOnIdle)
             initProperty(pref, "locationValidity", trackConf.locationValidity)
+            initProperty(pref, "locationUpdateThreshold", trackConf.locationUpdateThreshold)
             every { pref.getBoolean("trackEnabled", false) } returns trackingEnabled
             return pref
         }

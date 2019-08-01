@@ -77,7 +77,8 @@ class PreferencesHandlerSpec : StringSpec() {
                 PreferencesHandler.propBasePath, PreferencesHandler.propIdleIncrement,
                 PreferencesHandler.propLocationValidity, PreferencesHandler.propMaxTrackInterval,
                 PreferencesHandler.propMinTrackInterval, PreferencesHandler.propPassword,
-                PreferencesHandler.propUser, PreferencesHandler.propServerUri
+                PreferencesHandler.propUser, PreferencesHandler.propServerUri,
+                PreferencesHandler.propLocationUpdateThreshold
             )
 
             configProps.forEach { prop -> PreferencesHandler.isConfigProperty(prop) shouldBe true }
@@ -218,6 +219,122 @@ class PreferencesHandlerSpec : StringSpec() {
 
             PreferencesHandler.unregisterListener(context, listener)
             verify { pref.unregisterOnSharedPreferenceChangeListener(listener) }
+        }
+
+        "PreferencesHandler should create a track configuration" {
+            val trackConfig = TrackConfig(3, 10, 2, 20, 15)
+            val pref = mockk<SharedPreferences>()
+            every {
+                pref.getString(
+                    PreferencesHandler.propMinTrackInterval,
+                    "-1"
+                )
+            } returns trackConfig.minTrackInterval.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propMaxTrackInterval,
+                    "-1"
+                )
+            } returns trackConfig.maxTrackInterval.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propIdleIncrement,
+                    "-1"
+                )
+            } returns trackConfig.intervalIncrementOnIdle.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propLocationValidity,
+                    "-1"
+                )
+            } returns trackConfig.locationValidity.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propLocationUpdateThreshold,
+                    "-1"
+                )
+            } returns trackConfig.locationUpdateThreshold.toString()
+            val handler = PreferencesHandler(pref)
+
+            handler.createTrackConfig() shouldBe trackConfig
+        }
+
+        "PreferencesHandler should return null for a TrackConfig if properties are undefined" {
+            val pref = mockk<SharedPreferences>()
+            every {
+                pref.getString(
+                    PreferencesHandler.propMinTrackInterval,
+                    "-1"
+                )
+            } returns "-1"
+            every {
+                pref.getString(
+                    PreferencesHandler.propMaxTrackInterval,
+                    "-1"
+                )
+            } returns "-1"
+            every {
+                pref.getString(
+                    PreferencesHandler.propIdleIncrement,
+                    "-1"
+                )
+            } returns "-1"
+            every {
+                pref.getString(
+                    PreferencesHandler.propLocationValidity,
+                    "-1"
+                )
+            } returns "-1"
+            every {
+                pref.getString(
+                    PreferencesHandler.propLocationUpdateThreshold,
+                    "-1"
+                )
+            } returns "-1"
+            val handler = PreferencesHandler(pref)
+
+            handler.createTrackConfig() shouldBe null
+        }
+
+        "PreferencesHandler should set a default value for the updateLocationThreshold property" {
+            val trackConfig = TrackConfig(
+                3, 10, 2, 20,
+                PreferencesHandler.defaultLocationUpdateThreshold
+            )
+            val pref = mockk<SharedPreferences>()
+            every {
+                pref.getString(
+                    PreferencesHandler.propMinTrackInterval,
+                    "-1"
+                )
+            } returns trackConfig.minTrackInterval.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propMaxTrackInterval,
+                    "-1"
+                )
+            } returns trackConfig.maxTrackInterval.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propIdleIncrement,
+                    "-1"
+                )
+            } returns trackConfig.intervalIncrementOnIdle.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propLocationValidity,
+                    "-1"
+                )
+            } returns trackConfig.locationValidity.toString()
+            every {
+                pref.getString(
+                    PreferencesHandler.propLocationUpdateThreshold,
+                    "-1"
+                )
+            } returns "-1"
+            val handler = PreferencesHandler(pref)
+
+            handler.createTrackConfig() shouldBe trackConfig
         }
     }
 }
