@@ -16,7 +16,6 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
-import android.util.Log
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
@@ -33,14 +32,6 @@ import kotlin.math.min
  * retrieved.
  */
 val unknownLocation = LocationData(0.0, 0.0, TimeData(0))
-
-/**
- * Constant for a minimum location delta to trigger a location update. If the
- * difference between the new location and the last location (in meters) is
- * less than this value, the locations are considered the same, and no update
- * is done.
- */
-const val MinimumLocationDelta = 3.0f
 
 /**
  * Data class for the messages processed by location updater actor.
@@ -90,14 +81,11 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
 
         fun locationChanged(locationUpdate: Location?): Boolean {
             if (lastLocation == null) {
-                Log.d("locationUpdater", "Last location is null.")
                 return true
             }
 
-            Log.d("locationUpdater", "Updated location is $locationUpdate.")
-            val distance = locationUpdate?.distanceTo(lastLocation) ?: MinimumLocationDelta
-            Log.d("locationUpdater", "Distance is $distance m.")
-            return distance >= MinimumLocationDelta
+            val distance = locationUpdate?.distanceTo(lastLocation) ?: trackConfig.locationUpdateThreshold.toFloat()
+            return distance >= trackConfig.locationUpdateThreshold
         }
 
         for (locUpdate in channel) {

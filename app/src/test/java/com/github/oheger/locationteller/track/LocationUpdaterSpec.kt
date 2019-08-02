@@ -67,7 +67,7 @@ class LocationUpdaterSpec : StringSpec() {
             val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
             val loc2 = mockk<Location>()
-            every { loc2.distanceTo(locUpdate1.orgLocation) } returns MinimumLocationDelta - 0.1f
+            every { loc2.distanceTo(locUpdate1.orgLocation) } returns defaultConfig.locationUpdateThreshold - 0.1f
             val locUpdate2 = locationUpdate(
                 locUpdate1.locationData.copy(time = TimeData(1)),
                 orgLocation = loc2
@@ -249,7 +249,7 @@ class LocationUpdaterSpec : StringSpec() {
          * @param distance the distance to be returned
          * @return the mock location
          */
-        private fun createLocation(distance: Float = MinimumLocationDelta): Location {
+        private fun createLocation(distance: Float = defaultConfig.locationUpdateThreshold.toFloat()): Location {
             val location = mockk<Location>()
             every { location.distanceTo(any()) } returns distance
             return location
