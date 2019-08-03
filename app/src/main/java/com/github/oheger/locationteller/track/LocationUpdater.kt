@@ -79,18 +79,22 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
 
         var updateInterval = trackConfig.minTrackInterval
 
-        fun locationChanged(locationUpdate: Location?): Boolean {
+        // Checks whether there is a change in location data. If so, returns
+        // the distance to the last location; -1 means, there is no change.
+        fun locationChanged(locationUpdate: Location?): Int {
             if (lastLocation == null) {
-                return true
+                return 0
             }
 
             val distance = locationUpdate?.distanceTo(lastLocation) ?: trackConfig.locationUpdateThreshold.toFloat()
-            return distance >= trackConfig.locationUpdateThreshold
+            return if (distance >= trackConfig.locationUpdateThreshold) distance.toInt()
+            else -1
         }
 
         for (locUpdate in channel) {
             locUpdate.prefHandler.recordCheck(locUpdate.updateTime())
-            if (locationChanged(locUpdate.orgLocation)) {
+            val distance = locationChanged(locUpdate.orgLocation)
+            if (distance >= 0) {
                 if (locUpdate.orgLocation != null) {
                     val outdatedRefTime = TimeData(
                         locUpdate.locationData.time.currentTime -
@@ -98,8 +102,7 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     )
                     trackService.removeOutdated(outdatedRefTime)
                     if (trackService.addLocation(locUpdate.locationData)) {
-                        //TODO set correct distance
-                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), 0)
+                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), distance)
                     } else {
                         locUpdate.prefHandler.recordError(locUpdate.updateTime())
                     }

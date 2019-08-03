@@ -58,7 +58,6 @@ class LocationUpdaterSpec : StringSpec() {
                 }
                 verify {
                     locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime)
-                    //TODO set distance
                     locUpdate.prefHandler.recordUpdate(locUpdate.locationData.time.currentTime, 0)
                 }
             }
@@ -107,6 +106,25 @@ class LocationUpdaterSpec : StringSpec() {
                 actor.send(locUpdate3)
                 val nextUpdate2 = locUpdate3.nextTrackDelay.await()
                 nextUpdate2 shouldBe defaultConfig.minTrackInterval + 2 * defaultConfig.intervalIncrementOnIdle
+            }
+        }
+
+        "LocationUpdaterActor should record the distance to the last location" {
+            val distance = defaultConfig.locationUpdateThreshold + 27
+            val trackService = createTrackService()
+            val locUpdate1 = locationUpdate(0)
+            val locUpdate2 = locationUpdate(locationData(1), orgLocation = createLocation(1f))
+            val locUpdate3 = locationUpdate(locationData(2), orgLocation = createLocation(distance.toFloat()))
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returns true
+
+            runActorTest(trackService, defaultConfig) { actor ->
+                actor.send(locUpdate1)
+                actor.send(locUpdate2)
+                actor.send(locUpdate3)
+                verify {
+                    locUpdate3.prefHandler.recordUpdate(locUpdate3.locationData.time.currentTime, distance)
+                }
             }
         }
 
