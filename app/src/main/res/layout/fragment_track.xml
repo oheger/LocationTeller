@@ -47,6 +47,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="21:27:18"
+        android:layout_marginStart="5dp"
         app:layout_constraintBaseline_toBaselineOf="@+id/labCheck"
         app:layout_constraintLeft_toRightOf="@+id/labCheck" />
 
@@ -68,4 +69,13 @@
         app:layout_constraintBaseline_toBaselineOf="@+id/textView2"
         app:layout_constraintLeft_toRightOf="@+id/textView2" />
 
+
+    <TextView
+        android:id="@+id/txtDistance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="Distance: 152 m"
+        android:layout_marginStart="5dp"
+        app:layout_constraintBaseline_toBaselineOf="@+id/txtLastUpdateTime"
+        app:layout_constraintLeft_toRightOf="@+id/txtLastUpdateTime" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -69,7 +69,8 @@ class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnShar
      */
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
         if (PreferencesHandler.propLastUpdate == key || PreferencesHandler.propLastError == key ||
-            PreferencesHandler.propLastCheck == key || PreferencesHandler.propTrackState == key
+            PreferencesHandler.propLastCheck == key || PreferencesHandler.propTrackState == key ||
+            PreferencesHandler.propLastDistance == key
         ) {
             initUI()
         }
@@ -92,7 +93,12 @@ class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnShar
         val formatter = SimpleDateFormat("kk:mm:ss", Locale.getDefault())
         initTimeComponent(labError, txtLastErrorTime, formatter, prefHandler.lastError())
         initTimeComponent(labCheck, txtLastCheckTime, formatter, prefHandler.lastCheck())
-        initTimeComponent(textView2, txtLastUpdateTime, formatter, prefHandler.lastUpdate())
+        if (initTimeComponent(textView2, txtLastUpdateTime, formatter, prefHandler.lastUpdate())) {
+            txtDistance.visibility = View.VISIBLE
+            txtDistance.text = getString(R.string.lab_last_distance, prefHandler.lastDistance())
+        } else {
+            txtDistance.visibility = View.GONE
+        }
     }
 
     /**
@@ -103,15 +109,18 @@ class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnShar
      * @param field the field view
      * @param formatter the formatter object
      * @param date the date to be displayed
+     * @return a flag whether the field is visible
      */
-    private fun initTimeComponent(label: View, field: TextView, formatter: DateFormat, date: Date?) {
-        if (date != null) {
+    private fun initTimeComponent(label: View, field: TextView, formatter: DateFormat, date: Date?): Boolean {
+        return if (date != null) {
             label.visibility = View.VISIBLE
             field.visibility = View.VISIBLE
             field.text = formatter.format(date)
+            true
         } else {
             label.visibility = View.GONE
             field.visibility = View.GONE
+            false
         }
     }
 }
