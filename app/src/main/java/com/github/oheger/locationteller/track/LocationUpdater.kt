@@ -98,7 +98,8 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     )
                     trackService.removeOutdated(outdatedRefTime)
                     if (trackService.addLocation(locUpdate.locationData)) {
-                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime())
+                        //TODO set correct distance
+                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), 0)
                     } else {
                         locUpdate.prefHandler.recordError(locUpdate.updateTime())
                     }

@@ -58,7 +58,8 @@ class LocationUpdaterSpec : StringSpec() {
                 }
                 verify {
                     locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime)
-                    locUpdate.prefHandler.recordUpdate(locUpdate.locationData.time.currentTime)
+                    //TODO set distance
+                    locUpdate.prefHandler.recordUpdate(locUpdate.locationData.time.currentTime, 0)
                 }
             }
         }
@@ -84,7 +85,7 @@ class LocationUpdaterSpec : StringSpec() {
                 }
                 verify { locUpdate2.prefHandler.recordCheck(locUpdate2.locationData.time.currentTime) }
                 verify(exactly = 0) {
-                    locUpdate2.prefHandler.recordUpdate(any())
+                    locUpdate2.prefHandler.recordUpdate(any(), any())
                     locUpdate2.prefHandler.recordError(any())
                 }
             }
@@ -174,7 +175,7 @@ class LocationUpdaterSpec : StringSpec() {
                 locUpdate.nextTrackDelay.await() shouldBe defaultConfig.minTrackInterval
             }
             coVerify(exactly = 0) { trackService.addLocation(unknownLocation) }
-            verify(exactly = 0) { prefHandler.recordUpdate(any()) }
+            verify(exactly = 0) { prefHandler.recordUpdate(any(), any()) }
             verify { locUpdate.prefHandler.recordCheck(locUpdate.locationData.time.currentTime) }
         }
 

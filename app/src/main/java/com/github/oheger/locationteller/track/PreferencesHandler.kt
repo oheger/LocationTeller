@@ -105,13 +105,15 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
-     * Sets the preferences property for the last successful update to the
-     * given timestamp. The last error property is cleared.
+     * Sets the preferences properties for the last successful update to the
+     * given timestamp and distance. The last error property is cleared.
      * @param at the time when the update happened
+     * @param distance the distance to the last position
      */
-    fun recordUpdate(at: Long) {
+    fun recordUpdate(at: Long, distance: Int) {
         update { editor ->
             editor.putLong(propLastUpdate, at)
+                .putInt(propLastDistance, distance)
                 .remove(propLastError)
         }
     }
@@ -147,6 +149,12 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the date of the last check
      */
     fun lastCheck(): Date? = preferences.getDate(propLastCheck)
+
+    /**
+     * Returns the distance of the last location update in meters.
+     * @return the distance of the last location update
+     */
+    fun lastDistance(): Int = preferences.getInt(propLastDistance, 0)
 
     /**
      * Registers the given change listener at the managed preferences.
@@ -220,6 +228,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
 
         /** Shared preferences property for the latest update of location data. */
         const val propLastUpdate = "lastUpdate"
+
+        /** Shared preferences property for the distance of the last update. */
+        const val propLastDistance = "lastDistance"
 
         /** Shared preferences property for the latest error that occurred.*/
         const val propLastError = "lastError"

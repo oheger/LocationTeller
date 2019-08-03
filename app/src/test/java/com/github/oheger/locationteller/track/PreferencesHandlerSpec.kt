@@ -108,17 +108,20 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should record an update" {
             val updateTime = 20190704213752L
+            val distance = 1111
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
             every { pref.edit() } returns editor
             every { editor.putLong(PreferencesHandler.propLastUpdate, updateTime) } returns editor
+            every { editor.putInt(PreferencesHandler.propLastDistance, distance) } returns editor
             every { editor.remove(PreferencesHandler.propLastError) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            handler.recordUpdate(updateTime)
+            handler.recordUpdate(updateTime, distance)
             verify {
                 editor.putLong(PreferencesHandler.propLastUpdate, updateTime)
+                editor.putInt(PreferencesHandler.propLastDistance, distance)
                 editor.remove(PreferencesHandler.propLastError)
                 editor.apply()
             }
@@ -197,6 +200,15 @@ class PreferencesHandlerSpec : StringSpec() {
             handler.lastCheck() shouldBe null
         }
 
+        "PreferencesHandler should return the distance of the last location update" {
+            val distance = 157
+            val pref = mockk<SharedPreferences>()
+            every { pref.getInt(PreferencesHandler.propLastDistance, 0) } returns distance
+            val handler = PreferencesHandler(pref)
+
+            handler.lastDistance() shouldBe distance
+        }
+
         "PreferencesHandler should support the registration of change listeners" {
             mockkStatic(PreferenceManager::class)
             val pref = mockk<SharedPreferences>()
@@ -231,9 +243,11 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should return null for a TrackConfig if properties are undefined" {
             val pref = mockk<SharedPreferences>()
-            listOf(PreferencesHandler.propMaxTrackInterval, PreferencesHandler.propMinTrackInterval,
+            listOf(
+                PreferencesHandler.propMaxTrackInterval, PreferencesHandler.propMinTrackInterval,
                 PreferencesHandler.propIdleIncrement, PreferencesHandler.propLocationValidity,
-                PreferencesHandler.propLocationUpdateThreshold).forEach {
+                PreferencesHandler.propLocationUpdateThreshold
+            ).forEach {
                 initProperty(pref, it, -1)
             }
             val handler = PreferencesHandler(pref)
@@ -256,7 +270,7 @@ class PreferencesHandlerSpec : StringSpec() {
     companion object {
         private fun initProperty(pref: SharedPreferences, property: String, value: Int) {
             every {
-                pref.getString(property, "-1" )
+                pref.getString(property, "-1")
             } returns value.toString()
         }
 
