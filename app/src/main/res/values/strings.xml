@@ -10,10 +10,10 @@
     <string name="content_track_fragment">Hello track fragment</string>
     <string name="trackSettingsView">Track settings</string>
     <string name="serverSettingsView">Server settings</string>
-    <string name="pref_min_track_interval">Minimum track interval (sec)</string>
-    <string name="pref_max_track_interval">Maximum track interval (sec)</string>
-    <string name="pref_interval_idle_increment">Track interval increment on idle (sec)</string>
-    <string name="pref_validity_time">Validity time of a location (sec)</string>
+    <string name="pref_min_track_interval">Minimum track interval (min)</string>
+    <string name="pref_max_track_interval">Maximum track interval (min)</string>
+    <string name="pref_interval_idle_increment">Track interval increment on idle (min)</string>
+    <string name="pref_validity_time">Validity time of a location (min)</string>
     <string name="pref_location_update_threshold">Threshold for location updates (m)</string>
     <string name="pref_server_uri">Track server URI</string>
     <string name="pref_server_path">Relative path</string>

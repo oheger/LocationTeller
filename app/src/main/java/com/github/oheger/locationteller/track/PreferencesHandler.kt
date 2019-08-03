@@ -62,8 +62,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         ) {
             return null
         } else TrackConfig(
-            minTrackInterval, maxTrackInterval, intervalIncrementOnIdle,
-            locationValidity,
+            minTrackInterval * 60, maxTrackInterval * 60, intervalIncrementOnIdle * 60,
+            locationValidity * 60,
             if (locationUpdateThreshold <= 0) defaultLocationUpdateThreshold else locationUpdateThreshold
         )
     }
