@@ -223,7 +223,7 @@ class LocationUpdaterSpec : StringSpec() {
         private val defaultConfig = TrackConfig(
             minTrackInterval = 60, maxTrackInterval = 200,
             intervalIncrementOnIdle = 30, locationValidity = 3600,
-            locationUpdateThreshold = 56
+            locationUpdateThreshold = 56, gpsTimeout = 10, retryOnErrorTime = 4
         )
 
         /**

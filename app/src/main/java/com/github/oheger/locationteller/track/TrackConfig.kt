@@ -26,11 +26,16 @@ package com.github.oheger.locationteller.track
  * on the server
  * @param locationUpdateThreshold the threshold for the distance (in meters)
  * between the current location and the last one before an update is reported
+ * @param retryOnErrorTime a time when the next location update should be
+ * attempted after an error occurred (in sec)
+ * @param gpsTimeout timeout for querying the current GPS location (in sec)
  */
 data class TrackConfig(
     val minTrackInterval: Int,
     val maxTrackInterval: Int,
     val intervalIncrementOnIdle: Int,
     val locationValidity: Int,
-    val locationUpdateThreshold: Int
+    val locationUpdateThreshold: Int,
+    val retryOnErrorTime: Int,
+    val gpsTimeout: Int
 )

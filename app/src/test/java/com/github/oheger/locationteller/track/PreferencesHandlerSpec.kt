@@ -234,7 +234,7 @@ class PreferencesHandlerSpec : StringSpec() {
         }
 
         "PreferencesHandler should create a track configuration" {
-            val trackConfig = TrackConfig(60, 600, 120, 3600, 15)
+            val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 0, 0)
             val pref = preferencesFromConfig(trackConfig)
             val handler = PreferencesHandler(pref)
 
@@ -257,7 +257,7 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should set a default value for the updateLocationThreshold property" {
             val trackConfig = TrackConfig(
-                3, 10, 2, 20, -1
+                3, 10, 2, 20, -1, 0, 0
             )
             val pref = preferencesFromConfig(trackConfig)
             val handler = PreferencesHandler(pref)
