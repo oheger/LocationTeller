@@ -24,10 +24,24 @@
         app:useSimpleSummaryProvider="true" />
 
     <EditTextPreference
+        android:key="retryOnErrorTime"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_error_retry_time"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
         android:key="locationValidity"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:title="@string/pref_validity_time"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        android:key="gpsTimeout"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_gps_timeout"
         app:useSimpleSummaryProvider="true" />
 
     <EditTextPreference

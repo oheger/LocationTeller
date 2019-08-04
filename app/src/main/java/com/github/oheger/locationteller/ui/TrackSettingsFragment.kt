@@ -42,7 +42,7 @@ class TrackSettingsFragment : PreferenceFragmentCompat() {
         }
 
         listOf("minTrackInterval", "maxTrackInterval", "intervalIncrementOnIdle", "locationValidity",
-            "locationUpdateThreshold")
+            "locationUpdateThreshold", "retryOnErrorTime", "gpsTimeout")
             .forEach { makeNumericSetting(it) }
     }
 }
