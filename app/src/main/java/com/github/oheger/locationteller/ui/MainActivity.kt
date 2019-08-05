@@ -59,6 +59,9 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         if (Thread.getDefaultUncaughtExceptionHandler() !is ExceptionLogger) {
             Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))
         }
+
+        val handler = PreferencesHandler.create(this)
+        handler.initTrackConfigDefaults()
     }
 
     override fun onResume() {
