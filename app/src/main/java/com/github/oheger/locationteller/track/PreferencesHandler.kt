@@ -47,25 +47,38 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
-     * Creates a _TrackConfig_ object from the managed preferences. If
-     * mandatory properties are missing, result is *null*.
-     * @return the track configuration or *null*
+     * Creates a _TrackConfig_ object from the managed preferences. For missing
+     * properties in the underlying shared preferences default values are set.
+     * @return the track configuration
      */
-    fun createTrackConfig(): TrackConfig? {
-        val minTrackInterval = preferences.getNumeric(propMinTrackInterval)
-        val maxTrackInterval = preferences.getNumeric(propMaxTrackInterval)
-        val intervalIncrementOnIdle = preferences.getNumeric(propIdleIncrement)
-        val locationValidity = preferences.getNumeric(propLocationValidity)
-        val locationUpdateThreshold = preferences.getNumeric(propLocationUpdateThreshold)
-        return if (minTrackInterval < 0 || maxTrackInterval < 0 || intervalIncrementOnIdle < 0 ||
-            locationValidity < 0
-        ) {
-            return null
-        } else TrackConfig(
-            minTrackInterval * 60, maxTrackInterval * 60, intervalIncrementOnIdle * 60,
-            locationValidity * 60,
-            if (locationUpdateThreshold <= 0) defaultLocationUpdateThreshold else locationUpdateThreshold,
-            0, 0
+    fun createTrackConfig(): TrackConfig {
+        val minTrackInterval = preferences.getNumeric(
+            propMinTrackInterval, factor = minute,
+            defaultValue = defaultMinTrackInterval
+        )
+        val maxTrackInterval = preferences.getNumeric(
+            propMaxTrackInterval, factor = minute,
+            defaultValue = defaultMaxTrackInterval
+        )
+        val intervalIncrementOnIdle = preferences.getNumeric(
+            propIdleIncrement, factor = minute,
+            defaultValue = defaultIdleIncrement
+        )
+        val locationValidity = preferences.getNumeric(
+            propLocationValidity, factor = minute,
+            defaultValue = defaultLocationValidity
+        )
+        val locationUpdateThreshold = preferences.getNumeric(
+            propLocationUpdateThreshold,
+            defaultValue = defaultLocationUpdateThreshold
+        )
+        val retryOnErrorTime = preferences.getNumeric(propRetryOnErrorTime, defaultValue = defaultRetryOnErrorTime)
+        val gpsTimeout = preferences.getNumeric(propGpsTimeout, defaultValue = defaultGpsTimeout)
+        return TrackConfig(
+            minTrackInterval = minTrackInterval, maxTrackInterval = maxTrackInterval,
+            intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
+            locationUpdateThreshold = locationUpdateThreshold, retryOnErrorTime = retryOnErrorTime,
+            gpsTimeout = gpsTimeout
         )
     }
 
@@ -174,14 +187,39 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
+     * Sets default values for the shared preferences corresponding to options
+     * of the track configuration if they are undefined. With this function it
+     * can be ensured that the shared preferences are initialized with
+     * meaningful value.
+     */
+    fun initTrackConfigDefaults() {
+        val undefinedProps = configDefaults.filterNot { preferences.contains(it.key) }
+        if (undefinedProps.isNotEmpty()) {
+            val editor = preferences.edit()
+            undefinedProps.forEach { pair ->
+                editor.putString(pair.key, pair.value.toString())
+            }
+            editor.apply()
+        }
+    }
+
+    /**
      * Extension function to query a numeric property from a preferences
      * object. From the settings screen, the properties are stored as
-     * strings. Therefore, a conversion has to be done.
+     * strings. Therefore, a conversion has to be done. Sometimes the config
+     * UI uses a different unit than the logic. This is handled by allowing a
+     * factor to be specified. A default value can be provided to deal with
+     * undefined properties. Note that the factor is not applied to the default
+     * value.
      * @param key the key to be queried
+     * @param factor a factor to be applied to the value
+     * @param defaultValue the default value to be applied
      * @return the numeric value of this key
      */
-    private fun SharedPreferences.getNumeric(key: String): Int =
-        getString(key, undefinedNumberStr)?.toInt() ?: undefinedNumber
+    private fun SharedPreferences.getNumeric(key: String, factor: Int = 1, defaultValue: Int = undefinedNumber): Int {
+        val value = getString(key, undefinedNumberStr)?.toInt() ?: undefinedNumber
+        return if (value == undefinedNumber) defaultValue else value * factor
+    }
 
     /**
      * Extension function to query a _Date_ property from a preferences
@@ -224,6 +262,12 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the location update threshold.*/
         const val propLocationUpdateThreshold = "locationUpdateThreshold"
 
+        /** Shared preferences property for the retry on error time. */
+        const val propRetryOnErrorTime = "retryOnErrorTime"
+
+        /** Shared preferences property for the GPS timeout. */
+        const val propGpsTimeout = "gpsTimeout"
+
         /** Shared preferences property for the tracking state.*/
         const val propTrackState = "trackEnabled"
 
@@ -239,6 +283,24 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the last check for an update. */
         const val propLastCheck = "lastCheck"
 
+        /** A default value for the minimum track interval (in seconds). */
+        const val defaultMinTrackInterval = 180
+
+        /** A default value for the maximum track interval (in seconds). */
+        const val defaultMaxTrackInterval = 900
+
+        /** A default value for the idle increment interval (in seconds). */
+        const val defaultIdleIncrement = 120
+
+        /** A default value for the location validity time (in seconds).*/
+        const val defaultLocationValidity = 43200 // 12 hours
+
+        /** A default value for the retry on error time (in seconds). */
+        const val defaultRetryOnErrorTime = 30
+
+        /** A default value for the GPS timeout (in seconds). */
+        const val defaultGpsTimeout = 45
+
         /** A default value for the location update threshold property. */
         const val defaultLocationUpdateThreshold = 10
 
@@ -252,8 +314,25 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         private val configProps = setOf(
             propServerUri, propBasePath, propUser, propPassword,
             propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity,
-            propLocationUpdateThreshold
+            propLocationUpdateThreshold, propRetryOnErrorTime, propGpsTimeout
         )
+
+        /**
+         * A map with configuration properties and their default values. This
+         * is used to initialize shared preferences.
+         */
+        private val configDefaults = mapOf(
+            propMinTrackInterval to (defaultMinTrackInterval / 60),
+            propMaxTrackInterval to (defaultMaxTrackInterval / 60),
+            propIdleIncrement to (defaultIdleIncrement / 60),
+            propLocationValidity to (defaultLocationValidity / 60),
+            propLocationUpdateThreshold to defaultLocationUpdateThreshold,
+            propRetryOnErrorTime to defaultRetryOnErrorTime,
+            propGpsTimeout to defaultGpsTimeout
+        )
+
+        /** Factor to convert minutes to seconds. */
+        private const val minute = 60
 
         /**
          * Creates a _PreferencesHandler_ object based on the given context.

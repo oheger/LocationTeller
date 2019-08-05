@@ -78,7 +78,8 @@ class PreferencesHandlerSpec : StringSpec() {
                 PreferencesHandler.propLocationValidity, PreferencesHandler.propMaxTrackInterval,
                 PreferencesHandler.propMinTrackInterval, PreferencesHandler.propPassword,
                 PreferencesHandler.propUser, PreferencesHandler.propServerUri,
-                PreferencesHandler.propLocationUpdateThreshold
+                PreferencesHandler.propLocationUpdateThreshold, PreferencesHandler.propRetryOnErrorTime,
+                PreferencesHandler.propGpsTimeout
             )
 
             configProps.forEach { prop -> PreferencesHandler.isConfigProperty(prop) shouldBe true }
@@ -234,46 +235,107 @@ class PreferencesHandlerSpec : StringSpec() {
         }
 
         "PreferencesHandler should create a track configuration" {
-            val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 0, 0)
+            val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 27, 11)
             val pref = preferencesFromConfig(trackConfig)
             val handler = PreferencesHandler(pref)
 
             handler.createTrackConfig() shouldBe trackConfig
         }
 
-        "PreferencesHandler should return null for a TrackConfig if properties are undefined" {
+        "PreferencesHandler should return default values for a TrackConfig if properties are undefined" {
             val pref = mockk<SharedPreferences>()
             listOf(
                 PreferencesHandler.propMaxTrackInterval, PreferencesHandler.propMinTrackInterval,
                 PreferencesHandler.propIdleIncrement, PreferencesHandler.propLocationValidity,
-                PreferencesHandler.propLocationUpdateThreshold
+                PreferencesHandler.propLocationUpdateThreshold, PreferencesHandler.propRetryOnErrorTime,
+                PreferencesHandler.propGpsTimeout
             ).forEach {
                 initProperty(pref, it, -1)
             }
             val handler = PreferencesHandler(pref)
 
-            handler.createTrackConfig() shouldBe null
+            val config = handler.createTrackConfig()
+            config.minTrackInterval shouldBe PreferencesHandler.defaultMinTrackInterval
+            config.maxTrackInterval shouldBe PreferencesHandler.defaultMaxTrackInterval
+            config.intervalIncrementOnIdle shouldBe PreferencesHandler.defaultIdleIncrement
+            config.locationValidity shouldBe PreferencesHandler.defaultLocationValidity
+            config.locationUpdateThreshold shouldBe PreferencesHandler.defaultLocationUpdateThreshold
+            config.retryOnErrorTime shouldBe PreferencesHandler.defaultRetryOnErrorTime
+            config.gpsTimeout shouldBe PreferencesHandler.defaultGpsTimeout
         }
 
-        "PreferencesHandler should set a default value for the updateLocationThreshold property" {
-            val trackConfig = TrackConfig(
-                3, 10, 2, 20, -1, 0, 0
-            )
-            val pref = preferencesFromConfig(trackConfig)
+        "PreferencesHandler should init shared preferences with track config defaults" {
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            every { pref.edit() } returns editor
+            every { pref.contains(any()) } returns false
+            every { editor.putString(any(), any()) } returns editor
+            every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            val config = handler.createTrackConfig()
-            config?.locationUpdateThreshold shouldBe PreferencesHandler.defaultLocationUpdateThreshold
+            handler.initTrackConfigDefaults()
+            verify {
+                editor.putString(
+                    PreferencesHandler.propMinTrackInterval,
+                    (PreferencesHandler.defaultMinTrackInterval / 60).toString()
+                )
+                editor.putString(
+                    PreferencesHandler.propMaxTrackInterval,
+                    (PreferencesHandler.defaultMaxTrackInterval / 60).toString()
+                )
+                editor.putString(
+                    PreferencesHandler.propIdleIncrement,
+                    (PreferencesHandler.defaultIdleIncrement / 60).toString()
+                )
+                editor.putString(
+                    PreferencesHandler.propLocationValidity,
+                    (PreferencesHandler.defaultLocationValidity / 60).toString()
+                )
+                editor.putString(
+                    PreferencesHandler.propLocationUpdateThreshold,
+                    PreferencesHandler.defaultLocationUpdateThreshold.toString()
+                )
+                editor.putString(
+                    PreferencesHandler.propRetryOnErrorTime,
+                    PreferencesHandler.defaultRetryOnErrorTime.toString()
+                )
+                editor.putString(
+                    PreferencesHandler.propGpsTimeout,
+                    PreferencesHandler.defaultGpsTimeout.toString()
+                )
+                editor.apply()
+            }
+        }
+
+        "PreferencesHandler should not override already defined properties of the track config" {
+            val pref = mockk<SharedPreferences>()
+            every { pref.contains(any()) } returns true
+            val handler = PreferencesHandler(pref)
+
+            handler.initTrackConfigDefaults()  // should be noop
         }
     }
 
     companion object {
+        /**
+         * Prepares the given mock for a _SharedPreferences_ object to return a
+         * value for a specific numeric property.
+         * @param pref the _SharedPreferences_
+         * @param property the name of the property
+         * @param value the value to be returned for this property
+         */
         private fun initProperty(pref: SharedPreferences, property: String, value: Int) {
             every {
                 pref.getString(property, "-1")
             } returns value.toString()
         }
 
+        /**
+         * Creates a mock for a _SharedPreferences_ object that is prepared to
+         * return the properties from the given track configuration.
+         * @param trackConfig the track configuration
+         * @return the mock _SharedPreferences_
+         */
         private fun preferencesFromConfig(trackConfig: TrackConfig): SharedPreferences {
             val pref = mockk<SharedPreferences>()
             initProperty(pref, PreferencesHandler.propMinTrackInterval, trackConfig.minTrackInterval / 60)
@@ -281,6 +343,8 @@ class PreferencesHandlerSpec : StringSpec() {
             initProperty(pref, PreferencesHandler.propIdleIncrement, trackConfig.intervalIncrementOnIdle / 60)
             initProperty(pref, PreferencesHandler.propLocationValidity, trackConfig.locationValidity / 60)
             initProperty(pref, PreferencesHandler.propLocationUpdateThreshold, trackConfig.locationUpdateThreshold)
+            initProperty(pref, PreferencesHandler.propRetryOnErrorTime, trackConfig.retryOnErrorTime)
+            initProperty(pref, PreferencesHandler.propGpsTimeout, trackConfig.gpsTimeout)
             return pref
         }
     }
