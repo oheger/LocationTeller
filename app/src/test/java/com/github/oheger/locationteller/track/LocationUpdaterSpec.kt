@@ -190,7 +190,7 @@ class LocationUpdaterSpec : StringSpec() {
             runActorTest(trackService, defaultConfig) { actor ->
                 actor.send(locationUpdate(2))
                 actor.send(locUpdate)
-                locUpdate.nextTrackDelay.await() shouldBe defaultConfig.minTrackInterval
+                locUpdate.nextTrackDelay.await() shouldBe defaultConfig.retryOnErrorTime
             }
             coVerify(exactly = 0) { trackService.addLocation(unknownLocation) }
             verify(exactly = 0) { prefHandler.recordUpdate(any(), any()) }
@@ -214,6 +214,58 @@ class LocationUpdaterSpec : StringSpec() {
             }
             verify {
                 loc.distanceTo(locUpdate1.orgLocation)
+            }
+        }
+
+        "LocationUpdaterActor should respect the retry interval if there are errors" {
+            val trackService = createTrackService()
+            val locUpdate1 = locationUpdate(1)
+            val locUpdate2 = locationUpdate(2)
+            val locUpdate3 = locationUpdate(3)
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returns false
+
+            runActorTest(trackService, defaultConfig) { actor ->
+                actor.send(locUpdate1)
+                locUpdate1.nextTrackDelay.await() shouldBe defaultConfig.retryOnErrorTime
+                actor.send(locUpdate2)
+                locUpdate2.nextTrackDelay.await() shouldBe 2 * defaultConfig.retryOnErrorTime
+                actor.send(locUpdate3)
+                locUpdate3.nextTrackDelay.await() shouldBe 4 * defaultConfig.retryOnErrorTime
+            }
+        }
+
+        "LocationUpdaterActor should increase the retry time only up to the maximum track interval" {
+            val trackService = createTrackService()
+            val locUpdate1 = locationUpdate(1)
+            val locUpdate2 = locationUpdate(2)
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returns false
+            val config = defaultConfig.copy(retryOnErrorTime = defaultConfig.maxTrackInterval - 1)
+
+            runActorTest(trackService, config) { actor ->
+                actor.send(locUpdate1)
+                locUpdate1.nextTrackDelay.await() shouldBe config.retryOnErrorTime
+                actor.send(locUpdate2)
+                locUpdate2.nextTrackDelay.await() shouldBe defaultConfig.maxTrackInterval
+            }
+        }
+
+        "LocationUpdaterActor should reset the retry time after a successful invocation" {
+            val trackService = createTrackService()
+            val locUpdate1 = locationUpdate(1)
+            val locUpdate2 = locationUpdate(2)
+            val locUpdate3 = locationUpdate(3)
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returnsMany listOf(false, true, false)
+
+            runActorTest(trackService, defaultConfig) { actor ->
+                actor.send(locUpdate1)
+                locUpdate1.nextTrackDelay.await() shouldBe defaultConfig.retryOnErrorTime
+                actor.send(locUpdate2)
+                locUpdate2.nextTrackDelay.await() shouldBe defaultConfig.minTrackInterval
+                actor.send(locUpdate3)
+                locUpdate3.nextTrackDelay.await() shouldBe defaultConfig.retryOnErrorTime
             }
         }
     }

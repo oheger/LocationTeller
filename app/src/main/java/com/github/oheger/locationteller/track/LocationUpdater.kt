@@ -79,6 +79,8 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
 
         var updateInterval = trackConfig.minTrackInterval
 
+        var retryTime = trackConfig.retryOnErrorTime
+
         // Checks whether there is a change in location data. If so, returns
         // the distance to the last location; -1 means, there is no change.
         fun locationChanged(locationUpdate: Location?): Int {
@@ -95,7 +97,7 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
             locUpdate.prefHandler.recordCheck(locUpdate.updateTime())
             val distance = locationChanged(locUpdate.orgLocation)
             if (distance >= 0) {
-                if (locUpdate.orgLocation != null) {
+                val needRetry = if (locUpdate.orgLocation != null) {
                     val outdatedRefTime = TimeData(
                         locUpdate.locationData.time.currentTime -
                                 trackConfig.locationValidity * 1000
@@ -103,16 +105,23 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     trackService.removeOutdated(outdatedRefTime)
                     if (trackService.addLocation(locUpdate.locationData)) {
                         locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), distance)
+                        false
                     } else {
                         locUpdate.prefHandler.recordError(locUpdate.updateTime())
+                        true
                     }
-                }
-                //TODO implement error handling
+                } else true
 
                 if (locUpdate.orgLocation != null) {
                     lastLocation = locUpdate.orgLocation
                 }
-                updateInterval = trackConfig.minTrackInterval
+                if (needRetry) {
+                    updateInterval = retryTime
+                    retryTime = min(retryTime * 2, trackConfig.maxTrackInterval)
+                } else {
+                    updateInterval = trackConfig.minTrackInterval
+                    retryTime = trackConfig.retryOnErrorTime
+                }
             } else {
                 updateInterval = min(
                     updateInterval + trackConfig.intervalIncrementOnIdle,
