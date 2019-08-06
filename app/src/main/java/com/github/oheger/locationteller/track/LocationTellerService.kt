@@ -77,7 +77,9 @@ class LocationRetrieverFactory {
     fun createRetriever(context: Context, updater: SendChannel<LocationUpdate>): LocationRetriever =
         LocationRetriever(
             LocationServices.getFusedLocationProviderClient(context),
-            updater, CurrentTimeService
+            updater, CurrentTimeService,
+            //TODO set correct config
+            TrackConfig(0, 0, 0, 0, 0, 0, 0)
         )
 }
 

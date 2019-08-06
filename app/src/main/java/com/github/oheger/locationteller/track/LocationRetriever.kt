@@ -23,10 +23,10 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.channels.ticker
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
 
@@ -41,11 +41,13 @@ import kotlin.coroutines.suspendCoroutine
  * @param locationClient the client to obtain the last known location
  * @param locationUpdateActor the actor to pass the location to
  * @param timeService the time service
+ * @param trackConfig the track configuration
  */
 class LocationRetriever(
     val locationClient: FusedLocationProviderClient,
     val locationUpdateActor: SendChannel<LocationUpdate>,
-    val timeService: TimeService
+    val timeService: TimeService,
+    val trackConfig: TrackConfig
 ) {
     /**
      * Sends the last known location to the actor for updating the server. The
@@ -54,6 +56,7 @@ class LocationRetriever(
      * @param prefHandler the _PreferencesHandler_
      * @return the time period to the next location update
      */
+    @ObsoleteCoroutinesApi
     suspend fun retrieveAndUpdateLocation(prefHandler: PreferencesHandler): Int {
         Log.i(tag, "Triggering location update.")
         val lastLocation = fetchLocation()
@@ -67,9 +70,16 @@ class LocationRetriever(
      * this object.
      * @return the last known location
      */
+    @ObsoleteCoroutinesApi
     private suspend fun fetchLocation(): Location? = withContext(Dispatchers.Main) {
+        val timeout = trackConfig.gpsTimeout * 1000L
+        val tickerChannel = ticker(timeout, timeout)
         suspendCoroutine<Location?> { cont ->
-            val callback = createLocationCallback(cont)
+            val callback = LocationCallbackImpl(locationClient, cont, tickerChannel)
+            launch {
+                tickerChannel.receive()
+                callback.cancelLocationUpdate()
+            }
             locationClient.requestLocationUpdates(locationRequest, callback, null)
             Log.d(tag, "Requested location update.")
         }
@@ -96,19 +106,44 @@ class LocationRetriever(
     }
 
     /**
-     * Creates a callback to be invoked when a new location is available. This
-     * location is returned as result of the _fetchLocation()_ co-routine.
-     * @param cont the continuation object
-     * @return the callback to receive a location
+     * An implementation of _LocationCallback_ that continues the current
+     * co-routine when a location update is retrieved. It is also possible to
+     * cancel waiting for an update, e.g. when a timeout occurs.
+     *
+     * @param locationClient the location client
+     * @param cont the object to continue the co-routine
+     * @param tickerChannel the channel for timer events
      */
-    private fun createLocationCallback(cont: Continuation<Location?>): LocationCallback =
-        object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult?) {
-                Log.d(tag, "Got location result $result.")
-                locationClient.removeLocationUpdates(this)
-                cont.resumeWith(Result.success(result?.lastLocation))
-            }
+    private class LocationCallbackImpl(
+        val locationClient: FusedLocationProviderClient,
+        val cont: Continuation<Location?>,
+        val tickerChannel: ReceiveChannel<Unit>
+    ) : LocationCallback() {
+        override fun onLocationResult(result: LocationResult?) {
+            Log.d(tag, "Got location result $result.")
+            removeLocationUpdateRegistration()
+            cont.resumeWith(Result.success(result?.lastLocation))
         }
+
+        /**
+         * Cancels the location update. This method is called when the timeout
+         * for the GPS signal is reached.
+         */
+        fun cancelLocationUpdate() {
+            Log.i(tag, "Canceling update for location.")
+            removeLocationUpdateRegistration()
+            cont.resumeWith(Result.success(null))
+        }
+
+        /**
+         * Removes the registration for location updates. This method must be
+         * called to stop the GPS client.
+         */
+        private fun removeLocationUpdateRegistration() {
+            tickerChannel.cancel()
+            locationClient.removeLocationUpdates(this)
+        }
+    }
 
     companion object {
         /** Tag for logging.*/

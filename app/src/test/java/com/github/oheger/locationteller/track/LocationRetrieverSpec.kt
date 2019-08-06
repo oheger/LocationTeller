@@ -25,7 +25,6 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import io.kotlintest.extensions.TestListener
-import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.matchers.doubles.shouldBeExactly
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
@@ -39,9 +38,6 @@ import java.util.concurrent.atomic.AtomicReference
  */
 @ExperimentalCoroutinesApi
 class LocationRetrieverSpec : StringSpec() {
-    /** Constant for the next update time to be returned by the mock actor.*/
-    private val nextUpdate = 42
-
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 
     /**
@@ -103,10 +99,10 @@ class LocationRetrieverSpec : StringSpec() {
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
             val dispatcher = initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, timeService)
+            val retriever = LocationRetriever(locClient, actor, timeService, trackConfig)
 
             retriever.retrieveAndUpdateLocation(prefHandler) shouldBe nextUpdate
-            dispatcher.tasks shouldHaveSize 1
+            dispatcher.tasks.isEmpty() shouldBe false
             verify { locClient.removeLocationUpdates(refCallback.get()) }
         }
 
@@ -120,10 +116,38 @@ class LocationRetrieverSpec : StringSpec() {
             }
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, mockk())
+            val retriever = LocationRetriever(locClient, actor, mockk(), trackConfig)
 
             retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
             coVerify { actor.send(any()) }
         }
+
+        "LocationRetriever should handle a timeout when retrieving the location" {
+            val actor = createMockActorExpectingError()
+            val locClient = mockk<FusedLocationProviderClient>()
+            every { locClient.requestLocationUpdates(any(), any(), null) } returns null
+            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
+            initDispatcher()
+            val retriever = LocationRetriever(locClient, actor, mockk(), trackConfig)
+
+            retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
+            coVerify { actor.send(any()) }
+            verify { locClient.removeLocationUpdates(any() as LocationCallback) }
+        }
+    }
+
+    companion object {
+        /** Constant for the next update time to be returned by the mock actor.*/
+        private const val nextUpdate = 42
+
+        /**
+         * A default track configuration. Only a subset of the properties is
+         * relevant for the tests.
+         */
+        private val trackConfig = TrackConfig(
+            minTrackInterval = 1, maxTrackInterval = 2,
+            intervalIncrementOnIdle = 3, locationValidity = 4, locationUpdateThreshold = 5,
+            retryOnErrorTime = 6, gpsTimeout = 1
+        )
     }
 }
