@@ -20,7 +20,6 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -69,10 +68,11 @@ class LocationTellerServiceSpec : StringSpec() {
             every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
             val factory = LocationRetrieverFactory()
 
-            val retriever = factory.createRetriever(context, actor)
+            val retriever = factory.createRetriever(context, actor, defTrackConfig)
             retriever.locationClient shouldBe locationClient
             retriever.locationUpdateActor shouldBe actor
             retriever.timeService shouldBe CurrentTimeService
+            retriever.trackConfig shouldBe defTrackConfig
         }
 
         "LocationTellerService should create default dependencies" {
@@ -168,56 +168,6 @@ class LocationTellerServiceSpec : StringSpec() {
             every { handler.createServerConfig() } returns svrConf
             every { handler.isTrackingEnabled() } returns trackingEnabled
             return handler
-        }
-
-        /**
-         * Creates a mock for a preferences object that is configured to return
-         * the properties for the test configurations.
-         * @param svrConf the server config to initialize preferences
-         * @param trackConf the track config to initialize preferences
-         * @param trackingEnabled flag whether tracking should be enabled
-         * @return the mock preferences object
-         */
-        private fun createPreferencesMock(
-            svrConf: ServerConfig = defServerConfig,
-            trackConf: TrackConfig = defTrackConfig,
-            trackingEnabled: Boolean = true
-        ): SharedPreferences {
-            val pref = mockk<SharedPreferences>()
-            initProperty(pref, "trackServerUri", svrConf.serverUri)
-            initProperty(pref, "trackRelativePath", svrConf.basePath)
-            initProperty(pref, "userName", svrConf.user)
-            initProperty(pref, "password", svrConf.password)
-            initProperty(pref, "minTrackInterval", trackConf.minTrackInterval)
-            initProperty(pref, "maxTrackInterval", trackConf.maxTrackInterval)
-            initProperty(pref, "intervalIncrementOnIdle", trackConf.intervalIncrementOnIdle)
-            initProperty(pref, "locationValidity", trackConf.locationValidity)
-            initProperty(pref, "locationUpdateThreshold", trackConf.locationUpdateThreshold)
-            initProperty(pref, "retryOnErrorTime", trackConf.retryOnErrorTime)
-            initProperty(pref, "gpsTimeout", trackConf.gpsTimeout)
-            every { pref.getBoolean("trackEnabled", false) } returns trackingEnabled
-            return pref
-        }
-
-        /**
-         * Helper method to mock a string property of a preferences object.
-         * @param pref the preferences object
-         * @param key the key of the property
-         * @param value the property value (an empty string yields a null value)
-         */
-        private fun initProperty(pref: SharedPreferences, key: String, value: String) {
-            val prefValue = if (value.isEmpty()) null else value
-            every { pref.getString(key, null) } returns prefValue
-        }
-
-        /**
-         * Helper method to mock an int property of a preferences object.
-         * @param pref the preferences object
-         * @param key the key of the property
-         * @param value the property value
-         */
-        private fun initProperty(pref: SharedPreferences, key: String, value: Int) {
-            every { pref.getString(key, "-1") } returns value.toString()
         }
 
         /**
@@ -339,7 +289,7 @@ class LocationTellerServiceSpec : StringSpec() {
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
                 every { updaterFactory.createActor(prefs, defTrackConfig, any()) } returns actor
                 if (actor != null) {
-                    every { retrieverFactory.createRetriever(any(), actor) } returns retriever
+                    every { retrieverFactory.createRetriever(any(), actor, defTrackConfig) } returns retriever
                 }
                 coEvery { retriever.retrieveAndUpdateLocation(any()) } answers {
                     arg<PreferencesHandler>(0) shouldBe prefs

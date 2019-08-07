@@ -74,14 +74,15 @@ class LocationRetrieverFactory {
      * Creates a new _LocationRetriever_ based on the given parameters.
      * @param context the context
      * @param updater the actor for publishing updates
+     * @param trackConfig the track configuration
      * @return the _LocationRetriever_ instance
      */
-    fun createRetriever(context: Context, updater: SendChannel<LocationUpdate>): LocationRetriever =
+    fun createRetriever(context: Context, updater: SendChannel<LocationUpdate>, trackConfig: TrackConfig):
+            LocationRetriever =
         LocationRetriever(
             LocationServices.getFusedLocationProviderClient(context),
             updater, CurrentTimeService,
-            //TODO set correct config
-            TrackConfig(0, 0, 0, 0, 0, 0, 0)
+            trackConfig
         )
 }
 
@@ -139,10 +140,11 @@ class LocationTellerService(
         )
 
         preferencesHandler = createPreferencesHandler()
-        val updaterActor = updaterFactory.createActor(preferencesHandler, preferencesHandler.createTrackConfig(), this)
+        val trackConfig = preferencesHandler.createTrackConfig()
+        val updaterActor = updaterFactory.createActor(preferencesHandler, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
-            locationRetriever = retrieverFactory.createRetriever(this, updaterActor)
+            locationRetriever = retrieverFactory.createRetriever(this, updaterActor, trackConfig)
         }
         startForegroundService()
     }
