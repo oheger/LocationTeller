@@ -21,7 +21,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -41,7 +40,6 @@ import kotlinx.coroutines.channels.SendChannel
 class LocationTellerServiceSpec : StringSpec() {
     init {
         "UpdaterActorFactory should create a correct actor" {
-            val context = mockk<Context>()
             val crScope = mockk<CoroutineScope>()
             val actor = mockk<SendChannel<LocationUpdate>>()
             mockkStatic("com.github.oheger.locationteller.track.LocationUpdaterKt")
@@ -50,42 +48,17 @@ class LocationTellerServiceSpec : StringSpec() {
                 service.davClient.config shouldBe defServerConfig
                 actor
             }
-            preparePreferences(context)
+            val prefHandler = preparePreferences()
             val factory = UpdaterActorFactory()
 
-            factory.createActor(context, crScope) shouldBe actor
+            factory.createActor(prefHandler, defTrackConfig, crScope) shouldBe actor
         }
 
-        "UpdateActorFactory should return null if no server URI is defined" {
-            checkActorCreationWithMissingProperties(svrConf = defServerConfig.copy(serverUri = ""))
-        }
+        "UpdateActorFactory should return null if no server config is defined" {
+            val prefHandler = preparePreferences(svrConf = null)
+            val factory = UpdaterActorFactory()
 
-        "UpdateActorFactory should return null if no base path is defined" {
-            checkActorCreationWithMissingProperties(svrConf = defServerConfig.copy(basePath = ""))
-        }
-
-        "UpdateActorFactory should return null if no user name is defined" {
-            checkActorCreationWithMissingProperties(svrConf = defServerConfig.copy(user = ""))
-        }
-
-        "UpdateActorFactory should return null if no password is defined" {
-            checkActorCreationWithMissingProperties(svrConf = defServerConfig.copy(password = ""))
-        }
-
-        "UpdateActorFactory should return null if no min interval is defined" {
-            checkActorCreationWithMissingProperties(trackConf = defTrackConfig.copy(minTrackInterval = -1))
-        }
-
-        "UpdateActorFactory should return null if no max interval is defined" {
-            checkActorCreationWithMissingProperties(trackConf = defTrackConfig.copy(maxTrackInterval = -1))
-        }
-
-        "UpdateActorFactory should return null if no increment is defined" {
-            checkActorCreationWithMissingProperties(trackConf = defTrackConfig.copy(intervalIncrementOnIdle = -1))
-        }
-
-        "UpdateActorFactory should return null if no validity is defined" {
-            checkActorCreationWithMissingProperties(trackConf = defTrackConfig.copy(locationValidity = -1))
+            factory.createActor(prefHandler, defTrackConfig, mockk()) shouldBe null
         }
 
         "LocationRetrieverFactory should create a correct retriever object" {
@@ -180,25 +153,21 @@ class LocationTellerServiceSpec : StringSpec() {
         /**
          * Installs a mock preferences manager that returns shared preferences
          * initialized with the test configurations.
-         * @param context the context
          * @param svrConf the server config to initialize preferences
          * @param trackConf the track config to initialize preferences
          * @param trackingEnabled flag whether tracking should be enabled
-         * @return the mock for the preferences
+         * @return the mock for the preferences handler
          */
         private fun preparePreferences(
-            context: Context?, svrConf: ServerConfig = defServerConfig,
+            svrConf: ServerConfig? = defServerConfig,
             trackConf: TrackConfig = defTrackConfig,
             trackingEnabled: Boolean = true
-        ): SharedPreferences {
-            mockkStatic(PreferenceManager::class)
-            val pref = createPreferencesMock(svrConf, trackConf, trackingEnabled)
-            if (context != null) {
-                every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
-            } else {
-                every { PreferenceManager.getDefaultSharedPreferences(any()) } returns pref
-            }
-            return pref
+        ): PreferencesHandler {
+            val handler = mockk<PreferencesHandler>()
+            every { handler.createTrackConfig() } returns trackConf
+            every { handler.createServerConfig() } returns svrConf
+            every { handler.isTrackingEnabled() } returns trackingEnabled
+            return handler
         }
 
         /**
@@ -224,6 +193,8 @@ class LocationTellerServiceSpec : StringSpec() {
             initProperty(pref, "intervalIncrementOnIdle", trackConf.intervalIncrementOnIdle)
             initProperty(pref, "locationValidity", trackConf.locationValidity)
             initProperty(pref, "locationUpdateThreshold", trackConf.locationUpdateThreshold)
+            initProperty(pref, "retryOnErrorTime", trackConf.retryOnErrorTime)
+            initProperty(pref, "gpsTimeout", trackConf.gpsTimeout)
             every { pref.getBoolean("trackEnabled", false) } returns trackingEnabled
             return pref
         }
@@ -247,22 +218,6 @@ class LocationTellerServiceSpec : StringSpec() {
          */
         private fun initProperty(pref: SharedPreferences, key: String, value: Int) {
             every { pref.getString(key, "-1") } returns value.toString()
-        }
-
-        /**
-         * Checks a creation of the update actor if mandatory properties are
-         * missing. In this case, no actor can be created.
-         * @param svrConf the server config to initialize preferences
-         * @param trackConf the track config to initialize preferences
-         */
-        private fun checkActorCreationWithMissingProperties(
-            svrConf: ServerConfig = defServerConfig,
-            trackConf: TrackConfig = defTrackConfig
-        ) {
-            val context = mockk<Context>()
-            preparePreferences(context, svrConf, trackConf)
-            val factory = UpdaterActorFactory()
-            factory.createActor(context, mockk()) shouldBe null
         }
 
         /**
@@ -379,15 +334,15 @@ class LocationTellerServiceSpec : StringSpec() {
                 val service = LocationTellerService(updaterFactory, retrieverFactory, timeService)
                 mockkStatic(PendingIntent::class)
                 every { PendingIntent.getService(any(), 0, any(), 0) } returns pendingIntent
-                val prefs = preparePreferences(null, trackingEnabled = trackingEnabled)
+                val prefs = preparePreferences(trackingEnabled = trackingEnabled)
 
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
-                every { updaterFactory.createActor(any(), any()) } returns actor
+                every { updaterFactory.createActor(prefs, defTrackConfig, any()) } returns actor
                 if (actor != null) {
                     every { retrieverFactory.createRetriever(any(), actor) } returns retriever
                 }
                 coEvery { retriever.retrieveAndUpdateLocation(any()) } answers {
-                    arg<PreferencesHandler>(0).preferences shouldBe prefs
+                    arg<PreferencesHandler>(0) shouldBe prefs
                     nextUpdateInterval
                 }
                 every { timeService.currentTime() } returns TimeData(elapsedTime)
@@ -399,6 +354,7 @@ class LocationTellerServiceSpec : StringSpec() {
                 val serviceSpy = spyk(service)
                 every { serviceSpy.getSystemService(Context.ALARM_SERVICE) } returns alarmManager
                 every { serviceSpy.notificationBuilder() } returns notificationBuilder
+                every { serviceSpy.createPreferencesHandler() } returns prefs
                 serviceSpy.onCreate()
                 return serviceSpy
             }

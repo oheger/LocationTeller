@@ -45,16 +45,18 @@ class UpdaterActorFactory {
     /**
      * Creates the actor for updating location data. Result may be *null* if
      * mandatory configuration options are not set.
-     * @param context the context
-     * @param crScope the coroutine scope
+     * @param preferencesHandler the preferences handler
+     * @param trackConfig the track configuration
+     * @param crScope the co-routine scope
      * @return the new actor
      */
     @ObsoleteCoroutinesApi
-    fun createActor(context: Context, crScope: CoroutineScope): SendChannel<LocationUpdate>? {
-        val preferences = PreferencesHandler.create(context)
-        val serverConfig = preferences.createServerConfig()
-        val trackConfig = preferences.createTrackConfig()
-        return if (serverConfig != null && trackConfig != null) {
+    fun createActor(
+        preferencesHandler: PreferencesHandler, trackConfig: TrackConfig,
+        crScope: CoroutineScope
+    ): SendChannel<LocationUpdate>? {
+        val serverConfig = preferencesHandler.createServerConfig()
+        return if (serverConfig != null) {
             val trackService = TrackService.create(serverConfig)
             locationUpdaterActor(trackService, trackConfig, crScope)
         } else null
@@ -97,6 +99,7 @@ class LocationRetrieverFactory {
  * @param retrieverFactory the factory for creating a _LocationRetriever_
  * @param timeService the time service
  */
+@ObsoleteCoroutinesApi
 class LocationTellerService(
     val updaterFactory: UpdaterActorFactory,
     val retrieverFactory: LocationRetrieverFactory,
@@ -112,6 +115,9 @@ class LocationTellerService(
      * manager.
      */
     private lateinit var pendingIntent: PendingIntent
+
+    /** The object providing access to shared preferences. */
+    private lateinit var preferencesHandler: PreferencesHandler
 
     /** The object that retrieves the current location.*/
     private var locationRetriever: LocationRetriever? = null
@@ -132,7 +138,8 @@ class LocationTellerService(
             Intent(this, LocationTellerService::class.java), 0
         )
 
-        val updaterActor = updaterFactory.createActor(this, this)
+        preferencesHandler = createPreferencesHandler()
+        val updaterActor = updaterFactory.createActor(preferencesHandler, preferencesHandler.createTrackConfig(), this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
             locationRetriever = retrieverFactory.createRetriever(this, updaterActor)
@@ -171,15 +178,21 @@ class LocationTellerService(
         timeService.currentTime().currentTime + 1000L * nextUpdate
 
     /**
+     * Creates the object for accessing preferences used by this instance.
+     * @return the _PreferencesHandler_
+     */
+    internal fun createPreferencesHandler(): PreferencesHandler =
+        PreferencesHandler.create(this)
+
+    /**
      * The main function of this service. Checks whether a location update is
      * now possible. If so, it is triggered.
      */
     private fun tellLocation() = launch {
-        val handler = PreferencesHandler.create(this@LocationTellerService)
         val retriever = locationRetriever
-        if (retriever != null && handler.isTrackingEnabled()) {
+        if (retriever != null && preferencesHandler.isTrackingEnabled()) {
             Log.i(tag, "Triggering location update.")
-            val nextUpdate = retriever.retrieveAndUpdateLocation(handler)
+            val nextUpdate = retriever.retrieveAndUpdateLocation(preferencesHandler)
             scheduleNextExecution(nextUpdate)
         } else {
             Log.i(tag, "No location update possible. Stopping service.")
