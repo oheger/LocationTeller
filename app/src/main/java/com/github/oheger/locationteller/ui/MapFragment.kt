@@ -92,7 +92,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         preferencesHandler = PreferencesHandler.create(requireContext())
         serverConfig = preferencesHandler.createServerConfig()
         val trackConfig = preferencesHandler.createTrackConfig()
-        updateInterval = (trackConfig?.minTrackInterval ?: defaultUpdateInterval) * 1000L
+        updateInterval = trackConfig.minTrackInterval * 1000L
         Log.i(logTag, "Set update interval to $updateInterval ms.")
     }
 
@@ -136,8 +136,15 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     }
 
     override fun onPause() {
+        Log.i(logTag, "onPause()")
         cancelPendingUpdates()
         super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.i(logTag, "onResume()")
+        updateState(false)
     }
 
     /**
@@ -254,12 +261,6 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     companion object {
         /** Tag for log operations.*/
         private const val logTag = "MapFragment"
-
-        /**
-         * An update interval (in seconds) that is used when the corresponding
-         * value in the tracking configuration is undefined.
-         */
-        private const val defaultUpdateInterval = 120
 
         /**
          * A token used when posting delayed update operations using the
