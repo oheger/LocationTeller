@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.track
 import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
+import com.github.oheger.locationteller.server.ServerConfig
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
@@ -236,7 +237,7 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should create a track configuration" {
             val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 27, 11)
-            val pref = preferencesFromConfig(trackConfig)
+            val pref = preferencesFromTrackConfig(trackConfig)
             val handler = PreferencesHandler(pref)
 
             handler.createTrackConfig() shouldBe trackConfig
@@ -314,9 +315,37 @@ class PreferencesHandlerSpec : StringSpec() {
 
             handler.initTrackConfigDefaults()  // should be noop
         }
+
+        "PreferencesHandler should create a correct server configuration" {
+            val handler = PreferencesHandler(preferencesFromServerConfig(defServerConfig))
+
+            handler.createServerConfig() shouldBe defServerConfig
+        }
+
+        "PreferencesHandler should return a null server config if the URI is missing" {
+            checkUndefinedServerConfig(defServerConfig.copy(serverUri = ""))
+        }
+
+        "PreferencesHandler should return a null server config if the base path is missing" {
+            checkUndefinedServerConfig(defServerConfig.copy(basePath = ""))
+        }
+
+        "PreferencesHandler should return a null server config if the user name is missing" {
+            checkUndefinedServerConfig(defServerConfig.copy(user = ""))
+        }
+
+        "PreferencesHandler should return a null server config if the password is missing" {
+            checkUndefinedServerConfig(defServerConfig.copy(password = ""))
+        }
     }
 
     companion object {
+        /** A default server configuration.*/
+        private val defServerConfig = ServerConfig(
+            "https://track.tst", "/myTracks", "scott",
+            "tiger"
+        )
+
         /**
          * Prepares the given mock for a _SharedPreferences_ object to return a
          * value for a specific numeric property.
@@ -331,12 +360,24 @@ class PreferencesHandlerSpec : StringSpec() {
         }
 
         /**
+         * Prepares the given mock for a _SharedPreferences_ object to return a
+         * value for a specific string property. Empty strings are mapped to
+         * *null* values.
+         * @param pref the _SharedPreferences_
+         * @param property the name of the property
+         * @param value the value to be returned for this property
+         */
+        private fun initProperty(pref: SharedPreferences, property: String, value: String) {
+            every { pref.getString(property, null) } returns if (value.isEmpty()) null else value
+        }
+
+        /**
          * Creates a mock for a _SharedPreferences_ object that is prepared to
          * return the properties from the given track configuration.
          * @param trackConfig the track configuration
          * @return the mock _SharedPreferences_
          */
-        private fun preferencesFromConfig(trackConfig: TrackConfig): SharedPreferences {
+        private fun preferencesFromTrackConfig(trackConfig: TrackConfig): SharedPreferences {
             val pref = mockk<SharedPreferences>()
             initProperty(pref, PreferencesHandler.propMinTrackInterval, trackConfig.minTrackInterval / 60)
             initProperty(pref, PreferencesHandler.propMaxTrackInterval, trackConfig.maxTrackInterval / 60)
@@ -346,6 +387,34 @@ class PreferencesHandlerSpec : StringSpec() {
             initProperty(pref, PreferencesHandler.propRetryOnErrorTime, trackConfig.retryOnErrorTime)
             initProperty(pref, PreferencesHandler.propGpsTimeout, trackConfig.gpsTimeout)
             return pref
+        }
+
+        /**
+         * Creates a mock for a _SharedPreferences_ object that is prepared to
+         * return the properties from the given server configuration. If a
+         * string property of the configuration is an empty string, the
+         * property is not set.
+         */
+        private fun preferencesFromServerConfig(serverConfig: ServerConfig): SharedPreferences {
+            val pref = mockk<SharedPreferences>()
+            initProperty(pref, PreferencesHandler.propServerUri, serverConfig.serverUri)
+            initProperty(pref, PreferencesHandler.propBasePath, serverConfig.basePath)
+            initProperty(pref, PreferencesHandler.propUser, serverConfig.user)
+            initProperty(pref, PreferencesHandler.propPassword, serverConfig.password)
+            return pref
+        }
+
+        /**
+         * Tests whether a *null* server config is returned in case of missing
+         * properties. Shared preferences are created based on the passed in
+         * configuration. Then it is tested whether based on the preferences a
+         * *null* configuration is created.
+         * @param config the configuration
+         */
+        private fun checkUndefinedServerConfig(config: ServerConfig) {
+            val handler = PreferencesHandler(preferencesFromServerConfig(config))
+
+            handler.createServerConfig() shouldBe null
         }
     }
 }
