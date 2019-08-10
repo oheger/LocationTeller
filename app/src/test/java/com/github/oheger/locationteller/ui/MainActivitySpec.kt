@@ -19,10 +19,12 @@ import android.content.SharedPreferences
 import com.github.oheger.locationteller.track.PreferencesHandler
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 
 /**
  * Test class for [MainActivity].
  */
+@ObsoleteCoroutinesApi
 class MainActivitySpec : StringSpec() {
     init {
         "MainActivity should disable tracking when there is a configuration change and tracking is active" {

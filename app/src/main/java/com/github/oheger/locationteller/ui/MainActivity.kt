@@ -15,9 +15,12 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -28,6 +31,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.PreferencesHandler
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.text.SimpleDateFormat
@@ -40,6 +44,7 @@ import java.util.*
  * UI is provided by different fragments. This class implements some common
  * management tasks.
  */
+@ObsoleteCoroutinesApi
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
     private val logTag = "MainActivity"
 
@@ -62,6 +67,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
         val handler = PreferencesHandler.create(this)
         handler.initTrackConfigDefaults()
+        createTrackNotificationChannel()
     }
 
     override fun onResume() {
@@ -91,6 +97,26 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             if (handler.isTrackingEnabled()) {
                 handler.setTrackingEnabled(false)
             }
+        }
+    }
+
+    /**
+     * Creates the notification channel that is mandatory for the location
+     * teller service in newer Android versions.
+     */
+    private fun createTrackNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = getString(R.string.track_channel_name)
+            val desc = getString(R.string.track_channel_desc)
+            val channel = NotificationChannel(
+                LocationTellerService.trackChannelId, name,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = desc
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+            Log.i(logTag, "Created notification channel.")
         }
     }
 

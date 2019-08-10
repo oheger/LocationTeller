@@ -39,4 +39,8 @@
     <string name="map_status_updating">updating…</string>
     <string name="map_status">%1$d locations, newest %2$s</string>
     <string name="map_status_empty">no locations</string>
+
+    <string name="track_channel_desc">Tracking active notification from LocationTeller</string>
+    <string name="track_channel_name">Tracking</string>
+    <string name="track_channel_title">Tracking active</string>
 </resources>
