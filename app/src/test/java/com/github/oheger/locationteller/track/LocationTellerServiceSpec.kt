@@ -299,6 +299,7 @@ class LocationTellerServiceSpec : StringSpec() {
 
                 val notificationBuilder = mockk<NotificationCompat.Builder>()
                 every { notificationBuilder.setSmallIcon(any()) } returns notificationBuilder
+                every { notificationBuilder.setContentTitle(any()) } returns notificationBuilder
                 every { notificationBuilder.build() } returns notification
 
                 val serviceSpy = spyk(service)

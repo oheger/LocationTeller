@@ -168,7 +168,7 @@ class LocationTellerService(
      * @return the notification builder
      */
     internal fun notificationBuilder(): NotificationCompat.Builder =
-        NotificationCompat.Builder(this, "trackChannel")
+        NotificationCompat.Builder(this, trackChannelId)
 
     /**
      * Calculates the time for the next update based on the current time as
@@ -222,6 +222,12 @@ class LocationTellerService(
     private fun startForegroundService() {
         val builder = notificationBuilder()
             .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(getString(R.string.track_channel_title))
         startForeground(1, builder.build())
+    }
+
+    companion object {
+        /** The ID of the notification channel used by this service.*/
+        const val trackChannelId = "trackChannel"
     }
 }
