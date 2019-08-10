@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Location Teller</string>
+    <string name="server_settings">Server Einstellungen</string>
+    <string name="open_drawer">Öffnen</string>
+    <string name="close_drawer">Schließen</string>
+    <string name="trackView">Verfolgen</string>
+    <string name="mapView">Karte</string>
+    <string name="trackSettingsView">Verfolgungseinstellungen</string>
+    <string name="serverSettingsView">Servereinstellungen</string>
+    <string name="pref_min_track_interval">Minimales Update-Intervall (Min)</string>
+    <string name="pref_max_track_interval">Maximales Update-Intervall (Min)</string>
+    <string name="pref_interval_idle_increment">Intervallvergrößerung bei keiner Änderung (Min)</string>
+    <string name="pref_validity_time">Gültigkeitszeit von Positionen (Min)</string>
+    <string name="pref_location_update_threshold">Grenzwert für Positionsupdate (m)</string>
+    <string name="pref_error_retry_time">Erneut versuchen nach Fehler (Sek)</string>
+    <string name="pref_gps_timeout">Timeout Positionsbestimmung (Sek)</string>
+    <string name="pref_server_uri">Server URI</string>
+    <string name="pref_server_path">Relativer Pfad</string>
+    <string name="pref_user">Benutzername</string>
+    <string name="pref_password">Passwort</string>
+    <string name="lab_track_enabled">Verfolgen aktiv</string>
+    <string name="lab_last_location_update">Letzte Positionsänderung:</string>
+    <string name="lab_last_error">Letzter Fehler:</string>
+    <string name="lab_last_check">Letzte Überprüfung</string>
+    <string name="lab_last_distance">Entfernung: %1$d m</string>
+    <string name="time_secs">Sek</string>
+    <string name="time_minutes">Min</string>
+    <string name="time_hours">Std</string>
+    <string name="time_days">Tag</string>
+    <string name="item_center_to_recent">Letzte Position zentrieren</string>
+    <string name="item_zoom_tracked_area">Zoom erfassten Bereich</string>
+    <string name="item_auto_center">Autom. zentrieren</string>
+    <string name="item_update_map">Aktualisieren</string>
+    <string name="map_status_updating">aktualisiere...</string>
+    <string name="map_status">%1$d Positionen, neueste %2$s</string>
+    <string name="map_status_empty">Keine Positionen</string>
+    <string name="track_settings">Verfolgungseinstellungen</string>
+</resources>

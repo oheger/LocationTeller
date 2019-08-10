@@ -1,13 +1,12 @@
 <resources>
     <string name="app_name">Location Teller</string>
     <string name="track_settings">Track settings</string>
-    <string name="server_settings">Server settings</string>
+    <string name="server_settings">Track settings</string>
     <string name="open_drawer">Open</string>
     <string name="close_drawer">Close</string>
 
     <string name="trackView">Track</string>
     <string name="mapView">Map</string>
-    <string name="content_track_fragment">Hello track fragment</string>
     <string name="trackSettingsView">Track settings</string>
     <string name="serverSettingsView">Server settings</string>
     <string name="pref_min_track_interval">Minimum track interval (min)</string>
