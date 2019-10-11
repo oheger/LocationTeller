@@ -67,11 +67,25 @@ class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
         if (isRecent) 1f
         else {
             val deltaMin = (time - data.locationData.time.currentTime) / 1000 / 60
-            if (deltaMin < 60) 1.0f - (1.0f - 0.75f) * (deltaMin / 60f)
+            if (deltaMin < 60) 1.0f - (1.0f - AlphaMinutesMin) * (deltaMin / 60f)
             else {
                 val deltaHour = deltaMin / 60
-                if (deltaHour < 24) 0.7f - (0.7f - 0.5f) * (deltaHour / 24f)
-                else 0.4f
+                if (deltaHour < 24) AlphaHoursMax - (AlphaHoursMax - AlphaHoursMin) * (deltaHour / 24f)
+                else AlphaDays
             }
         }
+
+    companion object {
+        /** The minimum alpha value used for markers in the minute range. */
+        const val AlphaMinutesMin = 0.55f
+
+        /** The maximum alpha value used for markers in the hour range. */
+        const val AlphaHoursMax = 0.5f
+
+        /** The minimum alpha value used for markers in the hour range. */
+        const val AlphaHoursMin = 0.2f
+
+        /** The alpha value used for markers in the day range. */
+        const val AlphaDays = 0.1f
+    }
 }

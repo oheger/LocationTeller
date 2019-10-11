@@ -86,7 +86,7 @@ class MarkerFactorySpec : StringSpec() {
             options2.alpha shouldBeLessThan 1f
             options2.alpha shouldBeGreaterThan 0.9f
             options2.alpha shouldBeGreaterThan options1.alpha
-            options1.alpha shouldBeGreaterThanOrEqual 0.75f
+            options1.alpha shouldBeGreaterThanOrEqual MarkerFactory.AlphaMinutesMin
         }
 
         "MarkerFactory should set the alpha for markers in the hours range" {
@@ -98,10 +98,10 @@ class MarkerFactorySpec : StringSpec() {
 
             val options2 = factory.createMarker(state, state.files.first(), currentTime)
             val options1 = factory.createMarker(state, state.files[1], currentTime)
-            options2.alpha shouldBeLessThanOrEqual 0.7f
-            options2.alpha shouldBeGreaterThan 0.68f
+            options2.alpha shouldBeLessThanOrEqual MarkerFactory.AlphaHoursMax
+            options2.alpha shouldBeGreaterThan MarkerFactory.AlphaHoursMax - 0.02f
             options2.alpha shouldBeGreaterThan options1.alpha
-            options1.alpha shouldBeGreaterThan 0.5f
+            options1.alpha shouldBeGreaterThan MarkerFactory.AlphaHoursMin
         }
 
         "MarkerFactory should set the alpha for markers in the days range" {
@@ -113,8 +113,8 @@ class MarkerFactorySpec : StringSpec() {
 
             val options2 = factory.createMarker(state, state.files.first(), currentTime)
             val options1 = factory.createMarker(state, state.files[1], currentTime)
-            options1.alpha shouldBe 0.4f
-            options2.alpha shouldBe 0.4f
+            options1.alpha shouldBe MarkerFactory.AlphaDays
+            options2.alpha shouldBe MarkerFactory.AlphaDays
         }
     }
 
