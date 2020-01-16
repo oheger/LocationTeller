@@ -182,6 +182,15 @@ class DavClientSpec : StringSpec() {
             client.delete("/some/path") shouldBe false
         }
 
+        "DavClient should treat status code 207 as error when deleting elements" {
+            stubFor(authorized(delete(anyUrl()))
+                .willReturn(aResponse().withStatus(207)
+                    .withBody("<error>Some errors happened.</error>")))
+            val client = DavClient.create(WireMockSupport.config())
+
+            client.delete("/foo/bar") shouldBe false
+        }
+
         "DavClient should create a new folder on the server" {
             val path = "/my/new/folder"
             stubFor(

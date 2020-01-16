@@ -87,7 +87,7 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
             delete()
         }
         val response = trackHttpClient.update(request)
-        return response.successful
+        return response.successful && response.status != MultiStatus
     }
 
     /**
@@ -186,6 +186,9 @@ class DavClient(val config: ServerConfig, private val trackHttpClient: TrackHttp
 
         /** Constant for the HTTP status code 'method not allowed'.*/
         private const val StatusMethodNotAllowed = 405
+
+        /** Status code indicating a multi result. */
+        private const val MultiStatus = 207
 
         /** Constant for a dummy folder to be returned in case of an error.*/
         private val DummyFolder = DavFolder("", listOf())
