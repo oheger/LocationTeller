@@ -107,28 +107,39 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @param flag the new tracking state
      */
     fun setTrackingEnabled(flag: Boolean) {
-        update { editor -> editor.putBoolean(propTrackState, flag) }
+        update { editor ->
+            val currentTime = System.currentTimeMillis()
+            editor.putBoolean(propTrackState, flag)
+            val prop = if (flag) propTrackingStart else propTrackingEnd
+            editor.putLong(prop, currentTime)
+        }
     }
 
     /**
-     * Sets the preferences property for the last error to the given timestamp.
+     * Sets the preferences property for the last error to the given timestamp
+     * and also updates the total error counter.
      * @param at the time when the error happened
+     * @param count the total number of errors
      */
-    fun recordError(at: Long) {
-        update { editor -> editor.putLong(propLastError, at) }
+    fun recordError(at: Long, count: Int) {
+        update { editor ->
+            editor.putLong(propLastError, at)
+                .putInt(propErrorCount, count)
+        }
     }
 
     /**
      * Sets the preferences properties for the last successful update to the
-     * given timestamp and distance. The last error property is cleared.
+     * given timestamp and distance.
      * @param at the time when the update happened
      * @param distance the distance to the last position
+     * @param totalDistance the accumulated distance
      */
-    fun recordUpdate(at: Long, distance: Int) {
+    fun recordUpdate(at: Long, distance: Int, totalDistance: Long) {
         update { editor ->
             editor.putLong(propLastUpdate, at)
                 .putInt(propLastDistance, distance)
-                .remove(propLastError)
+                .putLong(propTotalDistance, totalDistance)
         }
     }
 
@@ -147,6 +158,13 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the date of the last error
      */
     fun lastError(): Date? = preferences.getDate(propLastError)
+
+    /**
+     * Returns the number of errors that have been encountered since the
+     * statistics have been reset.
+     * @return the number of errors
+     */
+    fun errorCount(): Int = preferences.getInt(propErrorCount, 0)
 
     /**
      * Returns a _Date_ when the last updated took place. Result is *null* if
@@ -169,6 +187,27 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the distance of the last location update
      */
     fun lastDistance(): Int = preferences.getInt(propLastDistance, 0)
+
+    /**
+     * Returns the total distance of all checks that have been recorded (in
+     * meters).
+     * @return the total distance of all location updates
+     */
+    fun totalDistance(): Long = preferences.getLong(propTotalDistance, 0)
+
+    /**
+     * Returns the recorded start date of the current tracking process.
+     * Result is *null* if tracking has never been started.
+     * @return the start date of the current tracking process
+     */
+    fun trackingStartDate(): Date? = preferences.getDate(propTrackingStart)
+
+    /**
+     * Returns the recorded end date of the current tracking process. Result
+     * is *null* if tracking is currently active.
+     * @return the time tracking was stopped or *null*
+     */
+    fun trackingEndDate(): Date? = preferences.getDate(propTrackingEnd)
 
     /**
      * Registers the given change listener at the managed preferences.
@@ -200,6 +239,15 @@ class PreferencesHandler(val preferences: SharedPreferences) {
                 editor.putString(pair.key, pair.value.toString())
             }
             editor.apply()
+        }
+    }
+
+    /**
+     * Resets all the stored values that are related to tracking statistics.
+     */
+    fun resetStatistics() {
+        update { editor ->
+            resetProps.forEach { editor.remove(it) }
         }
     }
 
@@ -283,6 +331,18 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the last check for an update. */
         const val propLastCheck = "lastCheck"
 
+        /** Shared preferences property for the last tracking start time. */
+        const val propTrackingStart = "trackingStart"
+
+        /** Shared preferences property for the last time tracking was stopped. */
+        const val propTrackingEnd = "trackingEnd"
+
+        /** Shared preferences property for the number of errors encountered.*/
+        const val propErrorCount = "errorCount"
+
+        /** Shared preferences property for the accumulated distance (in meters). */
+        const val propTotalDistance = "totalDistance"
+
         /** A default value for the minimum track interval (in seconds). */
         const val defaultMinTrackInterval = 180
 
@@ -329,6 +389,14 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             propLocationUpdateThreshold to defaultLocationUpdateThreshold,
             propRetryOnErrorTime to defaultRetryOnErrorTime,
             propGpsTimeout to defaultGpsTimeout
+        )
+
+        /**
+         * A set with the names of all the properties that need to be cleared
+         * when statistics are reset.
+         */
+        private val resetProps = setOf(
+            propTotalDistance, propErrorCount, propLastCheck, propLastDistance, propLastUpdate, propLastError
         )
 
         /** Factor to convert minutes to seconds. */

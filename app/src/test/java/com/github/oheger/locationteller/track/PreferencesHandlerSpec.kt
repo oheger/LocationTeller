@@ -19,9 +19,11 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import com.github.oheger.locationteller.server.ServerConfig
+import io.kotlintest.matchers.numerics.shouldBeLessThanOrEqual
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
+import kotlin.math.abs
 
 /**
  * Test class for [PreferencesHandler].
@@ -58,19 +60,42 @@ class PreferencesHandlerSpec : StringSpec() {
             handler.isTrackingEnabled() shouldBe false
         }
 
-        "PreferencesHandler should allow updating the tracking state" {
+        "PreferencesHandler should allow setting the tracking state to true" {
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
+            val slotStartTime = slot<Long>()
             every { pref.edit() } returns editor
             every { editor.putBoolean(PreferencesHandler.propTrackState, true) } returns editor
+            every { editor.putLong(PreferencesHandler.propTrackingStart, any()) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
             handler.setTrackingEnabled(true)
             verify {
                 editor.putBoolean(PreferencesHandler.propTrackState, true)
+                editor.putLong(PreferencesHandler.propTrackingStart, capture(slotStartTime))
                 editor.apply()
             }
+            assertCurrentTime(slotStartTime.captured)
+        }
+
+        "PreferencesHandler should allow setting the tracking state to false" {
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            val slotEndTime = slot<Long>()
+            every { pref.edit() } returns editor
+            every { editor.putBoolean(PreferencesHandler.propTrackState, false) } returns editor
+            every { editor.putLong(PreferencesHandler.propTrackingEnd, any()) } returns editor
+            every { editor.apply() } just runs
+            val handler = PreferencesHandler(pref)
+
+            handler.setTrackingEnabled(false)
+            verify {
+                editor.putBoolean(PreferencesHandler.propTrackState, false)
+                editor.putLong(PreferencesHandler.propTrackingEnd, capture(slotEndTime))
+                editor.apply()
+            }
+            assertCurrentTime(slotEndTime.captured)
         }
 
         "PreferencesHandler should identify configuration properties" {
@@ -94,16 +119,19 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should record an error" {
             val errorTime = 20190704213348L
+            val errorCount = 12
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
             every { pref.edit() } returns editor
             every { editor.putLong(PreferencesHandler.propLastError, errorTime) } returns editor
+            every { editor.putInt(PreferencesHandler.propErrorCount, errorCount) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            handler.recordError(errorTime)
+            handler.recordError(errorTime, errorCount)
             verify {
                 editor.putLong(PreferencesHandler.propLastError, errorTime)
+                editor.putInt(PreferencesHandler.propErrorCount, errorCount)
                 editor.apply()
             }
         }
@@ -111,20 +139,21 @@ class PreferencesHandlerSpec : StringSpec() {
         "PreferencesHandler should record an update" {
             val updateTime = 20190704213752L
             val distance = 1111
+            val totalDistance = 20200118161249L
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
             every { pref.edit() } returns editor
             every { editor.putLong(PreferencesHandler.propLastUpdate, updateTime) } returns editor
             every { editor.putInt(PreferencesHandler.propLastDistance, distance) } returns editor
-            every { editor.remove(PreferencesHandler.propLastError) } returns editor
+            every { editor.putLong(PreferencesHandler.propTotalDistance, totalDistance) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            handler.recordUpdate(updateTime, distance)
+            handler.recordUpdate(updateTime, distance, totalDistance)
             verify {
                 editor.putLong(PreferencesHandler.propLastUpdate, updateTime)
                 editor.putInt(PreferencesHandler.propLastDistance, distance)
-                editor.remove(PreferencesHandler.propLastError)
+                editor.putLong(PreferencesHandler.propTotalDistance, totalDistance)
                 editor.apply()
             }
         }
@@ -148,8 +177,7 @@ class PreferencesHandlerSpec : StringSpec() {
         "PreferencesHandler should return the last error time" {
             val errorTime = 20190705180422L
             val pref = mockk<SharedPreferences>()
-            every { pref.contains(PreferencesHandler.propLastError) } returns true
-            every { pref.getLong(PreferencesHandler.propLastError, 0) } returns errorTime
+            expectDatePropertyAccess(pref, PreferencesHandler.propLastError, errorTime)
             val handler = PreferencesHandler(pref)
 
             val errorDate = handler.lastError()
@@ -167,8 +195,7 @@ class PreferencesHandlerSpec : StringSpec() {
         "PreferencesHandler should return the last update time" {
             val updateTime = 20190705181104L
             val pref = mockk<SharedPreferences>()
-            every { pref.contains(PreferencesHandler.propLastUpdate) } returns true
-            every { pref.getLong(PreferencesHandler.propLastUpdate, 0) } returns updateTime
+            expectDatePropertyAccess(pref, PreferencesHandler.propLastUpdate, updateTime)
             val handler = PreferencesHandler(pref)
 
             val updateDate = handler.lastUpdate()
@@ -186,8 +213,7 @@ class PreferencesHandlerSpec : StringSpec() {
         "PreferencesHandler should return the last check time" {
             val checkTime = 20190711222611L
             val pref = mockk<SharedPreferences>()
-            every { pref.contains(PreferencesHandler.propLastCheck) } returns true
-            every { pref.getLong(PreferencesHandler.propLastCheck, 0) } returns checkTime
+            expectDatePropertyAccess(pref, PreferencesHandler.propLastCheck, checkTime)
             val handler = PreferencesHandler(pref)
 
             val checkDate = handler.lastCheck()
@@ -209,6 +235,70 @@ class PreferencesHandlerSpec : StringSpec() {
             val handler = PreferencesHandler(pref)
 
             handler.lastDistance() shouldBe distance
+        }
+
+        "PreferencesHandler should return the tracking start time" {
+            val startTime = 20200117215143L
+            val pref = mockk<SharedPreferences>()
+            expectDatePropertyAccess(pref, PreferencesHandler.propTrackingStart, startTime)
+            val handler = PreferencesHandler(pref)
+
+            val startDate = handler.trackingStartDate()
+            startDate!!.time shouldBe startTime
+        }
+
+        "PreferencesHandler should return the tracking stop time" {
+            val endTime = 20200117220450L
+            val pref = mockk<SharedPreferences>()
+            expectDatePropertyAccess(pref, PreferencesHandler.propTrackingEnd, endTime)
+            val handler = PreferencesHandler(pref)
+
+            val endDate = handler.trackingEndDate()
+            endDate!!.time shouldBe endTime
+        }
+
+        "PreferencesHandler should return the total distance" {
+            val distance = 20200118160148L
+            val pref = mockk<SharedPreferences>()
+            every { pref.getLong(PreferencesHandler.propTotalDistance, 0) } returns distance
+            val handler = PreferencesHandler(pref)
+
+            val totalDistance = handler.totalDistance()
+            totalDistance shouldBe distance
+        }
+
+        "PreferencesHandler should return the error count" {
+            val count = 61
+            val pref = mockk<SharedPreferences>()
+            every { pref.getInt(PreferencesHandler.propErrorCount, 0) } returns count
+            val handler = PreferencesHandler(pref)
+
+            val errorCount = handler.errorCount()
+            errorCount shouldBe count
+        }
+
+        "PreferencesHandler should allow resetting statistics data" {
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            every { pref.edit() } returns editor
+            every { editor.remove(PreferencesHandler.propErrorCount) } returns editor
+            every { editor.remove(PreferencesHandler.propTotalDistance) } returns editor
+            every { editor.remove(PreferencesHandler.propLastDistance) } returns editor
+            every { editor.remove(PreferencesHandler.propLastCheck) } returns editor
+            every { editor.remove(PreferencesHandler.propLastError) } returns editor
+            every { editor.remove(PreferencesHandler.propLastUpdate) } returns editor
+            every { editor.apply() } just runs
+            val handler = PreferencesHandler(pref)
+
+            handler.resetStatistics()
+            verify {
+                editor.remove(PreferencesHandler.propErrorCount)
+                editor.remove(PreferencesHandler.propTotalDistance)
+                editor.remove(PreferencesHandler.propLastDistance)
+                editor.remove(PreferencesHandler.propLastError)
+                editor.remove(PreferencesHandler.propLastCheck)
+                editor.remove(PreferencesHandler.propLastUpdate)
+            }
         }
 
         "PreferencesHandler should support the registration of change listeners" {
@@ -415,6 +505,27 @@ class PreferencesHandlerSpec : StringSpec() {
             val handler = PreferencesHandler(preferencesFromServerConfig(config))
 
             handler.createServerConfig() shouldBe null
+        }
+
+        /**
+         * Prepares the given mock for a preferences object to return the
+         * given value when asked for a data property.
+         * @param prefs the preferences mock
+         * @param key the key of the property
+         * @param value the value to be returned
+         */
+        private fun expectDatePropertyAccess(prefs: SharedPreferences, key: String, value: Long) {
+            every { prefs.contains(key) } returns true
+            every { prefs.getLong(key, 0) } returns value
+        }
+
+        /**
+         * Helper function that checks whether a time value is close to the
+         * current system time.
+         * @param time the time value to be checked
+         */
+        private fun assertCurrentTime(time: Long) {
+            abs(System.currentTimeMillis() - time) shouldBeLessThanOrEqual 3000
         }
     }
 }
