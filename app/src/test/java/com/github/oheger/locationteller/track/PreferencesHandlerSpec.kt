@@ -326,7 +326,7 @@ class PreferencesHandlerSpec : StringSpec() {
         }
 
         "PreferencesHandler should create a track configuration" {
-            val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 27, 11)
+            val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 27, 11, true)
             val pref = preferencesFromTrackConfig(trackConfig)
             val handler = PreferencesHandler(pref)
 
@@ -343,6 +343,7 @@ class PreferencesHandlerSpec : StringSpec() {
             ).forEach {
                 initProperty(pref, it, -1)
             }
+            every { pref.getBoolean(PreferencesHandler.propAutoResetStats, false) } returns false
             val handler = PreferencesHandler(pref)
 
             val config = handler.createTrackConfig()
@@ -353,6 +354,7 @@ class PreferencesHandlerSpec : StringSpec() {
             config.locationUpdateThreshold shouldBe PreferencesHandler.defaultLocationUpdateThreshold
             config.retryOnErrorTime shouldBe PreferencesHandler.defaultRetryOnErrorTime
             config.gpsTimeout shouldBe PreferencesHandler.defaultGpsTimeout
+            config.autoResetStats shouldBe false
         }
 
         "PreferencesHandler should init shared preferences with track config defaults" {
@@ -476,6 +478,7 @@ class PreferencesHandlerSpec : StringSpec() {
             initProperty(pref, PreferencesHandler.propLocationUpdateThreshold, trackConfig.locationUpdateThreshold)
             initProperty(pref, PreferencesHandler.propRetryOnErrorTime, trackConfig.retryOnErrorTime)
             initProperty(pref, PreferencesHandler.propGpsTimeout, trackConfig.gpsTimeout)
+            every { pref.getBoolean(PreferencesHandler.propAutoResetStats, false) } returns trackConfig.autoResetStats
             return pref
         }
 

@@ -78,7 +78,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             minTrackInterval = minTrackInterval, maxTrackInterval = maxTrackInterval,
             intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
             locationUpdateThreshold = locationUpdateThreshold, retryOnErrorTime = retryOnErrorTime,
-            gpsTimeout = gpsTimeout
+            gpsTimeout = gpsTimeout, autoResetStats = isAutoResetStats()
         )
     }
 
@@ -114,6 +114,13 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             editor.putLong(prop, currentTime)
         }
     }
+
+    /**
+     * Returns a flag whether the tracking statistics should be reset
+     * automatically when starting a new track operation.
+     * @return the auto reset statistics flag
+     */
+    fun isAutoResetStats(): Boolean = preferences.getBoolean(propAutoResetStats, false)
 
     /**
      * Sets the preferences property for the last error to the given timestamp
@@ -342,6 +349,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
 
         /** Shared preferences property for the accumulated distance (in meters). */
         const val propTotalDistance = "totalDistance"
+
+        /** Shared preferences property to trigger the auto-reset of stats. */
+        const val propAutoResetStats = "autoResetStats"
 
         /** A default value for the minimum track interval (in seconds). */
         const val defaultMinTrackInterval = 180

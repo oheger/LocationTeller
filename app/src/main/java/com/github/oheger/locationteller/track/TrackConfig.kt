@@ -29,6 +29,8 @@ package com.github.oheger.locationteller.track
  * @param retryOnErrorTime a time when the next location update should be
  * attempted after an error occurred (in sec)
  * @param gpsTimeout timeout for querying the current GPS location (in sec)
+ * @param autoResetStats a flag whether tracking statistics should be reset
+ * automatically when tracking is started
  */
 data class TrackConfig(
     val minTrackInterval: Int,
@@ -37,5 +39,6 @@ data class TrackConfig(
     val locationValidity: Int,
     val locationUpdateThreshold: Int,
     val retryOnErrorTime: Int,
-    val gpsTimeout: Int
+    val gpsTimeout: Int,
+    val autoResetStats: Boolean
 )

@@ -50,4 +50,8 @@
         android:singleLine="true"
         android:title="@string/pref_location_update_threshold"
         app:useSimpleSummaryProvider="true" />
+
+    <SwitchPreference
+        android:key="autoResetStats"
+        android:title="@string/pref_auto_reset_stats"/>
 </PreferenceScreen>

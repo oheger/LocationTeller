@@ -32,11 +32,12 @@
     <string name="item_zoom_tracked_area">Zoom erfassten Bereich</string>
     <string name="item_auto_center">Autom. zentrieren</string>
     <string name="item_update_map">Aktualisieren</string>
-    <string name="map_status_updating">aktualisiere...</string>
+    <string name="map_status_updating">aktualisiere…</string>
     <string name="map_status">%1$d Positionen, neueste %2$s</string>
     <string name="map_status_empty">Keine Positionen</string>
     <string name="track_settings">Verfolgungseinstellungen</string>
     <string name="track_channel_desc">Benachrichtigung über aktive Verfolgung von LocationTeller</string>
     <string name="track_channel_name">Verfolgung</string>
     <string name="track_channel_title">Verfolgung aktiv</string>
+    <string name="pref_auto_reset_stats">Statistiken automatisch zurücksetzen</string>
 </resources>

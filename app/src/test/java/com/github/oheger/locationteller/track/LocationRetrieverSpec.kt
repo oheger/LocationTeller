@@ -147,7 +147,7 @@ class LocationRetrieverSpec : StringSpec() {
         private val trackConfig = TrackConfig(
             minTrackInterval = 1, maxTrackInterval = 2,
             intervalIncrementOnIdle = 3, locationValidity = 4, locationUpdateThreshold = 5,
-            retryOnErrorTime = 6, gpsTimeout = 1
+            retryOnErrorTime = 6, gpsTimeout = 1, autoResetStats = false
         )
     }
 }
