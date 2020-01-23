@@ -44,4 +44,13 @@
     <string name="track_channel_name">Tracking</string>
     <string name="track_channel_title">Tracking active</string>
     <string name="pref_auto_reset_stats">Reset statistics on start</string>
+    <string name="stats_tracking_started">Tracking started</string>
+    <string name="stats_tracking_stopped">Tracking stopped</string>
+    <string name="stats_tracking_time">Tracking time</string>
+    <string name="stats_tracking_total_distance">Total distance (m)</string>
+    <string name="stats_tracking_last_distance">Last distance (m)</string>
+    <string name="stats_tracking_last_check">Last check</string>
+    <string name="stats_tracking_last_update">Last update</string>
+    <string name="stats_tracking_error_count">Error count</string>
+    <string name="stats_tracking_last_error">Last error</string>
 </resources>

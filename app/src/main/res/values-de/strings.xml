@@ -40,4 +40,13 @@
     <string name="track_channel_name">Verfolgung</string>
     <string name="track_channel_title">Verfolgung aktiv</string>
     <string name="pref_auto_reset_stats">Statistiken automatisch zurücksetzen</string>
+    <string name="stats_tracking_started">Verfolgung gestartet</string>
+    <string name="stats_tracking_stopped">Verfolgung beendet</string>
+    <string name="stats_tracking_time">Verfolgungszeit</string>
+    <string name="stats_tracking_total_distance">Gesamte Entfernung (m)</string>
+    <string name="stats_tracking_last_distance">Letzte Entfernung (m)</string>
+    <string name="stats_tracking_last_check">Letzte Überprüfung</string>
+    <string name="stats_tracking_last_update">Letzte Änderung</string>
+    <string name="stats_tracking_error_count">Anzahl Fehler</string>
+    <string name="stats_tracking_last_error">Letzter Fehler</string>
 </resources>
