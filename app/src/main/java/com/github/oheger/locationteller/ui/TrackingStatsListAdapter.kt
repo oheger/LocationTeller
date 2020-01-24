@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -52,7 +53,7 @@ class TrackingStatsListAdapter private constructor(
     private val layoutInflater: LayoutInflater,
     private val prefHandler: PreferencesHandler,
     val timeService: TimeService
-) : BaseAdapter() {
+) : BaseAdapter(), SharedPreferences.OnSharedPreferenceChangeListener {
     /** An array with definitions to compute the statistics values. */
     private val statistics = arrayOf(
         StatData(R.string.stats_tracking_started, this::trackingStartStat),
@@ -97,6 +98,34 @@ class TrackingStatsListAdapter private constructor(
     override fun getItemId(position: Int): Long = 0
 
     override fun getCount(): Int = statistics.size
+
+    /**
+     * Reacts on changes on the shared preferences. Then an update of the UI
+     * needs to be triggered.
+     */
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (statisticsProperties.contains(key)) {
+            notifyDataSetChanged()
+        }
+    }
+
+    /**
+     * Activates this adapter. This causes a preferences listener to be
+     * registered, so that the adapter can react on changes on relevant
+     * properties.
+     */
+    fun activate() {
+        prefHandler.registerListener(this)
+    }
+
+    /**
+     * Deactivates this adapter. This causes the preferences listener to be
+     * removed from the shared preferences, so that updates are no longer
+     * processed.
+     */
+    fun deactivate() {
+        prefHandler.unregisterListener(this)
+    }
 
     /**
      * Returns the statistics value for the tracking start date.
@@ -179,6 +208,18 @@ class TrackingStatsListAdapter private constructor(
 
         /** The number of seconds per day.*/
         private const val SECS_PER_DAY = 24 * SECS_PER_HOUR
+
+        /**
+         * A set of properties affecting the statistics displayed by this
+         * class. When the value of one of these properties changes the UI
+         * needs to be updated.
+         */
+        private val statisticsProperties = setOf(
+            PreferencesHandler.propTrackingStart,
+            PreferencesHandler.propTrackingEnd, PreferencesHandler.propLastError,
+            PreferencesHandler.propLastUpdate, PreferencesHandler.propLastCheck,
+            PreferencesHandler.propLastDistance
+        )
 
         /**
          * Creates a new instance of _TrackingStatsListAdapter_ with the given

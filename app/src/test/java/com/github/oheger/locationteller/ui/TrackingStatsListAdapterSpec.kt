@@ -191,9 +191,57 @@ class TrackingStatsListAdapterSpec : StringSpec() {
                 every { handler.lastError() } returns time
             }.checkViewWithHolder(8, R.string.stats_tracking_last_error, dateString(time))
         }
+
+        "TrackingStatsListAdapter should register a preferences listener when activated" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.registerListener(any()) } just runs
+            }
+            helper.adapter.activate()
+            helper.verifyPreferencesListenerRegistered()
+        }
+
+        "TrackingStatsListAdapter should remove the preferences listener on deactivation" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.unregisterListener(any()) } just runs
+            }
+            helper.adapter.deactivate()
+            helper.verifyPreferencesListenerRemoved()
+        }
+
+        "TrackingStatsListAdapter should send change notifications when relevant properties are changed" {
+            val helper = AdapterTestHelper()
+
+            statisticsProperties.withIndex().forEach { idxVal ->
+                helper.simulatePreferencesChange(idxVal.value)
+                    .verifyUIUpdate(idxVal.index + 1)
+            }
+        }
+
+        "TrackingStatsListAdapter should ignore change notifications of irrelevant properties" {
+            val helper = AdapterTestHelper()
+
+            helper.simulatePreferencesChange("foo")
+                .simulatePreferencesChange(null)
+                .verifyUIUpdate(0)
+        }
     }
 
     companion object {
+        /**
+         * A list with the properties that are relevant for the statistics
+         * adapter. When one of these properties is changed the UI needs to be
+         * updated.
+         */
+        private val statisticsProperties = listOf(
+            PreferencesHandler.propTrackingStart, PreferencesHandler.propTrackingEnd,
+            PreferencesHandler.propLastError, PreferencesHandler.propLastUpdate,
+            PreferencesHandler.propLastCheck, PreferencesHandler.propLastDistance
+        )
+
         /**
          * Generates a date object with the given time portion that is relative
          * to a reference date.
@@ -236,7 +284,7 @@ class TrackingStatsListAdapterSpec : StringSpec() {
         private val prefHandler = createPrefHandler()
 
         /** The adapter to be tested.*/
-        val adapter = TrackingStatsListAdapter.create(context, prefHandler, timeService)
+        val adapter = spyk(TrackingStatsListAdapter.create(context, prefHandler, timeService))
 
         /**
          * Allows the initialization of the mock for the preferences handler.
@@ -313,6 +361,47 @@ class TrackingStatsListAdapterSpec : StringSpec() {
                 labelView.setText(expLabelID)
                 valueView.text = expValue
             }
+            return this
+        }
+
+        /**
+         * Verifies that the adapter registered itself as preferences listener.
+         * @return this test helper
+         */
+        fun verifyPreferencesListenerRegistered(): AdapterTestHelper {
+            verify { prefHandler.registerListener(adapter) }
+            return this
+        }
+
+        /**
+         * Verifies that the adapter has removed its preferences listener
+         * registration
+         * @return this test helper
+         */
+        fun verifyPreferencesListenerRemoved(): AdapterTestHelper {
+            verify { prefHandler.unregisterListener(adapter) }
+            return this
+        }
+
+        /**
+         * Verifies that the adapter has triggered the given number of UI
+         * updates.
+         * @param times the expected number of updates
+         * @return this test helper
+         */
+        fun verifyUIUpdate(times: Int): AdapterTestHelper {
+            verify(exactly = times) { adapter.notifyDataSetChanged() }
+            return this
+        }
+
+        /**
+         * Invokes the test adapter's preferences change listener method with
+         * the given property.
+         * @param property the changed property
+         * @return this test helper
+         */
+        fun simulatePreferencesChange(property: String?): AdapterTestHelper {
+            adapter.onSharedPreferenceChanged(null, property)
             return this
         }
 
