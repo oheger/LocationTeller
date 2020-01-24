@@ -4,17 +4,21 @@ apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
 
+def versionKotlinTest = '3.3.0'
+def versionMockK = '1.9.3'
+def versionCoroutines = '1.3.0-M2'
+
 buildscript {
     ext.kotlin_version = '1.3.40'
 }
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     buildToolsVersion "29.0.0"
     defaultConfig {
         applicationId "com.github.oheger.locationteller"
         minSdkVersion 23
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -34,22 +38,18 @@ android {
     }
 }
 
-def versionKotlinTest = '3.3.0'
-def versionMockK = '1.9.3'
-def versionCoroutines = '1.3.0-M2'
-
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.multidex:multidex:2.0.1'
-    implementation 'androidx.appcompat:appcompat:1.1.0-rc01'
+    implementation 'androidx.appcompat:appcompat:1.2.0-alpha01'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'com.google.android.material:material:1.1.0-alpha07'
+    implementation 'com.google.android.material:material:1.2.0-alpha04'
     implementation 'android.arch.navigation:navigation-runtime-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-fragment-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.preference:preference-ktx:1.1.0-rc01'
+    implementation 'androidx.preference:preference-ktx:1.1.0'
     implementation 'com.google.android.gms:play-services-location:17.0.0'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versionCoroutines"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$versionCoroutines"
