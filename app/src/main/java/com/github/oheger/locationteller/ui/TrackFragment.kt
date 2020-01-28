@@ -15,7 +15,6 @@
  */
 package com.github.oheger.locationteller.ui
 
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -26,14 +25,19 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.PreferencesHandler
 import kotlinx.android.synthetic.main.fragment_track.*
 import java.text.DateFormat
-import java.text.SimpleDateFormat
 import java.util.*
 
 /**
  * A fragment that allows enabling or disabling the tracking functionality.
  */
-class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnSharedPreferenceChangeListener {
+open class TrackFragment : androidx.fragment.app.Fragment() {
     private val logTag = "TrackFragment"
+
+    /** The object to access preferences. */
+    private lateinit var prefHandler: PreferencesHandler
+
+    /** The adapter for the statistics list. */
+    private lateinit var statisticsAdapter: TrackingStatsListAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,60 +50,45 @@ class TrackFragment : androidx.fragment.app.Fragment(), SharedPreferences.OnShar
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        prefHandler = createPreferencesHandler()
+        switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
         switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
             Log.i(logTag, "Set track enabled state to $checked.")
-            fetchPreferences().setTrackingEnabled(checked)
+            if (checked && prefHandler.isAutoResetStats()) {
+                prefHandler.resetStatistics()
+            }
+            prefHandler.setTrackingEnabled(checked)
         }
+        statisticsAdapter = createTrackingStatsAdapter(prefHandler)
+        trackingStats.adapter = statisticsAdapter
     }
 
     override fun onResume() {
         super.onResume()
-        initUI()
-        PreferencesHandler.registerListener(context!!, this)
+        statisticsAdapter.activate()
     }
 
     override fun onPause() {
-        PreferencesHandler.unregisterListener(context!!, this)
+        statisticsAdapter.deactivate()
         super.onPause()
     }
 
     /**
-     * Reacts on changes on preferences keys. If the key affected impacts the
-     * UI of this fragment, it is updated.
-     */
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-        if (PreferencesHandler.propLastUpdate == key || PreferencesHandler.propLastError == key ||
-            PreferencesHandler.propLastCheck == key || PreferencesHandler.propTrackState == key ||
-            PreferencesHandler.propLastDistance == key
-        ) {
-            initUI()
-        }
-    }
-
-    /**
-     * Returns a handler for the current preferences.
+     * Creates the _PreferencesHandler_ used by this fragment. (Protected to be
+     * overridden in tests.)
      * @return the _PreferencesHandler_
      */
-    private fun fetchPreferences(): PreferencesHandler = PreferencesHandler.create(context!!)
+    protected open fun createPreferencesHandler(): PreferencesHandler =
+        PreferencesHandler.create(context!!)
 
     /**
-     * Initializes the UI of this fragment based on the current preferences
-     * values.
+     * Creates the adapter for the list view with tracking statistics.
+     * (Protected to be overridden in tests.)
+     * @param prefHandler the preferences handler
+     * @return the adapter for the tracking statistics list view
      */
-    private fun initUI() {
-        val prefHandler = fetchPreferences()
-        switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
-
-        val formatter = SimpleDateFormat("kk:mm:ss", Locale.getDefault())
-        initTimeComponent(labError, txtLastErrorTime, formatter, prefHandler.lastError())
-        initTimeComponent(labCheck, txtLastCheckTime, formatter, prefHandler.lastCheck())
-        if (initTimeComponent(textView2, txtLastUpdateTime, formatter, prefHandler.lastUpdate())) {
-            txtDistance.visibility = View.VISIBLE
-            txtDistance.text = getString(R.string.lab_last_distance, prefHandler.lastDistance())
-        } else {
-            txtDistance.visibility = View.GONE
-        }
-    }
+    protected open fun createTrackingStatsAdapter(prefHandler: PreferencesHandler): TrackingStatsListAdapter =
+        TrackingStatsListAdapter.create(context!!, prefHandler)
 
     /**
      * Initializes a time component with a nullable time. If the time is
