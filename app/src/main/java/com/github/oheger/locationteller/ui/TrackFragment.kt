@@ -17,9 +17,7 @@ package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.PreferencesHandler
@@ -50,6 +48,7 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setHasOptionsMenu(true)
         prefHandler = createPreferencesHandler()
         switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
         switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
@@ -61,6 +60,21 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
         }
         statisticsAdapter = createTrackingStatsAdapter(prefHandler)
         trackingStats.adapter = statisticsAdapter
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_track, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when(item.itemId) {
+            R.id.item_track_reset_stats -> {
+                prefHandler.resetStatistics()
+                return true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     override fun onResume() {

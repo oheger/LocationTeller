@@ -53,4 +53,5 @@
     <string name="stats_tracking_last_update">Last update</string>
     <string name="stats_tracking_error_count">Error count</string>
     <string name="stats_tracking_last_error">Last error</string>
+    <string name="item_track_reset_stats">Reset statistics</string>
 </resources>

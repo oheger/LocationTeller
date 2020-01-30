@@ -1,5 +1,6 @@
 package com.github.oheger.locationteller.ui
 
+import android.view.MenuItem
 import android.view.View
 import android.widget.ListView
 import android.widget.Switch
@@ -14,6 +15,7 @@ import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.PreferencesHandler
+import io.kotlintest.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
@@ -173,6 +175,21 @@ class TrackFragmentSpec {
                 fragment.mockPrefHandler.setTrackingEnabled(false)
             }
             verify(exactly = 0) {
+                fragment.mockPrefHandler.resetStatistics()
+            }
+        }
+    }
+
+    @Test
+    fun testResetStatisticsMenuItemIsHandled() {
+        val item = mockk<MenuItem>()
+        every { item.itemId } returns R.id.item_track_reset_stats
+        val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
+
+        scenario.onFragment { fragment ->
+            fragment.hasOptionsMenu() shouldBe true
+            fragment.onOptionsItemSelected(item) shouldBe true
+            verify {
                 fragment.mockPrefHandler.resetStatistics()
             }
         }
