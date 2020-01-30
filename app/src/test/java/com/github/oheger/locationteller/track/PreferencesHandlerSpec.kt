@@ -38,7 +38,7 @@ class PreferencesHandlerSpec : StringSpec() {
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            handler.update { it.putString("foo", "bar") }
+            handler.update { putString("foo", "bar") }
             verifyOrder {
                 pref.edit()
                 editor.putString("foo", "bar")
@@ -67,6 +67,7 @@ class PreferencesHandlerSpec : StringSpec() {
             every { pref.edit() } returns editor
             every { editor.putBoolean(PreferencesHandler.propTrackState, true) } returns editor
             every { editor.putLong(PreferencesHandler.propTrackingStart, any()) } returns editor
+            every { editor.remove(PreferencesHandler.propTrackingEnd) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
@@ -74,6 +75,7 @@ class PreferencesHandlerSpec : StringSpec() {
             verify {
                 editor.putBoolean(PreferencesHandler.propTrackState, true)
                 editor.putLong(PreferencesHandler.propTrackingStart, capture(slotStartTime))
+                editor.remove(PreferencesHandler.propTrackingEnd)
                 editor.apply()
             }
             assertCurrentTime(slotStartTime.captured)
@@ -138,20 +140,23 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should record an update" {
             val updateTime = 20190704213752L
+            val updateCount = 47
             val distance = 1111
             val totalDistance = 20200118161249L
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
             every { pref.edit() } returns editor
             every { editor.putLong(PreferencesHandler.propLastUpdate, updateTime) } returns editor
+            every { editor.putInt(PreferencesHandler.propUpdateCount, updateCount) } returns editor
             every { editor.putInt(PreferencesHandler.propLastDistance, distance) } returns editor
             every { editor.putLong(PreferencesHandler.propTotalDistance, totalDistance) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            handler.recordUpdate(updateTime, distance, totalDistance)
+            handler.recordUpdate(updateTime, updateCount, distance, totalDistance)
             verify {
                 editor.putLong(PreferencesHandler.propLastUpdate, updateTime)
+                editor.putInt(PreferencesHandler.propUpdateCount, updateCount)
                 editor.putInt(PreferencesHandler.propLastDistance, distance)
                 editor.putLong(PreferencesHandler.propTotalDistance, totalDistance)
                 editor.apply()
@@ -160,16 +165,19 @@ class PreferencesHandlerSpec : StringSpec() {
 
         "PreferencesHandler should record a check" {
             val checkTime = 20190711222122L
+            val checkCount = 128
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
             every { pref.edit() } returns editor
             every { editor.putLong(PreferencesHandler.propLastCheck, checkTime) } returns editor
+            every { editor.putInt(PreferencesHandler.propCheckCount, checkCount) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
-            handler.recordCheck(checkTime)
+            handler.recordCheck(checkTime, checkCount)
             verify {
                 editor.putLong(PreferencesHandler.propLastCheck, checkTime)
+                editor.putInt(PreferencesHandler.propCheckCount, checkCount)
                 editor.apply()
             }
         }
@@ -218,6 +226,15 @@ class PreferencesHandlerSpec : StringSpec() {
 
             val checkDate = handler.lastCheck()
             checkDate!!.time shouldBe checkTime
+        }
+
+        "PreferencesHandler should handle a date in the long past" {
+            val pref = mockk<SharedPreferences>()
+            expectDatePropertyAccess(pref, PreferencesHandler.propLastCheck, 1000)
+            val handler = PreferencesHandler(pref)
+
+            val checkDate = handler.lastCheck()
+            checkDate shouldBe null
         }
 
         "PreferencesHandler should return null for the last check if undefined" {
@@ -277,6 +294,26 @@ class PreferencesHandlerSpec : StringSpec() {
             errorCount shouldBe count
         }
 
+        "PreferencesHandler should return the check count" {
+            val count = 77
+            val pref = mockk<SharedPreferences>()
+            every { pref.getInt(PreferencesHandler.propCheckCount, 0) } returns count
+            val handler = PreferencesHandler(pref)
+
+            val checkCount = handler.checkCount()
+            checkCount shouldBe count
+        }
+
+        "PreferencesHandler should return the update count" {
+            val count = 99
+            val pref = mockk<SharedPreferences>()
+            every { pref.getInt(PreferencesHandler.propUpdateCount, 0) } returns count
+            val handler = PreferencesHandler(pref)
+
+            val updateCount = handler.updateCount()
+            updateCount shouldBe count
+        }
+
         "PreferencesHandler should allow resetting statistics data" {
             val pref = mockk<SharedPreferences>()
             val editor = mockk<SharedPreferences.Editor>()
@@ -287,6 +324,8 @@ class PreferencesHandlerSpec : StringSpec() {
             every { editor.remove(PreferencesHandler.propLastCheck) } returns editor
             every { editor.remove(PreferencesHandler.propLastError) } returns editor
             every { editor.remove(PreferencesHandler.propLastUpdate) } returns editor
+            every { editor.remove(PreferencesHandler.propCheckCount) } returns editor
+            every { editor.remove(PreferencesHandler.propUpdateCount) } returns editor
             every { editor.apply() } just runs
             val handler = PreferencesHandler(pref)
 
@@ -298,6 +337,8 @@ class PreferencesHandlerSpec : StringSpec() {
                 editor.remove(PreferencesHandler.propLastError)
                 editor.remove(PreferencesHandler.propLastCheck)
                 editor.remove(PreferencesHandler.propLastUpdate)
+                editor.remove(PreferencesHandler.propCheckCount)
+                editor.remove(PreferencesHandler.propUpdateCount)
             }
         }
 

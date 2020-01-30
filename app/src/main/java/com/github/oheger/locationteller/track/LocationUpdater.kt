@@ -94,7 +94,8 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
         }
 
         for (locUpdate in channel) {
-            locUpdate.prefHandler.recordCheck(locUpdate.updateTime())
+            //TODO correctly update check count
+            locUpdate.prefHandler.recordCheck(locUpdate.updateTime(), 0)
             val distance = locationChanged(locUpdate.orgLocation)
             if (distance >= 0) {
                 val needRetry = if (locUpdate.orgLocation != null) {
@@ -104,8 +105,8 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     )
                     trackService.removeOutdated(outdatedRefTime)
                     if (trackService.addLocation(locUpdate.locationData)) {
-                        //TODO correctly update total distance
-                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), distance, 0)
+                        //TODO correctly update total distance and update count
+                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), 0, distance, 0)
                         false
                     } else {
                         //TODO correctly update error count

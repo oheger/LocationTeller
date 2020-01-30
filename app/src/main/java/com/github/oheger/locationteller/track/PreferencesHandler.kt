@@ -88,9 +88,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * changes.
      * @param block the lambda to update the preferences
      */
-    fun update(block: SharedPreferences.(SharedPreferences.Editor) -> Unit) {
+    fun update(block: SharedPreferences.Editor.() -> Unit) {
         val editor = preferences.edit()
-        block.invoke(preferences, editor)
+        editor.block()
         editor.apply()
     }
 
@@ -103,15 +103,20 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         preferences.getBoolean(propTrackState, false)
 
     /**
-     * Updates the tracking enabled state in the managed preferences.
+     * Updates the tracking enabled state in the managed preferences. This
+     * causes some related properties to be updated as well.
      * @param flag the new tracking state
      */
     fun setTrackingEnabled(flag: Boolean) {
-        update { editor ->
+        update {
             val currentTime = System.currentTimeMillis()
-            editor.putBoolean(propTrackState, flag)
-            val prop = if (flag) propTrackingStart else propTrackingEnd
-            editor.putLong(prop, currentTime)
+            putBoolean(propTrackState, flag)
+            if (flag) {
+                putLong(propTrackingStart, currentTime)
+                remove(propTrackingEnd)
+            } else {
+                putLong(propTrackingEnd, currentTime)
+            }
         }
     }
 
@@ -129,34 +134,40 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @param count the total number of errors
      */
     fun recordError(at: Long, count: Int) {
-        update { editor ->
-            editor.putLong(propLastError, at)
-                .putInt(propErrorCount, count)
+        update {
+            putLong(propLastError, at)
+            putInt(propErrorCount, count)
         }
     }
 
     /**
-     * Sets the preferences properties for the last successful update to the
-     * given timestamp and distance.
+     * Updates the preferences properties for the last successful update with
+     * regards to the passed in information.
      * @param at the time when the update happened
+     * @param count the number of updates
      * @param distance the distance to the last position
      * @param totalDistance the accumulated distance
      */
-    fun recordUpdate(at: Long, distance: Int, totalDistance: Long) {
-        update { editor ->
-            editor.putLong(propLastUpdate, at)
-                .putInt(propLastDistance, distance)
-                .putLong(propTotalDistance, totalDistance)
+    fun recordUpdate(at: Long, count: Int, distance: Int, totalDistance: Long) {
+        update {
+            putLong(propLastUpdate, at)
+            putInt(propUpdateCount, count)
+            putInt(propLastDistance, distance)
+            putLong(propTotalDistance, totalDistance)
         }
     }
 
     /**
      * Sets the preferences property for the last check time to the given
-     * timestamp.
+     * timestamp and also updates the number of checks.
      * @param at the time when the last check has happened
+     * @param count the number of checks
      */
-    fun recordCheck(at: Long) {
-        update { editor -> editor.putLong(propLastCheck, at) }
+    fun recordCheck(at: Long, count: Int) {
+        update {
+            putLong(propLastCheck, at)
+            putInt(propCheckCount, count)
+        }
     }
 
     /**
@@ -172,6 +183,20 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the number of errors
      */
     fun errorCount(): Int = preferences.getInt(propErrorCount, 0)
+
+    /**
+     * Returns the number of checks that have been performed since the
+     * statistics have been reset.
+     * @return the number of checks
+     */
+    fun checkCount(): Int = preferences.getInt(propCheckCount, 0)
+
+    /**
+     * Returns the number of updates that have been performed since the
+     * statistics have been reset.
+     * @return the number of updates
+     */
+    fun updateCount(): Int = preferences.getInt(propUpdateCount, 0)
 
     /**
      * Returns a _Date_ when the last updated took place. Result is *null* if
@@ -253,8 +278,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * Resets all the stored values that are related to tracking statistics.
      */
     fun resetStatistics() {
-        update { editor ->
-            resetProps.forEach { editor.remove(it) }
+        update {
+            resetProps.forEach { remove(it) }
         }
     }
 
@@ -286,7 +311,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     private fun SharedPreferences.getDate(key: String): Date? =
         if (contains(key)) {
             val time = getLong(key, 0)
-            Date(time)
+            if (time < minDateValue) null else Date(time)
         } else null
 
     companion object {
@@ -347,6 +372,12 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the number of errors encountered.*/
         const val propErrorCount = "errorCount"
 
+        /** Shared preferences property for the number of checks. */
+        const val propCheckCount = "checkCount"
+
+        /** Shared preferences property for the number of updates. */
+        const val propUpdateCount = "updateCount"
+
         /** Shared preferences property for the accumulated distance (in meters). */
         const val propTotalDistance = "totalDistance"
 
@@ -373,6 +404,13 @@ class PreferencesHandler(val preferences: SharedPreferences) {
 
         /** A default value for the location update threshold property. */
         const val defaultLocationUpdateThreshold = 10
+
+        /**
+         * Constant for the minimum value accepted for a date (in millis).
+         * This value should prevent that an undefined date property (set to 0)
+         * is reported as a date in the 1970s.
+         */
+        const val minDateValue = 100000L
 
         /** Constant for an undefined numeric property.*/
         private const val undefinedNumber = -1
@@ -406,7 +444,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
          * when statistics are reset.
          */
         private val resetProps = setOf(
-            propTotalDistance, propErrorCount, propLastCheck, propLastDistance, propLastUpdate, propLastError
+            propTotalDistance, propErrorCount, propLastCheck, propLastDistance, propLastUpdate, propLastError,
+            propCheckCount, propUpdateCount
         )
 
         /** Factor to convert minutes to seconds. */
