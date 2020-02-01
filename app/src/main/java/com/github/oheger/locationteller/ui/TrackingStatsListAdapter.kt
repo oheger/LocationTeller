@@ -28,6 +28,7 @@ import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.PreferencesHandler
 import java.lang.StringBuilder
 import java.text.DateFormat
+import java.text.NumberFormat
 import java.util.*
 
 /**
@@ -60,8 +61,11 @@ class TrackingStatsListAdapter private constructor(
         StatData(R.string.stats_tracking_stopped, this::trackingEndStat),
         StatData(R.string.stats_tracking_time, this::trackingTimeStat),
         StatData(R.string.stats_tracking_total_distance, (TrackingStatsListAdapter)::totalDistanceStat),
+        StatData(R.string.stats_tracking_speed, this::trackingSpeedStat),
         StatData(R.string.stats_tracking_last_distance, (TrackingStatsListAdapter)::lastDistanceStat),
+        StatData(R.string.stats_tracking_check_count, (TrackingStatsListAdapter)::checkCountStat),
         StatData(R.string.stats_tracking_last_check, this::lastCheckStat),
+        StatData(R.string.stats_tracking_update_count, (TrackingStatsListAdapter)::updateCountStat),
         StatData(R.string.stats_tracking_last_update, this::lastUpdateStat),
         StatData(R.string.stats_tracking_error_count, (TrackingStatsListAdapter)::errorCountStat),
         StatData(R.string.stats_tracking_last_error, this::lastErrorStat)
@@ -69,6 +73,9 @@ class TrackingStatsListAdapter private constructor(
 
     /** An object to format dates.*/
     private val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
+
+    /** An object to format numbers.*/
+    private val numberFormat = createNumberFormat()
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
         val view = if (convertView == null) {
@@ -174,10 +181,37 @@ class TrackingStatsListAdapter private constructor(
      * @param prefHandler the preferences handler
      * @return the statistics value for this property
      */
-    private fun trackingTimeStat(prefHandler: PreferencesHandler): String {
-        val startTime = prefHandler.trackingStartDate()?.time ?: return ""
-        val endTime = prefHandler.trackingEndDate()?.time ?: timeService.currentTime().currentTime
-        return formatDuration(endTime - startTime)
+    private fun trackingTimeStat(prefHandler: PreferencesHandler): String =
+        trackingTimeMillis(prefHandler)?.let { formatDuration(it) } ?: ""
+
+    /**
+     * Returns the statistics value for the average tracking speed. This is
+     * based on the total distance and the elapsed tracking time.
+     * @param prefHandler the preferences handler
+     * @return the statistics value for this property
+     */
+    private fun trackingSpeedStat(prefHandler: PreferencesHandler): String {
+        val trackingTime = trackingTimeMillis(prefHandler) ?: return ""
+        return if (trackingTime > 0) {
+            val speed = prefHandler.totalDistance().toDouble() / trackingTime * SECS_PER_HOUR
+            return numberFormat.format(speed)
+        } else ""
+    }
+
+    /**
+     * Calculates the tracking time as the delta of tracking start and end
+     * time (in milliseconds). If tracking is ongoing, the current time is
+     * used as end time. If no tracking start date is recorded, result is
+     * *null*.
+     * @param prefHandler the preferences value
+     * @return the tracking time in milliseconds or *null*
+     */
+    private fun trackingTimeMillis(prefHandler: PreferencesHandler): Long? {
+        val startTime = prefHandler.trackingStartDate()?.time
+        return startTime?.let {
+            val endTime = prefHandler.trackingEndDate()?.time ?: timeService.currentTime().currentTime
+            endTime - it
+        }
     }
 
     /**
@@ -292,6 +326,16 @@ class TrackingStatsListAdapter private constructor(
         }
 
         /**
+         * Creates an object to be used for formatting fractional numbers.
+         * @return the format object
+         */
+        private fun createNumberFormat(): NumberFormat =
+            NumberFormat.getNumberInstance().apply {
+                minimumFractionDigits = 2
+                maximumFractionDigits = 2
+            }
+
+        /**
          * Returns the statistics value for the total tracking distance.
          * @param prefHandler the preferences handler
          * @return the statistics value for this property
@@ -314,5 +358,21 @@ class TrackingStatsListAdapter private constructor(
          */
         private fun errorCountStat(prefHandler: PreferencesHandler): String =
             prefHandler.errorCount().toString()
+
+        /**
+         * Returns the statistics value for the number of checks.
+         * @param prefHandler the preferences handler
+         * @return the statistics value for this property
+         */
+        private fun checkCountStat(prefHandler: PreferencesHandler): String =
+            prefHandler.checkCount().toString()
+
+        /**
+         * Returns the statistics value for the number of updates.
+         * @param prefHandler the preferences handler
+         * @return the statistics value for this property
+         */
+        private fun updateCountStat(prefHandler: PreferencesHandler): String =
+            prefHandler.updateCount().toString()
     }
 }

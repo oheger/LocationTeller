@@ -54,4 +54,7 @@
     <string name="stats_tracking_error_count">Error count</string>
     <string name="stats_tracking_last_error">Last error</string>
     <string name="item_track_reset_stats">Reset statistics</string>
+    <string name="stats_tracking_speed">Average speed (km/h)</string>
+    <string name="stats_tracking_check_count">Check count</string>
+    <string name="stats_tracking_update_count">Update count</string>
 </resources>

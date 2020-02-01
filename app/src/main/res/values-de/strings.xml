@@ -50,4 +50,7 @@
     <string name="stats_tracking_error_count">Anzahl Fehler</string>
     <string name="stats_tracking_last_error">Letzter Fehler</string>
     <string name="item_track_reset_stats">Neue Statistik</string>
+    <string name="stats_tracking_speed">Durchschnittsgeschw. (km/h)</string>
+    <string name="stats_tracking_check_count">Anzahl Überprüfungen</string>
+    <string name="stats_tracking_update_count">Anzahl Änderungen</string>
 </resources>

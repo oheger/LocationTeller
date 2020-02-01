@@ -31,6 +31,7 @@ import io.mockk.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.text.DateFormat
+import java.text.NumberFormat
 import java.util.*
 import kotlin.math.abs
 
@@ -71,7 +72,7 @@ class TrackingStatsListAdapterSpec {
     fun testCount() {
         val helper = AdapterTestHelper()
 
-        helper.adapter.count shouldBe 9
+        helper.adapter.count shouldBe 12
     }
 
     @Test
@@ -185,7 +186,7 @@ class TrackingStatsListAdapterSpec {
 
         helper.initPreferences { handler ->
             every { handler.lastDistance() } returns distance
-        }.checkViewWithHolder(4, R.string.stats_tracking_last_distance, distance.toString())
+        }.checkViewWithHolder(5, R.string.stats_tracking_last_distance, distance.toString())
     }
 
     @Test
@@ -195,7 +196,7 @@ class TrackingStatsListAdapterSpec {
 
         helper.initPreferences { handler ->
             every { handler.lastCheck() } returns time
-        }.checkView(5, R.string.stats_tracking_last_check, dateString(time))
+        }.checkView(7, R.string.stats_tracking_last_check, dateString(time))
     }
 
     @Test
@@ -205,7 +206,7 @@ class TrackingStatsListAdapterSpec {
 
         helper.initPreferences { handler ->
             every { handler.lastUpdate() } returns time
-        }.checkViewWithHolder(6, R.string.stats_tracking_last_update, dateString(time))
+        }.checkViewWithHolder(9, R.string.stats_tracking_last_update, dateString(time))
     }
 
     @Test
@@ -215,7 +216,7 @@ class TrackingStatsListAdapterSpec {
 
         helper.initPreferences { handler ->
             every { handler.errorCount() } returns errorCount
-        }.checkView(7, R.string.stats_tracking_error_count, errorCount.toString())
+        }.checkView(10, R.string.stats_tracking_error_count, errorCount.toString())
     }
 
     @Test
@@ -225,7 +226,77 @@ class TrackingStatsListAdapterSpec {
 
         helper.initPreferences { handler ->
             every { handler.lastError() } returns time
-        }.checkViewWithHolder(8, R.string.stats_tracking_last_error, dateString(time))
+        }.checkViewWithHolder(11, R.string.stats_tracking_last_error, dateString(time))
+    }
+
+    @Test
+    fun testNumberOfChecks() {
+        val checkCount = 128
+        val helper = AdapterTestHelper()
+
+        helper.initPreferences { handler ->
+            every { handler.checkCount() } returns checkCount
+        }.checkView(6, R.string.stats_tracking_check_count, checkCount.toString())
+    }
+
+    @Test
+    fun testNumberOfUpdates() {
+        val updateCount = 64
+        val helper = AdapterTestHelper()
+
+        helper.initPreferences { handler ->
+            every { handler.updateCount() } returns updateCount
+        }.checkViewWithHolder(8, R.string.stats_tracking_update_count, updateCount.toString())
+    }
+
+    @Test
+    fun testAverageSpeed() {
+        val distance = 1250L
+        val startTime = toDate(21, 0, 0)
+        val endTime = toDate(21, 16, 40)
+        val helper = AdapterTestHelper()
+
+        helper.initPreferences { handler ->
+            every { handler.totalDistance() } returns distance
+            every { handler.trackingStartDate() } returns startTime
+            every { handler.trackingEndDate() } returns endTime
+        }.checkView(4, R.string.stats_tracking_speed, numberString(4.5))
+    }
+
+    @Test
+    fun testAverageSpeedIfTrackingIsInProgress() {
+        val distance = 750L
+        val startTime = toDate(21, 30, 0)
+        val currentTime = toDate(21, 40, 30)
+        val helper = AdapterTestHelper()
+
+        helper.initPreferences { handler ->
+            every { handler.totalDistance() } returns distance
+            every { handler.trackingStartDate() } returns startTime
+            every { handler.trackingEndDate() } returns null
+        }.initCurrentTime(currentTime.time)
+            .checkViewWithHolder(4, R.string.stats_tracking_speed, numberString(4.29))
+    }
+
+    @Test
+    fun testAverageSpeedIfNoStartTimeAvailable() {
+        val helper = AdapterTestHelper()
+
+        helper.initPreferences { handler ->
+            every { handler.trackingStartDate() } returns null
+        }.checkView(4, R.string.stats_tracking_speed, "")
+    }
+
+    @Test
+    fun testAverageSpeedIfTrackingTimeIsZero() {
+        val startTime = toDate(22, 22, 4)
+        val helper = AdapterTestHelper()
+
+        helper.initPreferences { handler ->
+            every { handler.trackingStartDate() } returns startTime
+            every { handler.trackingEndDate() } returns null
+        }.initCurrentTime(startTime.time)
+            .checkView(4, R.string.stats_tracking_speed, "")
     }
 
     @Test
@@ -303,6 +374,18 @@ class TrackingStatsListAdapterSpec {
         private fun dateString(date: Date): String {
             val format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
             return format.format(date)
+        }
+
+        /**
+         * Generates the formatted string to be displayed for a number.
+         * @param number the number
+         * @return the formatted number string
+         */
+        private fun numberString(number: Number): String {
+            val format = NumberFormat.getInstance()
+            format.minimumFractionDigits = 2
+            format.maximumFractionDigits = 2
+            return format.format(number)
         }
     }
 
