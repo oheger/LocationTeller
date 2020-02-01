@@ -16,57 +16,70 @@
 package com.github.oheger.locationteller.ui
 
 import android.content.SharedPreferences
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.launchActivity
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.track.PreferencesHandler
-import io.kotlintest.specs.StringSpec
 import io.mockk.*
 import kotlinx.coroutines.ObsoleteCoroutinesApi
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /**
  * Test class for [MainActivity].
  */
 @ObsoleteCoroutinesApi
-class MainActivitySpec : StringSpec() {
-    init {
-        "MainActivity should disable tracking when there is a configuration change and tracking is active" {
-            val pref = mockk<SharedPreferences>()
-            val editor = mockk<SharedPreferences.Editor>()
-            every { pref.getBoolean(PreferencesHandler.propTrackState, false) } returns true
-            every { pref.edit() } returns editor
-            every { editor.putBoolean(PreferencesHandler.propTrackState, false) } returns editor
-            every { editor.apply() } just runs
-            val activity = MainActivity()
+@RunWith(AndroidJUnit4::class)
+class MainActivitySpec {
+    @Test
+    fun testTrackingIsDisabledOnAConfigurationChange() {
+        val pref = mockk<SharedPreferences>()
+        val editor = mockk<SharedPreferences.Editor>()
+        every { pref.getBoolean(PreferencesHandler.propTrackState, false) } returns true
+        every { pref.edit() } returns editor
+        every { editor.putBoolean(PreferencesHandler.propTrackState, false) } returns editor
+        every { editor.putLong(any(), any()) } returns editor
+        every { editor.apply() } just runs
+        val activity = MainActivity()
 
-            activity.onSharedPreferenceChanged(pref, PreferencesHandler.propServerUri)
-            verifyOrder {
-                editor.putBoolean(PreferencesHandler.propTrackState, false)
-                editor.apply()
-            }
+        activity.onSharedPreferenceChanged(pref, PreferencesHandler.propServerUri)
+        verifyOrder {
+            editor.putBoolean(PreferencesHandler.propTrackState, false)
+            editor.apply()
         }
+    }
 
-        "MainActivity should disable tracking only if it is currently active" {
-            val pref = mockk<SharedPreferences>()
-            every { pref.getBoolean(PreferencesHandler.propTrackState, false) } returns false
-            val activity = MainActivity()
+    @Test
+    fun testTrackingIsDisabledOnlyIfActive() {
+        val pref = mockk<SharedPreferences>()
+        every { pref.getBoolean(PreferencesHandler.propTrackState, false) } returns false
+        val activity = MainActivity()
 
-            activity.onSharedPreferenceChanged(pref, PreferencesHandler.propBasePath)
-        }
+        activity.onSharedPreferenceChanged(pref, PreferencesHandler.propBasePath)
+    }
 
-        "MainActivity should trigger the track service if the track state changes" {
-            val pref = mockk<SharedPreferences>()
-            val activity = spyk(MainActivity())
-            every { activity.startService(any()) } returns null
+    @Test
+    fun testTrackServiceIsTriggeredOnAStateChange() {
+        val pref = mockk<SharedPreferences>()
+        val scenario = launchActivity<MainActivity>()
+        scenario.moveToState(Lifecycle.State.CREATED)
 
-            activity.onSharedPreferenceChanged(pref, PreferencesHandler.propTrackState)
+        scenario.onActivity { activity ->
+            val activitySpy = spyk(activity)
+            every { activitySpy.startService(any()) } returns null
+
+            activitySpy.onSharedPreferenceChanged(pref, PreferencesHandler.propTrackState)
             verify {
-                activity.startService(any())
+                activitySpy.startService(any())
             }
         }
+    }
 
-        "MainActivity should ignore preferences updates for other properties" {
-            val pref = mockk<SharedPreferences>()
-            val activity = MainActivity()
+    @Test
+    fun testPreferencesUpdatesForOtherPropertiesAreIgnored() {
+        val pref = mockk<SharedPreferences>()
+        val activity = MainActivity()
 
-            activity.onSharedPreferenceChanged(pref, "otherProperty")
-        }
+        activity.onSharedPreferenceChanged(pref, "otherProperty")
     }
 }
