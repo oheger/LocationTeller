@@ -41,13 +41,13 @@ class LocationTellerServiceSpec : StringSpec() {
         "UpdaterActorFactory should create a correct actor" {
             val crScope = mockk<CoroutineScope>()
             val actor = mockk<SendChannel<LocationUpdate>>()
+            val prefHandler = preparePreferences()
             mockkStatic("com.github.oheger.locationteller.track.LocationUpdaterKt")
-            every { locationUpdaterActor(any(), defTrackConfig, crScope) } answers {
-                val service = arg<TrackService>(0)
+            every { locationUpdaterActor(prefHandler, any(), defTrackConfig, crScope) } answers {
+                val service = arg<TrackService>(1)
                 service.davClient.config shouldBe defServerConfig
                 actor
             }
-            val prefHandler = preparePreferences()
             val factory = UpdaterActorFactory()
 
             factory.createActor(prefHandler, defTrackConfig, crScope) shouldBe actor
@@ -248,7 +248,7 @@ class LocationTellerServiceSpec : StringSpec() {
              */
             fun verifyLocationUpdateTriggered(): TellerServiceTestHelper {
                 coVerify(timeout = timeout) {
-                    retriever.retrieveAndUpdateLocation(any())
+                    retriever.retrieveAndUpdateLocation()
                 }
                 return this
             }
@@ -292,8 +292,7 @@ class LocationTellerServiceSpec : StringSpec() {
                 if (actor != null) {
                     every { retrieverFactory.createRetriever(any(), actor, defTrackConfig) } returns retriever
                 }
-                coEvery { retriever.retrieveAndUpdateLocation(any()) } answers {
-                    arg<PreferencesHandler>(0) shouldBe prefs
+                coEvery { retriever.retrieveAndUpdateLocation() } answers {
                     nextUpdateInterval
                 }
                 every { timeService.currentTime() } returns TimeData(elapsedTime)

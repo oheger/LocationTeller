@@ -71,7 +71,6 @@ class LocationRetrieverSpec : StringSpec() {
             val timeService = mockk<TimeService>()
             val location = mockk<Location>()
             val locResult = mockk<LocationResult>()
-            val prefHandler = mockk<PreferencesHandler>()
             val locClient = mockk<FusedLocationProviderClient>()
             val refCallback = AtomicReference<LocationCallback>()
             every { location.latitude } returns latitude
@@ -94,14 +93,13 @@ class LocationRetrieverSpec : StringSpec() {
                 locUpdate.locationData.latitude shouldBeExactly latitude
                 locUpdate.locationData.longitude shouldBeExactly longitude
                 locUpdate.locationData.time shouldBe currentTime
-                locUpdate.prefHandler shouldBe prefHandler
                 locUpdate.orgLocation shouldBe location
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
             val dispatcher = initDispatcher()
             val retriever = LocationRetriever(locClient, actor, timeService, trackConfig)
 
-            retriever.retrieveAndUpdateLocation(prefHandler) shouldBe nextUpdate
+            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             dispatcher.tasks.isEmpty() shouldBe false
             verify { locClient.removeLocationUpdates(refCallback.get()) }
         }
@@ -118,7 +116,7 @@ class LocationRetrieverSpec : StringSpec() {
             initDispatcher()
             val retriever = LocationRetriever(locClient, actor, mockk(), trackConfig)
 
-            retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
+            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }
         }
 
@@ -130,7 +128,7 @@ class LocationRetrieverSpec : StringSpec() {
             initDispatcher()
             val retriever = LocationRetriever(locClient, actor, mockk(), trackConfig)
 
-            retriever.retrieveAndUpdateLocation(mockk()) shouldBe nextUpdate
+            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }
             verify { locClient.removeLocationUpdates(any() as LocationCallback) }
         }

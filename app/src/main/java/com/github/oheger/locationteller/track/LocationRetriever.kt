@@ -53,14 +53,13 @@ class LocationRetriever(
      * Sends the last known location to the actor for updating the server. The
      * result is the duration in seconds when the next location update should
      * be scheduled.
-     * @param prefHandler the _PreferencesHandler_
      * @return the time period to the next location update
      */
     @ObsoleteCoroutinesApi
-    suspend fun retrieveAndUpdateLocation(prefHandler: PreferencesHandler): Int {
+    suspend fun retrieveAndUpdateLocation(): Int {
         Log.i(tag, "Triggering location update.")
         val lastLocation = fetchLocation()
-        val locUpdate = locationUpdateFor(lastLocation, prefHandler)
+        val locUpdate = locationUpdateFor(lastLocation)
         locationUpdateActor.send(locUpdate)
         return locUpdate.nextTrackDelay.await()
     }
@@ -97,12 +96,11 @@ class LocationRetriever(
      * location can be *null*; in this case, the special unknown location
      * instance is used.
      * @param location the location
-     * @param prefHandler the _PreferencesHandler_
      * @return the corresponding _LocationUpdate_ object
      */
-    private fun locationUpdateFor(location: Location?, prefHandler: PreferencesHandler): LocationUpdate {
+    private fun locationUpdateFor(location: Location?): LocationUpdate {
         val locData = location?.toLocationData() ?: unknownLocation
-        return LocationUpdate(locData, location, CompletableDeferred(), prefHandler)
+        return LocationUpdate(locData, location, CompletableDeferred())
     }
 
     /**

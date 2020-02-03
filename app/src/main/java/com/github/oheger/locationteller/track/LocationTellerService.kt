@@ -58,7 +58,7 @@ class UpdaterActorFactory {
         val serverConfig = preferencesHandler.createServerConfig()
         return if (serverConfig != null) {
             val trackService = TrackService.create(serverConfig)
-            locationUpdaterActor(trackService, trackConfig, crScope)
+            locationUpdaterActor(preferencesHandler, trackService, trackConfig, crScope)
         } else null
     }
 }
@@ -194,7 +194,7 @@ class LocationTellerService(
         val retriever = locationRetriever
         if (retriever != null && preferencesHandler.isTrackingEnabled()) {
             Log.i(tag, "Triggering location update.")
-            val nextUpdate = retriever.retrieveAndUpdateLocation(preferencesHandler)
+            val nextUpdate = retriever.retrieveAndUpdateLocation()
             scheduleNextExecution(nextUpdate)
         } else {
             Log.i(tag, "No location update possible. Stopping service.")

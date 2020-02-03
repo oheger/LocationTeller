@@ -38,15 +38,12 @@ val unknownLocation = LocationData(0.0, 0.0, TimeData(0))
  *
  * The message contains a new location data object, the original _Location_
  * retrieved from the fused location provider, and a _CompletableDeferred_ that
- * is used to communicate the next update time to the caller. Also, a
- * [PreferencesHandler] is contained allowing access to the shared preferences
- * of the application.
+ * is used to communicate the next update time to the caller.
  */
 data class LocationUpdate(
     val locationData: LocationData,
     val orgLocation: Location?,
-    val nextTrackDelay: CompletableDeferred<Int>,
-    val prefHandler: PreferencesHandler
+    val nextTrackDelay: CompletableDeferred<Int>
 ) {
     /**
      * Returns the time of this update.
@@ -67,19 +64,27 @@ data class LocationUpdate(
  * be requested: the update interval is increased based on the configuration
  * settings until the maximum is reached or a location change is detected.
  *
+ * @param prefHandler the object to access shared preferences
  * @param trackService the _TrackService_ to be called
  * @param trackConfig the configuration for tracking location data
+ * @param crScope the co-routine scope
  * @return the channel to send messages to the actor
  */
 @ObsoleteCoroutinesApi
-fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, crScope: CoroutineScope):
-        SendChannel<LocationUpdate> {
+fun locationUpdaterActor(prefHandler: PreferencesHandler, trackService: TrackService, trackConfig: TrackConfig,
+                         crScope: CoroutineScope): SendChannel<LocationUpdate> {
     return crScope.actor {
         var lastLocation: Location? = null
 
         var updateInterval = trackConfig.minTrackInterval
 
         var retryTime = trackConfig.retryOnErrorTime
+
+        // the current statistics values to be updated on each invocation
+        var checkCount = prefHandler.checkCount()
+        var updateCount = prefHandler.updateCount()
+        var errorCount = prefHandler.errorCount()
+        var totalDistance = prefHandler.totalDistance()
 
         // Checks whether there is a change in location data. If so, returns
         // the distance to the last location; -1 means, there is no change.
@@ -94,8 +99,8 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
         }
 
         for (locUpdate in channel) {
-            //TODO correctly update check count
-            locUpdate.prefHandler.recordCheck(locUpdate.updateTime(), 0)
+            checkCount += 1
+            prefHandler.recordCheck(locUpdate.updateTime(), checkCount)
             val distance = locationChanged(locUpdate.orgLocation)
             if (distance >= 0) {
                 val needRetry = if (locUpdate.orgLocation != null) {
@@ -105,12 +110,13 @@ fun locationUpdaterActor(trackService: TrackService, trackConfig: TrackConfig, c
                     )
                     trackService.removeOutdated(outdatedRefTime)
                     if (trackService.addLocation(locUpdate.locationData)) {
-                        //TODO correctly update total distance and update count
-                        locUpdate.prefHandler.recordUpdate(locUpdate.updateTime(), 0, distance, 0)
+                        updateCount += 1
+                        totalDistance += distance
+                        prefHandler.recordUpdate(locUpdate.updateTime(), updateCount, distance, totalDistance)
                         false
                     } else {
-                        //TODO correctly update error count
-                        locUpdate.prefHandler.recordError(locUpdate.updateTime(), 0)
+                        errorCount += 1
+                        prefHandler.recordError(locUpdate.updateTime(), errorCount)
                         true
                     }
                 } else true
