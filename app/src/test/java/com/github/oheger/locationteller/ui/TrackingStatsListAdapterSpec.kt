@@ -282,6 +282,16 @@ class TrackingStatsListAdapterSpec : StringSpec() {
             helper.verifyPreferencesListenerRegistered()
         }
 
+        "TrackingStatsListAdapter should send a change notification on activation" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.registerListener(any()) } just runs
+            }
+            helper.adapter.activate()
+            helper.verifyUIUpdate(1)
+        }
+
         "TrackingStatsListAdapter should remove the preferences listener on deactivation" {
             val helper = AdapterTestHelper()
 

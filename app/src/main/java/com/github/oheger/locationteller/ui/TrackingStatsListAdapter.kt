@@ -123,6 +123,7 @@ class TrackingStatsListAdapter private constructor(
      */
     fun activate() {
         prefHandler.registerListener(this)
+        notifyDataSetChanged()
     }
 
     /**
