@@ -20,16 +20,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.PreferencesHandler
 import io.kotlintest.matchers.numerics.shouldBeLessThanOrEqual
 import io.kotlintest.shouldBe
+import io.kotlintest.specs.StringSpec
 import io.mockk.*
-import org.junit.Test
-import org.junit.runner.RunWith
 import java.text.DateFormat
 import java.text.NumberFormat
 import java.util.*
@@ -38,8 +36,7 @@ import kotlin.math.abs
 /**
  * Test class for [TrackingStatsListAdapter].
  */
-@RunWith(AndroidJUnit4::class)
-class TrackingStatsListAdapterSpec {
+class TrackingStatsListAdapterSpec : StringSpec() {
     /**
      * Helper function for testing whether the statistics for the tracking time
      * is correctly calculated.
@@ -57,287 +54,260 @@ class TrackingStatsListAdapterSpec {
             .checkView(2, R.string.stats_tracking_time, expected)
     }
 
-    @Test
-    fun testDefaultTimeServiceIsCreated() {
-        val context = mockk<Context>()
-        every { context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) } returns mockk<LayoutInflater>()
-        val adapter = TrackingStatsListAdapter.create(context, mockk())
+    init {
+        "TrackingStatsListAdapter should create a default time service" {
+            val context = mockk<Context>()
+            every { context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) } returns mockk<LayoutInflater>()
+            val adapter = TrackingStatsListAdapter.create(context, mockk())
 
-        val currentTime = adapter.timeService.currentTime().currentTime
-        val deltaT = abs(System.currentTimeMillis() - currentTime)
-        deltaT shouldBeLessThanOrEqual 3000
-    }
-
-    @Test
-    fun testCount() {
-        val helper = AdapterTestHelper()
-
-        helper.adapter.count shouldBe 12
-    }
-
-    @Test
-    fun testUndefinedItemIDsAreReturned() {
-        val helper = AdapterTestHelper()
-
-        (0 until helper.adapter.count).forEach {
-            helper.adapter.getItemId(it) shouldBe 0
+            val currentTime = adapter.timeService.currentTime().currentTime
+            val deltaT = abs(System.currentTimeMillis() - currentTime)
+            deltaT shouldBeLessThanOrEqual 3000
         }
-    }
 
-    @Test
-    fun testTrackingStartTime() {
-        val startTime = toDate(22, 19, 8)
-        val helper = AdapterTestHelper()
+        "TrackingStatsListAdapter should return the correct count" {
+            val helper = AdapterTestHelper()
 
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns startTime
-        }.checkView(0, R.string.stats_tracking_started, dateString(startTime))
-    }
-
-    @Test
-    fun testTrackingEndTime() {
-        val endTime = toDate(22, 27, 15)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingEndDate() } returns endTime
-        }.checkViewWithHolder(1, R.string.stats_tracking_stopped, dateString(endTime))
-    }
-
-    @Test
-    fun testNullDateObjectsAreHandled() {
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns null
-        }.checkViewWithHolder(0, R.string.stats_tracking_started, "")
-    }
-
-    @Test
-    fun testElapsedTrackingTimeInSeconds() {
-        val startTime = toDate(22, 5, 59)
-        val currentTime = toDate(22, 6, 8)
-        checkElapsedTrackingTime(startTime, currentTime, "0:09")
-    }
-
-    @Test
-    fun testElapsedTrackingTimeInMinutes() {
-        val startTime = toDate(21, 22, 56)
-        val currentTime = toDate(21, 33, 8)
-        checkElapsedTrackingTime(startTime, currentTime, "10:12")
-    }
-
-    @Test
-    fun testElapsedTrackingTimeInHours() {
-        val startTime = toDate(21, 24, 10)
-        val currentTime = toDate(23, 34, 10)
-        checkElapsedTrackingTime(startTime, currentTime, "2:10:00")
-    }
-
-    @Test
-    fun testElapsedTrackingTimeInDays() {
-        val startTime = toDate(21, 25, 40)
-        val currentTime = toDate(21, 25, 42, days = 12)
-        checkElapsedTrackingTime(startTime, currentTime, "12:00:00:02")
-    }
-
-    @Test
-    fun testElapsedTrackingTime0() {
-        val startTime = toDate(21, 25, 40)
-        val currentTime = toDate(21, 25, 40)
-        checkElapsedTrackingTime(startTime, currentTime, "0:00")
-    }
-
-    @Test
-    fun testElapsedTimeNoStartTime() {
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns null
-        }.checkView(2, R.string.stats_tracking_time, "")
-    }
-
-    @Test
-    fun testElapsedTimeIfTrackingIsStopped() {
-        val startTime = toDate(10, 30, 0)
-        val endTime = toDate(22, 0, 59)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns startTime
-            every { handler.trackingEndDate() } returns endTime
-        }.checkViewWithHolder(2, R.string.stats_tracking_time, "11:30:59")
-    }
-
-    @Test
-    fun testTotalDistance() {
-        val distance = 42000L
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.totalDistance() } returns distance
-        }.checkView(3, R.string.stats_tracking_total_distance, distance.toString())
-    }
-
-    @Test
-    fun testLastDistance() {
-        val distance = 512
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.lastDistance() } returns distance
-        }.checkViewWithHolder(5, R.string.stats_tracking_last_distance, distance.toString())
-    }
-
-    @Test
-    fun testLastCheckTime() {
-        val time = toDate(22, 22, 40)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.lastCheck() } returns time
-        }.checkView(7, R.string.stats_tracking_last_check, dateString(time))
-    }
-
-    @Test
-    fun testLastUpdateTime() {
-        val time = toDate(21, 23, 18)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.lastUpdate() } returns time
-        }.checkViewWithHolder(9, R.string.stats_tracking_last_update, dateString(time))
-    }
-
-    @Test
-    fun testNumberOfErrors() {
-        val errorCount = 42
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.errorCount() } returns errorCount
-        }.checkView(10, R.string.stats_tracking_error_count, errorCount.toString())
-    }
-
-    @Test
-    fun testLastErrorTime() {
-        val time = toDate(21, 33, 29)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.lastError() } returns time
-        }.checkViewWithHolder(11, R.string.stats_tracking_last_error, dateString(time))
-    }
-
-    @Test
-    fun testNumberOfChecks() {
-        val checkCount = 128
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.checkCount() } returns checkCount
-        }.checkView(6, R.string.stats_tracking_check_count, checkCount.toString())
-    }
-
-    @Test
-    fun testNumberOfUpdates() {
-        val updateCount = 64
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.updateCount() } returns updateCount
-        }.checkViewWithHolder(8, R.string.stats_tracking_update_count, updateCount.toString())
-    }
-
-    @Test
-    fun testAverageSpeed() {
-        val distance = 1250L
-        val startTime = toDate(21, 0, 0)
-        val endTime = toDate(21, 16, 40)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.totalDistance() } returns distance
-            every { handler.trackingStartDate() } returns startTime
-            every { handler.trackingEndDate() } returns endTime
-        }.checkView(4, R.string.stats_tracking_speed, numberString(4.5))
-    }
-
-    @Test
-    fun testAverageSpeedIfTrackingIsInProgress() {
-        val distance = 750L
-        val startTime = toDate(21, 30, 0)
-        val currentTime = toDate(21, 40, 30)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.totalDistance() } returns distance
-            every { handler.trackingStartDate() } returns startTime
-            every { handler.trackingEndDate() } returns null
-        }.initCurrentTime(currentTime.time)
-            .checkViewWithHolder(4, R.string.stats_tracking_speed, numberString(4.29))
-    }
-
-    @Test
-    fun testAverageSpeedIfNoStartTimeAvailable() {
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns null
-        }.checkView(4, R.string.stats_tracking_speed, "")
-    }
-
-    @Test
-    fun testAverageSpeedIfTrackingTimeIsZero() {
-        val startTime = toDate(22, 22, 4)
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns startTime
-            every { handler.trackingEndDate() } returns null
-        }.initCurrentTime(startTime.time)
-            .checkView(4, R.string.stats_tracking_speed, "")
-    }
-
-    @Test
-    fun testPreferencesListenerIsRegisteredOnActivation() {
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.registerListener(any()) } just runs
+            helper.adapter.count shouldBe 12
         }
-        helper.adapter.activate()
-        helper.verifyPreferencesListenerRegistered()
-    }
 
-    @Test
-    fun testPreferencesListenerIsRemovedOnDeactivation() {
-        val helper = AdapterTestHelper()
+        "TrackingStatsListAdapter should return undefined item IDs" {
+            val helper = AdapterTestHelper()
 
-        helper.initPreferences { handler ->
-            every { handler.unregisterListener(any()) } just runs
+            (0 until helper.adapter.count).forEach {
+                helper.adapter.getItemId(it) shouldBe 0
+            }
         }
-        helper.adapter.deactivate()
-        helper.verifyPreferencesListenerRemoved()
-    }
 
-    @Test
-    fun testChangeNotificationsAreSentForRelevantProperties() {
-        val helper = AdapterTestHelper()
+        "TrackingStatsListAdapter should display the tracking start time" {
+            val startTime = toDate(22, 19, 8)
+            val helper = AdapterTestHelper()
 
-        statisticsProperties.withIndex().forEach { idxVal ->
-            helper.simulatePreferencesChange(idxVal.value)
-                .verifyUIUpdate(idxVal.index + 1)
+            helper.initPreferences { handler ->
+                every { handler.trackingStartDate() } returns startTime
+            }.checkView(0, R.string.stats_tracking_started, dateString(startTime))
         }
-    }
 
-    @Test
-    fun testChangesOfIrrelevantPropertiesAreIgnored() {
-        val helper = AdapterTestHelper()
+        "TrackingStatsListAdapter should display the tracking end time" {
+            val endTime = toDate(22, 27, 15)
+            val helper = AdapterTestHelper()
 
-        helper.simulatePreferencesChange("foo")
-            .simulatePreferencesChange(null)
-            .verifyUIUpdate(0)
+            helper.initPreferences { handler ->
+                every { handler.trackingEndDate() } returns endTime
+            }.checkViewWithHolder(1, R.string.stats_tracking_stopped, dateString(endTime))
+        }
+
+        "TrackingStatsListAdapter should handle null date objects" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.trackingStartDate() } returns null
+            }.checkViewWithHolder(0, R.string.stats_tracking_started, "")
+        }
+
+        "TrackingStatsListAdapter should display the elapsed tracking time in seconds" {
+            val startTime = toDate(22, 5, 59)
+            val currentTime = toDate(22, 6, 8)
+            checkElapsedTrackingTime(startTime, currentTime, "0:09")
+        }
+
+        "TrackingStatsListAdapter should display the elapsed tracking time in minutes" {
+            val startTime = toDate(21, 22, 56)
+            val currentTime = toDate(21, 33, 8)
+            checkElapsedTrackingTime(startTime, currentTime, "10:12")
+        }
+
+        "TrackingStatsListAdapter should display the elapsed tracking time in hours" {
+            val startTime = toDate(21, 24, 10)
+            val currentTime = toDate(23, 34, 10)
+            checkElapsedTrackingTime(startTime, currentTime, "2:10:00")
+        }
+
+        "TrackingStatsListAdapter should display the elapsed tracking time in days" {
+            val startTime = toDate(21, 25, 40)
+            val currentTime = toDate(21, 25, 42, days = 12)
+            checkElapsedTrackingTime(startTime, currentTime, "12:00:00:02")
+        }
+
+        "TrackingStatsListAdapter should display a 0 elapsed tracking time" {
+            val startTime = toDate(21, 25, 40)
+            val currentTime = toDate(21, 25, 40)
+            checkElapsedTrackingTime(startTime, currentTime, "0:00")
+        }
+
+        "TrackingStatsListAdapter should display the elapsed time if there is no start time" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.trackingStartDate() } returns null
+            }.checkView(2, R.string.stats_tracking_time, "")
+        }
+
+        "TrackingStatsListAdapter should calculate the tracking time if tracking is stopped" {
+            val startTime = toDate(10, 30, 0)
+            val endTime = toDate(22, 0, 59)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.trackingStartDate() } returns startTime
+                every { handler.trackingEndDate() } returns endTime
+            }.checkViewWithHolder(2, R.string.stats_tracking_time, "11:30:59")
+        }
+
+        "TrackingStatsListAdapter should display the total tracked distance" {
+            val distance = 42000L
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.totalDistance() } returns distance
+            }.checkView(3, R.string.stats_tracking_total_distance, distance.toString())
+        }
+
+        "TrackingStatsListAdapter should display the last tracked distance" {
+            val distance = 512
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.lastDistance() } returns distance
+            }.checkViewWithHolder(5, R.string.stats_tracking_last_distance, distance.toString())
+        }
+
+        "TrackingStatsListAdapter should display the last check time" {
+            val time = toDate(22, 22, 40)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.lastCheck() } returns time
+            }.checkView(7, R.string.stats_tracking_last_check, dateString(time))
+        }
+
+        "TrackingStatsListAdapter should display the last update time" {
+            val time = toDate(21, 23, 18)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.lastUpdate() } returns time
+            }.checkViewWithHolder(9, R.string.stats_tracking_last_update, dateString(time))
+        }
+
+        "TrackingStatsListAdapter should display the number of errors" {
+            val errorCount = 42
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.errorCount() } returns errorCount
+            }.checkView(10, R.string.stats_tracking_error_count, errorCount.toString())
+        }
+
+        "TrackingStatsListAdapter should display the last error time" {
+            val time = toDate(21, 33, 29)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.lastError() } returns time
+            }.checkViewWithHolder(11, R.string.stats_tracking_last_error, dateString(time))
+        }
+
+        "TrackingStatsListAdapter should display the number of checks" {
+            val checkCount = 128
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.checkCount() } returns checkCount
+            }.checkView(6, R.string.stats_tracking_check_count, checkCount.toString())
+        }
+
+        "TrackingStatsListAdapter should display the number of updates" {
+            val updateCount = 64
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.updateCount() } returns updateCount
+            }.checkViewWithHolder(8, R.string.stats_tracking_update_count, updateCount.toString())
+        }
+
+        "TrackingStatsListAdapter should display the average speed" {
+            val distance = 1250L
+            val startTime = toDate(21, 0, 0)
+            val endTime = toDate(21, 16, 40)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.totalDistance() } returns distance
+                every { handler.trackingStartDate() } returns startTime
+                every { handler.trackingEndDate() } returns endTime
+            }.checkView(4, R.string.stats_tracking_speed, numberString(4.5))
+        }
+
+        "TrackingStatsListAdapter should display the average speed if tracking is in progress" {
+            val distance = 750L
+            val startTime = toDate(21, 30, 0)
+            val currentTime = toDate(21, 40, 30)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.totalDistance() } returns distance
+                every { handler.trackingStartDate() } returns startTime
+                every { handler.trackingEndDate() } returns null
+            }.initCurrentTime(currentTime.time)
+                .checkViewWithHolder(4, R.string.stats_tracking_speed, numberString(4.29))
+        }
+
+        "TrackingStatsListAdapter should display the average speed if not start time is available" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.trackingStartDate() } returns null
+            }.checkView(4, R.string.stats_tracking_speed, "")
+        }
+
+        "TrackingStatsListAdapter should display the average speed if tracking time is zero" {
+            val startTime = toDate(22, 22, 4)
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.trackingStartDate() } returns startTime
+                every { handler.trackingEndDate() } returns null
+            }.initCurrentTime(startTime.time)
+                .checkView(4, R.string.stats_tracking_speed, "")
+        }
+
+        "TrackingStatsListAdapter should register a preferences listener when activated" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.registerListener(any()) } just runs
+            }
+            helper.adapter.activate()
+            helper.verifyPreferencesListenerRegistered()
+        }
+
+        "TrackingStatsListAdapter should remove the preferences listener on deactivation" {
+            val helper = AdapterTestHelper()
+
+            helper.initPreferences { handler ->
+                every { handler.unregisterListener(any()) } just runs
+            }
+            helper.adapter.deactivate()
+            helper.verifyPreferencesListenerRemoved()
+        }
+
+        "TrackingStatsListAdapter should send change notifications when relevant properties are changed" {
+            val helper = AdapterTestHelper()
+
+            statisticsProperties.withIndex().forEach { idxVal ->
+                helper.simulatePreferencesChange(idxVal.value)
+                    .verifyUIUpdate(idxVal.index + 1)
+            }
+        }
+
+        "TrackingStatsListAdapter should ignore change notifications of irrelevant properties" {
+            val helper = AdapterTestHelper()
+
+            helper.simulatePreferencesChange("foo")
+                .simulatePreferencesChange(null)
+                .verifyUIUpdate(0)
+        }
     }
 
     companion object {

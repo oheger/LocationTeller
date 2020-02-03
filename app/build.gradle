@@ -34,6 +34,9 @@ android {
         unitTests {
             returnDefaultValues = true
             includeAndroidResources = true
+            all {
+                useJUnitPlatform()
+            }
         }
     }
     buildTypes {
