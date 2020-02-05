@@ -27,6 +27,7 @@ import com.google.android.gms.location.LocationResult
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.doubles.shouldBeExactly
 import io.kotlintest.shouldBe
+import io.kotlintest.shouldNotBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,7 +50,8 @@ class LocationRetrieverSpec : StringSpec() {
         val actor = mockk<SendChannel<LocationUpdate>>()
         coEvery { actor.send(any()) } answers {
             val locUpdate = arg<LocationUpdate>(0)
-            locUpdate.locationData shouldBe unknownLocation
+            locUpdate.orgLocation shouldBe null
+            locUpdate.updateTime() shouldBe errorTime.currentTime
             locUpdate.nextTrackDelay.complete(nextUpdate)
         }
         return actor
@@ -114,7 +116,7 @@ class LocationRetrieverSpec : StringSpec() {
             }
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, mockk(), trackConfig)
+            val retriever = LocationRetriever(locClient, actor, errorTimeService(), trackConfig)
 
             retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }
@@ -126,7 +128,7 @@ class LocationRetrieverSpec : StringSpec() {
             every { locClient.requestLocationUpdates(any(), any(), null) } returns null
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, mockk(), trackConfig)
+            val retriever = LocationRetriever(locClient, actor, errorTimeService(), trackConfig)
 
             retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }
@@ -147,5 +149,19 @@ class LocationRetrieverSpec : StringSpec() {
             intervalIncrementOnIdle = 3, locationValidity = 4, locationUpdateThreshold = 5,
             retryOnErrorTime = 6, gpsTimeout = 1, autoResetStats = false
         )
+
+        /** Time constant that is set for invalid location updates. */
+        private val errorTime = TimeData(20200205215808L)
+
+        /**
+         * Returns a mock time service that is configured to return the special
+         * error time constant.
+         * @return the mock time service
+         */
+        private fun errorTimeService(): TimeService {
+            val timeService = mockk<TimeService>()
+            every { timeService.currentTime() } returns errorTime
+            return timeService
+        }
     }
 }

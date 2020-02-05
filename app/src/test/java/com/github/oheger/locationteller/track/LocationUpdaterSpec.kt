@@ -59,8 +59,10 @@ class LocationUpdaterSpec : StringSpec() {
                 }
                 verify {
                     prefHandler.recordCheck(locUpdate.locationData.time.currentTime, initialCheckCount + 1)
-                    prefHandler.recordUpdate(locUpdate.locationData.time.currentTime, initialUpdateCount + 1,
-                        0, initialDistance)
+                    prefHandler.recordUpdate(
+                        locUpdate.locationData.time.currentTime, initialUpdateCount + 1,
+                        0, initialDistance
+                    )
                 }
             }
         }
@@ -85,8 +87,12 @@ class LocationUpdaterSpec : StringSpec() {
                 coVerify(exactly = 1) {
                     trackService.addLocation(any())
                 }
-                verify { prefHandler.recordCheck(locUpdate2.locationData.time.currentTime,
-                    initialCheckCount + 2) }
+                verify {
+                    prefHandler.recordCheck(
+                        locUpdate2.locationData.time.currentTime,
+                        initialCheckCount + 2
+                    )
+                }
                 verify(exactly = 0) {
                     prefHandler.recordUpdate(locUpdate2.locationData.time.currentTime, any(), any(), any())
                     prefHandler.recordError(any(), any())
@@ -128,8 +134,10 @@ class LocationUpdaterSpec : StringSpec() {
                 actor.send(locUpdate2)
                 actor.send(locUpdate3)
                 verify {
-                    prefHandler.recordUpdate(locUpdate3.locationData.time.currentTime, initialUpdateCount + 2,
-                        distance, initialDistance + distance)
+                    prefHandler.recordUpdate(
+                        locUpdate3.locationData.time.currentTime, initialUpdateCount + 2,
+                        distance, initialDistance + distance
+                    )
                 }
             }
         }
@@ -152,10 +160,14 @@ class LocationUpdaterSpec : StringSpec() {
                 verify {
                     prefHandler.recordCheck(locUpdate1.locationData.time.currentTime, initialCheckCount + 1)
                     prefHandler.recordCheck(locUpdate2.locationData.time.currentTime, initialCheckCount + 2)
-                    prefHandler.recordUpdate(locUpdate2.locationData.time.currentTime, initialUpdateCount + 2,
-                        distance1, initialDistance + distance1)
-                    prefHandler.recordUpdate(locUpdate3.locationData.time.currentTime, initialUpdateCount + 3,
-                        distance2, initialDistance + distance1 + distance2)
+                    prefHandler.recordUpdate(
+                        locUpdate2.locationData.time.currentTime, initialUpdateCount + 2,
+                        distance1, initialDistance + distance1
+                    )
+                    prefHandler.recordUpdate(
+                        locUpdate3.locationData.time.currentTime, initialUpdateCount + 3,
+                        distance2, initialDistance + distance1 + distance2
+                    )
                 }
             }
         }
@@ -199,10 +211,18 @@ class LocationUpdaterSpec : StringSpec() {
             val locUpdate = locationUpdate(locationData(1))
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns false
-            every { prefHandler.recordError(locUpdate.locationData.time.currentTime,
-                initialErrorCount + 1) } just runs
-            every { prefHandler.recordCheck(locUpdate.locationData.time.currentTime,
-                initialCheckCount + 1) } just runs
+            every {
+                prefHandler.recordError(
+                    locUpdate.locationData.time.currentTime,
+                    initialErrorCount + 1
+                )
+            } just runs
+            every {
+                prefHandler.recordCheck(
+                    locUpdate.locationData.time.currentTime,
+                    initialCheckCount + 1
+                )
+            } just runs
 
             runActorTest(prefHandler, trackService, defaultConfig) { actor ->
                 actor.send(locUpdate)
@@ -233,12 +253,16 @@ class LocationUpdaterSpec : StringSpec() {
         "LocationUpdaterActor should treat an unknown location data as error" {
             val trackService = createTrackService()
             val prefHandler = createPrefHandler()
-            val locUpdate = locationUpdate(unknownLocation, orgLocation = null)
+            val locUpdate = locationUpdate(locationData(1), orgLocation = null)
             coEvery { trackService.removeOutdated(any()) } returns true
             coEvery { trackService.addLocation(any()) } returns true
             every { prefHandler.recordCheck(any(), any()) } just runs
-            every { prefHandler.recordError(locUpdate.locationData.time.currentTime,
-                initialErrorCount + 1) } just runs
+            every {
+                prefHandler.recordError(
+                    locUpdate.locationData.time.currentTime,
+                    initialErrorCount + 1
+                )
+            } just runs
 
             runActorTest(prefHandler, trackService, defaultConfig) { actor ->
                 actor.send(locationUpdate(2))
@@ -246,16 +270,25 @@ class LocationUpdaterSpec : StringSpec() {
                 locUpdate.nextTrackDelay.await() shouldBe defaultConfig.retryOnErrorTime
             }
             coVerify(exactly = 0) { trackService.addLocation(locUpdate.locationData) }
-            verify(exactly = 0) { prefHandler.recordUpdate(locUpdate.locationData.time.currentTime,
-                any(), any(), any()) }
-            verify { prefHandler.recordCheck(locUpdate.locationData.time.currentTime,
-                initialCheckCount + 2) }
+            verify(exactly = 0) {
+                prefHandler.recordUpdate(
+                    locUpdate.locationData.time.currentTime,
+                    any(), any(), any()
+                )
+            }
+            verify {
+                prefHandler.recordCheck(
+                    locUpdate.locationData.time.currentTime,
+                    initialCheckCount + 2
+                )
+                prefHandler.recordError(locUpdate.locationData.time.currentTime, initialErrorCount + 1)
+            }
         }
 
         "LocationUpdaterActor should not store a null location as last location" {
             val trackService = createTrackService()
             val locUpdate1 = locationUpdate(0)
-            val locUpdate2 = locationUpdate(locData = unknownLocation, orgLocation = null)
+            val locUpdate2 = locationUpdate(locData = locationData(2), orgLocation = null)
             val loc = mockk<Location>()
             every { loc.distanceTo(locUpdate1.orgLocation) } returns 1f
             val locUpdate3 = locationUpdate(locUpdate1.locationData, orgLocation = loc)

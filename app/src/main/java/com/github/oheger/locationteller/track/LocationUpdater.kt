@@ -27,13 +27,6 @@ import kotlinx.coroutines.channels.actor
 import kotlin.math.min
 
 /**
- * Constant for an unknown location data object. This is used as an error
- * indicator, for instance in cases when no current location could be
- * retrieved.
- */
-val unknownLocation = LocationData(0.0, 0.0, TimeData(0))
-
-/**
  * Data class for the messages processed by location updater actor.
  *
  * The message contains a new location data object, the original _Location_
@@ -71,8 +64,10 @@ data class LocationUpdate(
  * @return the channel to send messages to the actor
  */
 @ObsoleteCoroutinesApi
-fun locationUpdaterActor(prefHandler: PreferencesHandler, trackService: TrackService, trackConfig: TrackConfig,
-                         crScope: CoroutineScope): SendChannel<LocationUpdate> {
+fun locationUpdaterActor(
+    prefHandler: PreferencesHandler, trackService: TrackService, trackConfig: TrackConfig,
+    crScope: CoroutineScope
+): SendChannel<LocationUpdate> {
     return crScope.actor {
         var lastLocation: Location? = null
 
@@ -105,8 +100,7 @@ fun locationUpdaterActor(prefHandler: PreferencesHandler, trackService: TrackSer
             if (distance >= 0) {
                 val needRetry = if (locUpdate.orgLocation != null) {
                     val outdatedRefTime = TimeData(
-                        locUpdate.locationData.time.currentTime -
-                                trackConfig.locationValidity * 1000
+                        locUpdate.updateTime() - trackConfig.locationValidity * 1000
                     )
                     trackService.removeOutdated(outdatedRefTime)
                     if (trackService.addLocation(locUpdate.locationData)) {
@@ -114,17 +108,15 @@ fun locationUpdaterActor(prefHandler: PreferencesHandler, trackService: TrackSer
                         totalDistance += distance
                         prefHandler.recordUpdate(locUpdate.updateTime(), updateCount, distance, totalDistance)
                         false
-                    } else {
-                        errorCount += 1
-                        prefHandler.recordError(locUpdate.updateTime(), errorCount)
-                        true
-                    }
+                    } else true
                 } else true
 
                 if (locUpdate.orgLocation != null) {
                     lastLocation = locUpdate.orgLocation
                 }
                 if (needRetry) {
+                    errorCount += 1
+                    prefHandler.recordError(locUpdate.updateTime(), errorCount)
                     updateInterval = retryTime
                     retryTime = min(retryTime * 2, trackConfig.maxTrackInterval)
                 } else {

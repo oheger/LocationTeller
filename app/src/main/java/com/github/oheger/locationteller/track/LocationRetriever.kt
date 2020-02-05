@@ -99,9 +99,19 @@ class LocationRetriever(
      * @return the corresponding _LocationUpdate_ object
      */
     private fun locationUpdateFor(location: Location?): LocationUpdate {
-        val locData = location?.toLocationData() ?: unknownLocation
+        val locData = location?.toLocationData() ?: unknownLocation()
         return LocationUpdate(locData, location, CompletableDeferred())
     }
+
+    /**
+     * Returns a _LocationData_ object representing an unknown location. This
+     * object has no valid position data set, but the time is accurate. (During
+     * a location update, an invalid location is detected by the original
+     * location being *null*.)
+     * @return an object representing an unknown _LocationData_
+     */
+    private fun unknownLocation(): LocationData =
+        LocationData(0.0, 0.0, timeService.currentTime())
 
     /**
      * An implementation of _LocationCallback_ that continues the current
