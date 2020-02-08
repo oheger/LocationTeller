@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.server
 
+import io.kotlintest.matchers.collections.shouldContainExactly
 import io.kotlintest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotlintest.matchers.collections.shouldHaveSize
 import io.kotlintest.matchers.types.shouldBeSameInstanceAs
@@ -150,12 +151,22 @@ class ServerTrackStateSpec : StringSpec() {
 
         "ServerTrackState should support adding a FileData" {
             val file1 = fileDataForTime(time(22, 20, 58, 10))
-            val file2 = fileDataForTime(time(22, 20, 59, 20))
-            val fileNew = fileDataForTime(time(22, 21, 0, 30))
+            val file2 = fileDataForTime(time(22, 21, 0, 30))
+            val fileNew = fileDataForTime(time(22, 20, 59, 20))
             val state = ServerTrackState(listOf(file1, file2))
 
             val nextState = state.appendFile(fileNew)
-            nextState.files shouldContainExactlyInAnyOrder listOf(file1, file2, fileNew)
+            nextState.files shouldContainExactly listOf(file1, file2, fileNew)
+        }
+
+        "ServerTrackState should support adding a FileData out of order" {
+            val file1 = fileDataForTime(time(22, 20, 58, 10))
+            val file2 = fileDataForTime(time(22, 21, 0, 30))
+            val fileNew = fileDataForTime(time(22, 20, 59, 20))
+            val state = ServerTrackState(listOf(file1, file2))
+
+            val nextState = state.appendFile(fileNew, inOrder = false)
+            nextState.files shouldContainExactly listOf(file1, fileNew, file2)
         }
 
         "ServerTrackState should support removing files" {

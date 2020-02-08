@@ -75,15 +75,20 @@ data class ServerTrackState(val files: List<FileData>) {
 
     /**
      * Returns an updated state object that contains the given _FileData_
-     * object at the last position. This function expects that the sort order
-     * is correctly maintained by appending this file.
+     * object at the last position. Per default, this function expects that the
+     * sort order is correctly maintained by appending this file. If this is
+     * not the case, the _inOrder_ parameter must be set to *false*; then an
+     * additional sort operation is executed.
      * @param file the file to be appended
      * @return the updated state object
      */
-    fun appendFile(file: FileData): ServerTrackState {
+    fun appendFile(file: FileData, inOrder: Boolean = true): ServerTrackState {
         val newFiles = ArrayList<FileData>(files.size + 1)
         newFiles.addAll(files)
         newFiles.add(file)
+        if (!inOrder) {
+            newFiles.sortWith(compareBy({ it.folderRef }, { it.fileRef }))
+        }
         return ServerTrackState(newFiles)
     }
 
