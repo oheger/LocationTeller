@@ -28,8 +28,6 @@ import io.kotlintest.matchers.numerics.shouldBeLessThanOrEqual
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
-import java.text.DateFormat
-import java.text.NumberFormat
 import java.util.*
 import kotlin.math.abs
 
@@ -37,30 +35,14 @@ import kotlin.math.abs
  * Test class for [TrackingStatsListAdapter].
  */
 class TrackingStatsListAdapterSpec : StringSpec() {
-    /**
-     * Helper function for testing whether the statistics for the tracking time
-     * is correctly calculated.
-     * @param startTime the tracking start time
-     * @param endTime the tracking end time
-     * @param expected the expected duration string
-     */
-    private fun checkElapsedTrackingTime(startTime: Date, endTime: Date, expected: String) {
-        val helper = AdapterTestHelper()
-
-        helper.initPreferences { handler ->
-            every { handler.trackingStartDate() } returns startTime
-            every { handler.trackingEndDate() } returns null
-        }.initCurrentTime(endTime.time)
-            .checkView(2, R.string.stats_tracking_time, expected)
-    }
 
     init {
-        "TrackingStatsListAdapter should create a default time service" {
+        "TrackingStatsListAdapter should create a default formatter" {
             val context = mockk<Context>()
             every { context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) } returns mockk<LayoutInflater>()
             val adapter = TrackingStatsListAdapter.create(context, mockk())
 
-            val currentTime = adapter.timeService.currentTime().currentTime
+            val currentTime = adapter.formatter.timeService.currentTime().currentTime
             val deltaT = abs(System.currentTimeMillis() - currentTime)
             deltaT shouldBeLessThanOrEqual 3000
         }
@@ -85,7 +67,8 @@ class TrackingStatsListAdapterSpec : StringSpec() {
 
             helper.initPreferences { handler ->
                 every { handler.trackingStartDate() } returns startTime
-            }.checkView(0, R.string.stats_tracking_started, dateString(startTime))
+            }.expectDateFormat(startTime)
+                .checkView(0, R.string.stats_tracking_started, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the tracking end time" {
@@ -94,45 +77,21 @@ class TrackingStatsListAdapterSpec : StringSpec() {
 
             helper.initPreferences { handler ->
                 every { handler.trackingEndDate() } returns endTime
-            }.checkViewWithHolder(1, R.string.stats_tracking_stopped, dateString(endTime))
+            }.expectDateFormat(endTime)
+                .checkViewWithHolder(1, R.string.stats_tracking_stopped, statisticsValue)
         }
 
-        "TrackingStatsListAdapter should handle null date objects" {
+        "TrackingStatsListAdapter should display the elapsed tracking time" {
+            val startTime = toDate(22, 5, 59)
+            val currentTime = toDate(22, 6, 8)
             val helper = AdapterTestHelper()
 
             helper.initPreferences { handler ->
-                every { handler.trackingStartDate() } returns null
-            }.checkViewWithHolder(0, R.string.stats_tracking_started, "")
-        }
-
-        "TrackingStatsListAdapter should display the elapsed tracking time in seconds" {
-            val startTime = toDate(22, 5, 59)
-            val currentTime = toDate(22, 6, 8)
-            checkElapsedTrackingTime(startTime, currentTime, "0:09")
-        }
-
-        "TrackingStatsListAdapter should display the elapsed tracking time in minutes" {
-            val startTime = toDate(21, 22, 56)
-            val currentTime = toDate(21, 33, 8)
-            checkElapsedTrackingTime(startTime, currentTime, "10:12")
-        }
-
-        "TrackingStatsListAdapter should display the elapsed tracking time in hours" {
-            val startTime = toDate(21, 24, 10)
-            val currentTime = toDate(23, 34, 10)
-            checkElapsedTrackingTime(startTime, currentTime, "2:10:00")
-        }
-
-        "TrackingStatsListAdapter should display the elapsed tracking time in days" {
-            val startTime = toDate(21, 25, 40)
-            val currentTime = toDate(21, 25, 42, days = 12)
-            checkElapsedTrackingTime(startTime, currentTime, "12:00:00:02")
-        }
-
-        "TrackingStatsListAdapter should display a 0 elapsed tracking time" {
-            val startTime = toDate(21, 25, 40)
-            val currentTime = toDate(21, 25, 40)
-            checkElapsedTrackingTime(startTime, currentTime, "0:00")
+                every { handler.trackingStartDate() } returns startTime
+                every { handler.trackingEndDate() } returns null
+            }.expectDurationFormat(9000)
+                .initFormatterTime(currentTime)
+                .checkView(2, R.string.stats_tracking_time, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the elapsed time if there is no start time" {
@@ -151,7 +110,8 @@ class TrackingStatsListAdapterSpec : StringSpec() {
             helper.initPreferences { handler ->
                 every { handler.trackingStartDate() } returns startTime
                 every { handler.trackingEndDate() } returns endTime
-            }.checkViewWithHolder(2, R.string.stats_tracking_time, "11:30:59")
+            }.expectDurationFormat(41459000L)
+                .checkViewWithHolder(2, R.string.stats_tracking_time, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the total tracked distance" {
@@ -178,7 +138,8 @@ class TrackingStatsListAdapterSpec : StringSpec() {
 
             helper.initPreferences { handler ->
                 every { handler.lastCheck() } returns time
-            }.checkView(7, R.string.stats_tracking_last_check, dateString(time))
+            }.expectDateFormat(time)
+                .checkView(7, R.string.stats_tracking_last_check, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the last update time" {
@@ -187,7 +148,8 @@ class TrackingStatsListAdapterSpec : StringSpec() {
 
             helper.initPreferences { handler ->
                 every { handler.lastUpdate() } returns time
-            }.checkViewWithHolder(9, R.string.stats_tracking_last_update, dateString(time))
+            }.expectDateFormat(time)
+                .checkViewWithHolder(9, R.string.stats_tracking_last_update, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the number of errors" {
@@ -205,7 +167,8 @@ class TrackingStatsListAdapterSpec : StringSpec() {
 
             helper.initPreferences { handler ->
                 every { handler.lastError() } returns time
-            }.checkViewWithHolder(11, R.string.stats_tracking_last_error, dateString(time))
+            }.expectDateFormat(time)
+                .checkViewWithHolder(11, R.string.stats_tracking_last_error, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the number of checks" {
@@ -236,11 +199,14 @@ class TrackingStatsListAdapterSpec : StringSpec() {
                 every { handler.totalDistance() } returns distance
                 every { handler.trackingStartDate() } returns startTime
                 every { handler.trackingEndDate() } returns endTime
-            }.checkView(4, R.string.stats_tracking_speed, numberString(4.5))
+            }.expectNumberFormat(4.5)
+                .checkView(4, R.string.stats_tracking_speed, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the average speed if tracking is in progress" {
             val distance = 750L
+            val timeSec = 630
+            val expSpeed = distance * 3600.0 / (timeSec * 1000.0)
             val startTime = toDate(21, 30, 0)
             val currentTime = toDate(21, 40, 30)
             val helper = AdapterTestHelper()
@@ -249,8 +215,9 @@ class TrackingStatsListAdapterSpec : StringSpec() {
                 every { handler.totalDistance() } returns distance
                 every { handler.trackingStartDate() } returns startTime
                 every { handler.trackingEndDate() } returns null
-            }.initCurrentTime(currentTime.time)
-                .checkViewWithHolder(4, R.string.stats_tracking_speed, numberString(4.29))
+            }.initFormatterTime(currentTime)
+                .expectNumberFormat(expSpeed)
+                .checkViewWithHolder(4, R.string.stats_tracking_speed, statisticsValue)
         }
 
         "TrackingStatsListAdapter should display the average speed if not start time is available" {
@@ -268,7 +235,7 @@ class TrackingStatsListAdapterSpec : StringSpec() {
             helper.initPreferences { handler ->
                 every { handler.trackingStartDate() } returns startTime
                 every { handler.trackingEndDate() } returns null
-            }.initCurrentTime(startTime.time)
+            }.initFormatterTime(startTime)
                 .checkView(4, R.string.stats_tracking_speed, "")
         }
 
@@ -321,6 +288,12 @@ class TrackingStatsListAdapterSpec : StringSpec() {
     }
 
     companion object {
+        /** Constant representing a formatted statistics value. */
+        private const val statisticsValue = "formatted statistics"
+
+        /** A delta value when comparing double values. */
+        private const val deltaDouble = 0.0001
+
         /**
          * A list with the properties that are relevant for the statistics
          * adapter. When one of these properties is changed the UI needs to be
@@ -343,30 +316,10 @@ class TrackingStatsListAdapterSpec : StringSpec() {
         private fun toDate(hour: Int, minute: Int, second: Int, days: Int = 0): Date {
             val cal = Calendar.getInstance()
             cal.set(2020, Calendar.JANUARY, 19 + days, hour, minute, second)
+            cal.clear(Calendar.MILLISECOND)
             return cal.time
         }
 
-        /**
-         * Generates the formatted string to be displayed for a date.
-         * @param date the date
-         * @return the formatted date string
-         */
-        private fun dateString(date: Date): String {
-            val format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
-            return format.format(date)
-        }
-
-        /**
-         * Generates the formatted string to be displayed for a number.
-         * @param number the number
-         * @return the formatted number string
-         */
-        private fun numberString(number: Number): String {
-            val format = NumberFormat.getInstance()
-            format.minimumFractionDigits = 2
-            format.maximumFractionDigits = 2
-            return format.format(number)
-        }
     }
 
     /**
@@ -376,8 +329,8 @@ class TrackingStatsListAdapterSpec : StringSpec() {
         /** A mock for the layout inflater to be used by getView().*/
         private val inflater = mockk<LayoutInflater>()
 
-        /** Mock for the time service.*/
-        private val timeService = mockk<TimeService>()
+        /** Mock for the formatter.*/
+        private val formatter = mockk<TrackStatsFormatter>()
 
         /** Mock for the Android context.*/
         private val context = createContext(inflater)
@@ -386,7 +339,7 @@ class TrackingStatsListAdapterSpec : StringSpec() {
         private val prefHandler = createPrefHandler()
 
         /** The adapter to be tested.*/
-        val adapter = spyk(TrackingStatsListAdapter.create(context, prefHandler, timeService))
+        val adapter = spyk(TrackingStatsListAdapter.create(context, prefHandler, formatter))
 
         /**
          * Allows the initialization of the mock for the preferences handler.
@@ -401,15 +354,64 @@ class TrackingStatsListAdapterSpec : StringSpec() {
         }
 
         /**
-         * Prepares the mock for the time service to return the given time as
-         * the current time.
-         * @param time the current time to be returned
+         * Allows the initialization of the mock for the formatter. Typically,
+         * the expected formatting method is configured with a desired result.
+         * @param block a lambda to initialize the mock formatter
          * @return this test helper
          */
-        fun initCurrentTime(time: Long): AdapterTestHelper {
-            every { timeService.currentTime() } returns TimeData(time)
+        fun initFormatter(block: (TrackStatsFormatter) -> Unit): AdapterTestHelper {
+            block(formatter)
             return this
         }
+
+        /**
+         * Prepares the mock formatter to expect a format operation for the
+         * given date.
+         * @param date the date to be formatted
+         * @return this test helper
+         */
+        fun expectDateFormat(date: Date?): AdapterTestHelper =
+            initFormatter { formatter ->
+                every { formatter.formatDate(date) } returns statisticsValue
+            }
+
+        /**
+         * Prepares the mock formatter to expect a format operation for the
+         * given duration.
+         * @param duration the duration to be formatted
+         * @return this test helper
+         */
+        fun expectDurationFormat(duration: Long): AdapterTestHelper =
+            initFormatter { formatter ->
+                every { formatter.formatDuration(duration) } returns statisticsValue
+            }
+
+        /**
+         * Prepares the mock formatter to expect a format operation for the
+         * given number.
+         * @param number the number to be formatted
+         * @return this test helper
+         */
+        fun expectNumberFormat(number: Double): AdapterTestHelper {
+            val minRange = number - deltaDouble
+            val maxRange = number + deltaDouble
+            return initFormatter { formatter ->
+                every { formatter.formatNumber(range(minRange, maxRange)) } returns statisticsValue
+            }
+        }
+
+        /**
+         * Configures the mock formatter to return a time service that reports
+         * the given date as current time.
+         * @param currentTime the current time
+         * @return this test helper
+         */
+        fun initFormatterTime(currentTime: Date): AdapterTestHelper =
+            initFormatter { formatter ->
+                val timeService = mockk<TimeService>()
+                every { timeService.currentTime() } returns TimeData(currentTime.time)
+                every { formatter.timeService } returns timeService
+            }
 
         /**
          * Checks whether the view for a position is correctly initialized.

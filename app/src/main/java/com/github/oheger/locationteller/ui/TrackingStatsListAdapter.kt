@@ -23,12 +23,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.server.CurrentTimeService
-import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.PreferencesHandler
-import java.lang.StringBuilder
-import java.text.DateFormat
-import java.text.NumberFormat
 import java.util.*
 
 /**
@@ -48,12 +43,12 @@ data class TrackingFormViewHolder(val txtLabel: TextView, val txtValue: TextView
  * preferences, so that the view can be updated.
  * @param layoutInflater the object to inflate layouts
  * @param prefHandler the preferences handler
- * @param timeService the service to access the current time
+ * @param formatter the object to format data
  */
 class TrackingStatsListAdapter private constructor(
     private val layoutInflater: LayoutInflater,
     private val prefHandler: PreferencesHandler,
-    val timeService: TimeService
+    val formatter: TrackStatsFormatter
 ) : BaseAdapter(), SharedPreferences.OnSharedPreferenceChangeListener {
     /** An array with definitions to compute the statistics values. */
     private val statistics = arrayOf(
@@ -70,12 +65,6 @@ class TrackingStatsListAdapter private constructor(
         StatData(R.string.stats_tracking_error_count, (TrackingStatsListAdapter)::errorCountStat),
         StatData(R.string.stats_tracking_last_error, this::lastErrorStat)
     )
-
-    /** An object to format dates.*/
-    private val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
-
-    /** An object to format numbers.*/
-    private val numberFormat = createNumberFormat()
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
         val view = if (convertView == null) {
@@ -183,7 +172,7 @@ class TrackingStatsListAdapter private constructor(
      * @return the statistics value for this property
      */
     private fun trackingTimeStat(prefHandler: PreferencesHandler): String =
-        trackingTimeMillis(prefHandler)?.let { formatDuration(it) } ?: ""
+        trackingTimeMillis(prefHandler)?.let { formatter.formatDuration(it) } ?: ""
 
     /**
      * Returns the statistics value for the average tracking speed. This is
@@ -195,7 +184,7 @@ class TrackingStatsListAdapter private constructor(
         val trackingTime = trackingTimeMillis(prefHandler) ?: return ""
         return if (trackingTime > 0) {
             val speed = prefHandler.totalDistance().toDouble() / trackingTime * SECS_PER_HOUR
-            return numberFormat.format(speed)
+            return formatter.formatNumber(speed)
         } else ""
     }
 
@@ -210,7 +199,7 @@ class TrackingStatsListAdapter private constructor(
     private fun trackingTimeMillis(prefHandler: PreferencesHandler): Long? {
         val startTime = prefHandler.trackingStartDate()?.time
         return startTime?.let {
-            val endTime = prefHandler.trackingEndDate()?.time ?: timeService.currentTime().currentTime
+            val endTime = prefHandler.trackingEndDate()?.time ?: formatter.timeService.currentTime().currentTime
             endTime - it
         }
     }
@@ -229,20 +218,15 @@ class TrackingStatsListAdapter private constructor(
      * with a null-safe access operator.
      * @return the formatted date
      */
-    private fun Date.format(): String = dateFormat.format(this)
+    private fun Date.format(): String = formatter.formatDate(this)
 
     companion object {
-        /** The number of milliseconds in a second.*/
-        private const val MILLIS_PER_SEC = 1000
 
         /** The number of seconds per minute.*/
         private const val SECS_PER_MINUTE = 60
 
         /** The number of seconds per hour.*/
         private const val SECS_PER_HOUR = SECS_PER_MINUTE * 60
-
-        /** The number of seconds per day.*/
-        private const val SECS_PER_DAY = 24 * SECS_PER_HOUR
 
         /**
          * A set of properties affecting the statistics displayed by this
@@ -261,14 +245,14 @@ class TrackingStatsListAdapter private constructor(
          * properties.
          * @param context the Android context
          * @param prefHandler the preferences handler
-         * @param timeService an optional _TimeService_ reference
+         * @param formatter an optional object for formatting data
          */
-        fun create(context: Context, prefHandler: PreferencesHandler, timeService: TimeService? = null):
+        fun create(context: Context, prefHandler: PreferencesHandler, formatter: TrackStatsFormatter? = null):
                 TrackingStatsListAdapter {
             val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
             return TrackingStatsListAdapter(
                 inflater, prefHandler,
-                timeService ?: CurrentTimeService
+                formatter ?: TrackStatsFormatter.create(null)
             )
         }
 
@@ -282,59 +266,6 @@ class TrackingStatsListAdapter private constructor(
          * @param valueFunc the function to compute the value
          */
         private data class StatData(val labelResID: Int, val valueFunc: (PreferencesHandler) -> String)
-
-        /**
-         * Formats a duration to a string.
-         * @param deltaMillis the duration in millis
-         * @return the formatted duration string
-         */
-        private fun formatDuration(deltaMillis: Long): String {
-            val buf = StringBuilder(11)
-            val deltaSecs = deltaMillis / MILLIS_PER_SEC
-            val days = deltaSecs / SECS_PER_DAY
-            formatTimeComponent(buf, days, force = false, withSeparator = true)
-            val hours = (deltaSecs % SECS_PER_DAY)
-            formatTimeComponent(buf, hours / SECS_PER_HOUR, force = false, withSeparator = true)
-            val minutes = hours % SECS_PER_HOUR
-            formatTimeComponent(buf, minutes / SECS_PER_MINUTE, force = true, withSeparator = true)
-            val secs = minutes % SECS_PER_MINUTE
-            formatTimeComponent(buf, secs, force = true, withSeparator = false)
-            return buf.toString()
-        }
-
-        /**
-         * Adds a formatted time component to the given buffer. The component
-         * is only added if necessary (if not 0, or other components already
-         * exists, or the _force_ flag is set). The value must be in the range
-         * between 0 and 59.
-         * @param buf the buffer to add the text
-         * @param time the time component to be formatted
-         * @param force flag whether this component needs to be added
-         * @param withSeparator flag whether a trailing separator needs to be
-         * added
-         */
-        private fun formatTimeComponent(buf: StringBuilder, time: Long, force: Boolean, withSeparator: Boolean) {
-            val existing = buf.isNotEmpty()
-            if (force || existing || time > 0) {
-                if (existing && time < 10) {
-                    buf.append(0)
-                }
-                buf.append(time)
-                if (withSeparator) {
-                    buf.append(':')
-                }
-            }
-        }
-
-        /**
-         * Creates an object to be used for formatting fractional numbers.
-         * @return the format object
-         */
-        private fun createNumberFormat(): NumberFormat =
-            NumberFormat.getNumberInstance().apply {
-                minimumFractionDigits = 2
-                maximumFractionDigits = 2
-            }
 
         /**
          * Returns the statistics value for the total tracking distance.
