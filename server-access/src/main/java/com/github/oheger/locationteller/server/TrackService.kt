@@ -96,22 +96,25 @@ class TrackService(val davClient: DavClient) {
      * @return a flag whether this operation was successful
      */
     suspend fun addLocation(locationData: LocationData): Boolean {
-        val fileData = FileData(locationData.time.dateString, locationData.time.timeString)
-        log.info("Uploading location data for {}.", fileData)
+        return doAddLocation(locationData, inOrder = true)
+    }
 
-        val state = getTrackState()
-        if (!state.hasFolder(locationData.time.dateString)) {
-            if (!davClient.createFolder(fileData.folderPath())) {
-                log.error("Could not create directory {} for upload!", fileData.folderPath())
-                return false
-            }
-        }
-
-        val uploadSuccess = davClient.upload(fileData.toPath(), locationData.stringRepresentation())
-        if (uploadSuccess) {
-            trackState = state.appendFile(fileData)
-        } else log.error("Upload failed for {}!", fileData)
-        return uploadSuccess
+    /**
+     * Adds a number of location files to the server. This function is used if
+     * location data piled up on the client because no internet connection was
+     * available. It works similar to _addLocation()_, but there are a few
+     * differences:
+     * - It is not expected that the location data objects are in the correct
+     *   order; so explicit sort operations are performed.
+     * - The files are uploaded in the order they are provided in the list.
+     * - If an error occurs, the upload operation is stopped. The return value
+     *   indicates the number of files that could be uploaded.
+     * @param locationData the list with data to be uploaded
+     * @return the number of files that could be uploaded
+     */
+    suspend fun addLocations(locationData: List<LocationData>): Int {
+        val processedData = locationData.takeWhile { doAddLocation(it, inOrder = false) }
+        return processedData.size
     }
 
     /**
@@ -181,6 +184,34 @@ class TrackService(val davClient: DavClient) {
 
         log.info("Found {} location files on server.", files.size)
         ServerTrackState(files)
+    }
+
+    /**
+     * Does the actual work when adding location data to the server. This
+     * function can be called with new location data (_inOrder_ == *true*), or
+     * data that has been recorded in the past. The latter takes more effort
+     * because some additional operations have to be executed.
+     * @param locationData the data to be added to the server
+     * @param inOrder flag whether the data comes in the correct order
+     * @return a flag whether the data could be uploaded successfully
+     */
+    private suspend fun doAddLocation(locationData: LocationData, inOrder: Boolean): Boolean {
+        val fileData = FileData(locationData.time.dateString, locationData.time.timeString)
+        log.info("Uploading location data for {}.", fileData)
+
+        val state = getTrackState()
+        if (!state.hasFolder(locationData.time.dateString)) {
+            if (!davClient.createFolder(fileData.folderPath())) {
+                log.error("Could not create directory {} for upload!", fileData.folderPath())
+                return false
+            }
+        }
+
+        val uploadSuccess = davClient.upload(fileData.toPath(), locationData.stringRepresentation())
+        if (uploadSuccess) {
+            trackState = state.appendFile(fileData, inOrder)
+        } else log.error("Upload failed for {}!", fileData)
+        return uploadSuccess
     }
 
     companion object {

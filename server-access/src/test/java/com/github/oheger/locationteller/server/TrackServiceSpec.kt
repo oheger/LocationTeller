@@ -171,8 +171,7 @@ class TrackServiceSpec : StringSpec() {
             val service = TrackService(davClient)
             service.addLocation(locData)
 
-            service.removeOutdated(referenceTime(25, 21, 50, 9))
-            coVerify { davClient.delete(folderPathFromTime(refTime)) }
+            service.filesOnServer().last() shouldBe pathFromTime(refTime)
         }
 
         "TrackService should add an uploaded file to the tracking state only if successful" {
@@ -184,6 +183,48 @@ class TrackServiceSpec : StringSpec() {
             service.addLocation(locData)
 
             service.filesOnServer() shouldNotContain pathFromTime(refTime)
+        }
+
+        "TrackService should upload multiple files" {
+            val refTimes = listOf(
+                referenceTime(8, 21, 46, 24),
+                referenceTime(8, 21, 49, 10),
+                referenceTime(8, 21, 52, 49)
+            )
+            val expectedPaths = refTimes.map(::pathFromTime)
+            val folderPath = folderPathFromTime(refTimes[0])
+            val locData = refTimes.map { LocationData(123.456, 789.321, it) }
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.createFolder(folderPath) } returns true
+            coEvery { davClient.upload(any(), any()) } returns true
+            val service = TrackService(davClient)
+
+            service.addLocations(locData) shouldBe refTimes.size
+            coVerify {
+                davClient.createFolder(folderPath)
+                locData.zip(expectedPaths).forEach { data ->
+                    davClient.upload(data.second, data.first.stringRepresentation())
+                }
+            }
+            val allFiles = expectedPaths + expectedFiles
+            service.filesOnServer() shouldContainExactly allFiles
+        }
+
+        "TrackService should stop a multi-upload operation when an error occurs" {
+            val refTime1 = referenceTime(8, 22, 8, 10)
+            val refTime2 = referenceTime(8, 22, 10, 5)
+            val refTime3 = referenceTime(8, 22, 12, 29)
+            val locData1 = LocationData(123.456, 789.321, refTime1)
+            val locData2 = LocationData(123.457, 789.322, refTime2)
+            val locData3 = LocationData(123.458, 789.323, refTime3)
+            val davClient = createPreparedDavClient()
+            coEvery { davClient.createFolder(any()) } returns true
+            coEvery { davClient.upload(pathFromTime(refTime1), locData1.stringRepresentation()) } returns true
+            coEvery { davClient.upload(pathFromTime(refTime2), locData2.stringRepresentation()) } returns false
+            val service = TrackService(davClient)
+
+            service.addLocations(listOf(locData1, locData2, locData3)) shouldBe 1
+            service.filesOnServer() shouldContain pathFromTime(refTime1)
         }
 
         "TrackService should return null if an invalid location file path is requested" {
