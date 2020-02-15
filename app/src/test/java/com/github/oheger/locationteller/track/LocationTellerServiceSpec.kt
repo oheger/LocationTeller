@@ -43,9 +43,12 @@ class LocationTellerServiceSpec : StringSpec() {
             val actor = mockk<SendChannel<LocationUpdate>>()
             val prefHandler = preparePreferences()
             mockkStatic("com.github.oheger.locationteller.track.LocationUpdaterKt")
-            every { locationUpdaterActor(prefHandler, any(), defTrackConfig, crScope) } answers {
-                val service = arg<TrackService>(1)
+            every { locationUpdaterActor(any(), crScope) } answers {
+                val uploadController = arg<UploadController>(0)
+                val service = uploadController.trackService
                 service.davClient.config shouldBe defServerConfig
+                uploadController.prefHandler shouldBe prefHandler
+                uploadController.trackConfig shouldBe defTrackConfig
                 actor
             }
             val factory = UpdaterActorFactory()
@@ -168,6 +171,10 @@ class LocationTellerServiceSpec : StringSpec() {
             every { handler.createTrackConfig() } returns trackConf
             every { handler.createServerConfig() } returns svrConf
             every { handler.isTrackingEnabled() } returns trackingEnabled
+            every { handler.checkCount() } returns 42
+            every { handler.updateCount() } returns 11
+            every { handler.errorCount() } returns 1
+            every { handler.totalDistance() } returns 100
             return handler
         }
 

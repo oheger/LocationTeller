@@ -58,7 +58,12 @@ class UpdaterActorFactory {
         val serverConfig = preferencesHandler.createServerConfig()
         return if (serverConfig != null) {
             val trackService = TrackService.create(serverConfig)
-            locationUpdaterActor(preferencesHandler, trackService, trackConfig, crScope)
+            //TODO create correct OfflineLocationStorage
+            val uploadController = UploadController(
+                preferencesHandler, trackService, trackConfig,
+                OfflineLocationStorage(0, 0)
+            )
+            locationUpdaterActor(uploadController, crScope)
         } else null
     }
 }

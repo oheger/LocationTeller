@@ -17,14 +17,11 @@ package com.github.oheger.locationteller.track
 
 import android.location.Location
 import com.github.oheger.locationteller.server.LocationData
-import com.github.oheger.locationteller.server.TimeData
-import com.github.oheger.locationteller.server.TrackService
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
-import kotlin.math.min
 
 /**
  * Data class for the messages processed by location updater actor.
@@ -46,90 +43,26 @@ data class LocationUpdate(
 }
 
 /**
- * A function providing an actor that guards adding new location data via a
- * _TrackService_ object. Location updates can arrive from multiple threads;
- * however, _TrackService_ is not thread-safe. Therefore, this actor is
- * introduced. Messages of type [LocationUpdate] can be sent to it, and they
- * will be processed in sequence.
+ * A function providing an actor that guards adding new location data via an
+ * [[UploadController]] object. Location updates can arrive from multiple
+ * threads; however, _UploadController_ and the underlying _TrackService_ are
+ * not thread-safe. Therefore, this actor is introduced. Messages of type
+ * [LocationUpdate] can be sent to it, and they will be processed in sequence
+ * by directly forwarding them to the _UploadController_. The result returned
+ * by the controller - the delay until the next location check - is passed to
+ * the sender of the message via the _nextTrackDelay_ property of the
+ * _LocationUpdate_ update object received.
  *
- * The actor function also keeps track on the last known location. Whether it
- * has changed or not impacts the interval when the next location update has to
- * be requested: the update interval is increased based on the configuration
- * settings until the maximum is reached or a location change is detected.
- *
- * @param prefHandler the object to access shared preferences
- * @param trackService the _TrackService_ to be called
- * @param trackConfig the configuration for tracking location data
+ * @param uploadController the object handling the upload
  * @param crScope the co-routine scope
  * @return the channel to send messages to the actor
  */
 @ObsoleteCoroutinesApi
-fun locationUpdaterActor(
-    prefHandler: PreferencesHandler, trackService: TrackService, trackConfig: TrackConfig,
-    crScope: CoroutineScope
-): SendChannel<LocationUpdate> {
+fun locationUpdaterActor(uploadController: UploadController, crScope: CoroutineScope): SendChannel<LocationUpdate> {
     return crScope.actor {
-        var lastLocation: Location? = null
-
-        var updateInterval = trackConfig.minTrackInterval
-
-        var retryTime = trackConfig.retryOnErrorTime
-
-        // the current statistics values to be updated on each invocation
-        var checkCount = prefHandler.checkCount()
-        var updateCount = prefHandler.updateCount()
-        var errorCount = prefHandler.errorCount()
-        var totalDistance = prefHandler.totalDistance()
-
-        // Checks whether there is a change in location data. If so, returns
-        // the distance to the last location; -1 means, there is no change.
-        fun locationChanged(locationUpdate: Location?): Int {
-            if (lastLocation == null) {
-                return 0
-            }
-
-            val distance = locationUpdate?.distanceTo(lastLocation) ?: trackConfig.locationUpdateThreshold.toFloat()
-            return if (distance >= trackConfig.locationUpdateThreshold) distance.toInt()
-            else -1
-        }
-
         for (locUpdate in channel) {
-            checkCount += 1
-            prefHandler.recordCheck(locUpdate.updateTime(), checkCount)
-            val distance = locationChanged(locUpdate.orgLocation)
-            if (distance >= 0) {
-                val needRetry = if (locUpdate.orgLocation != null) {
-                    val outdatedRefTime = TimeData(
-                        locUpdate.updateTime() - trackConfig.locationValidity * 1000
-                    )
-                    trackService.removeOutdated(outdatedRefTime)
-                    if (trackService.addLocation(locUpdate.locationData)) {
-                        updateCount += 1
-                        totalDistance += distance
-                        prefHandler.recordUpdate(locUpdate.updateTime(), updateCount, distance, totalDistance)
-                        false
-                    } else true
-                } else true
-
-                if (locUpdate.orgLocation != null) {
-                    lastLocation = locUpdate.orgLocation
-                }
-                if (needRetry) {
-                    errorCount += 1
-                    prefHandler.recordError(locUpdate.updateTime(), errorCount)
-                    updateInterval = retryTime
-                    retryTime = min(retryTime * 2, trackConfig.maxTrackInterval)
-                } else {
-                    updateInterval = trackConfig.minTrackInterval
-                    retryTime = trackConfig.retryOnErrorTime
-                }
-            } else {
-                updateInterval = min(
-                    updateInterval + trackConfig.intervalIncrementOnIdle,
-                    trackConfig.maxTrackInterval
-                )
-            }
-            locUpdate.nextTrackDelay.complete(updateInterval)
+            val delay = uploadController.handleUpload(locUpdate.locationData, locUpdate.orgLocation)
+            locUpdate.nextTrackDelay.complete(delay)
         }
     }
 }
