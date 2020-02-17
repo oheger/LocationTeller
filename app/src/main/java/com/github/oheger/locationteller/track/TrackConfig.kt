@@ -29,6 +29,13 @@ package com.github.oheger.locationteller.track
  * @param retryOnErrorTime a time when the next location update should be
  * attempted after an error occurred (in sec)
  * @param gpsTimeout timeout for querying the current GPS location (in sec)
+ * @param offlineStorageSize the maximum size of the offline storage; here
+ * the data that could not be uploaded is stored until an internet connection
+ * is available again
+ * @param maxOfflineStorageSyncTime the maximum time frame (in sec) to sync the
+ * offline storage
+ * @param multiUploadChunkSize the number of data items from the offline
+ * storage to upload in a single operation
  * @param autoResetStats a flag whether tracking statistics should be reset
  * automatically when tracking is started
  */
@@ -40,5 +47,8 @@ data class TrackConfig(
     val locationUpdateThreshold: Int,
     val retryOnErrorTime: Int,
     val gpsTimeout: Int,
+    val offlineStorageSize: Int,
+    val maxOfflineStorageSyncTime: Int,
+    val multiUploadChunkSize: Int,
     val autoResetStats: Boolean
 )

@@ -145,7 +145,8 @@ class LocationTellerServiceSpec : StringSpec() {
             minTrackInterval = 42, maxTrackInterval = 727,
             locationValidity = 1000, intervalIncrementOnIdle = 50,
             locationUpdateThreshold = 22, gpsTimeout = 10, retryOnErrorTime = 4,
-            autoResetStats = false
+            autoResetStats = false, offlineStorageSize = 8, maxOfflineStorageSyncTime = 20,
+            multiUploadChunkSize = 4
         )
 
         /** Constant for the next update interval returned by the retriever.*/

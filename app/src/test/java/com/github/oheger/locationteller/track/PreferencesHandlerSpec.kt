@@ -367,7 +367,10 @@ class PreferencesHandlerSpec : StringSpec() {
         }
 
         "PreferencesHandler should create a track configuration" {
-            val trackConfig = TrackConfig(60, 600, 120, 3600, 15, 27, 11, true)
+            val trackConfig = TrackConfig(
+                60, 600, 120, 3600, 15, 27, 11,
+                16, 30, 2, true
+            )
             val pref = preferencesFromTrackConfig(trackConfig)
             val handler = PreferencesHandler(pref)
 
@@ -380,7 +383,8 @@ class PreferencesHandlerSpec : StringSpec() {
                 PreferencesHandler.propMaxTrackInterval, PreferencesHandler.propMinTrackInterval,
                 PreferencesHandler.propIdleIncrement, PreferencesHandler.propLocationValidity,
                 PreferencesHandler.propLocationUpdateThreshold, PreferencesHandler.propRetryOnErrorTime,
-                PreferencesHandler.propGpsTimeout
+                PreferencesHandler.propGpsTimeout, PreferencesHandler.propOfflineStorageSize,
+                PreferencesHandler.propOfflineStorageSyncTime, PreferencesHandler.propMultiUploadChunkSize
             ).forEach {
                 initProperty(pref, it, -1)
             }
@@ -395,6 +399,9 @@ class PreferencesHandlerSpec : StringSpec() {
             config.locationUpdateThreshold shouldBe PreferencesHandler.defaultLocationUpdateThreshold
             config.retryOnErrorTime shouldBe PreferencesHandler.defaultRetryOnErrorTime
             config.gpsTimeout shouldBe PreferencesHandler.defaultGpsTimeout
+            config.offlineStorageSize shouldBe PreferencesHandler.defaultOfflineStorageSize
+            config.maxOfflineStorageSyncTime shouldBe PreferencesHandler.defaultOfflineStorageSyncTime
+            config.multiUploadChunkSize shouldBe PreferencesHandler.defaultMultiUploadChunkSize
             config.autoResetStats shouldBe false
         }
 
@@ -519,6 +526,9 @@ class PreferencesHandlerSpec : StringSpec() {
             initProperty(pref, PreferencesHandler.propLocationUpdateThreshold, trackConfig.locationUpdateThreshold)
             initProperty(pref, PreferencesHandler.propRetryOnErrorTime, trackConfig.retryOnErrorTime)
             initProperty(pref, PreferencesHandler.propGpsTimeout, trackConfig.gpsTimeout)
+            initProperty(pref, PreferencesHandler.propOfflineStorageSize, trackConfig.offlineStorageSize)
+            initProperty(pref, PreferencesHandler.propOfflineStorageSyncTime, trackConfig.maxOfflineStorageSyncTime)
+            initProperty(pref, PreferencesHandler.propMultiUploadChunkSize, trackConfig.multiUploadChunkSize)
             every { pref.getBoolean(PreferencesHandler.propAutoResetStats, false) } returns trackConfig.autoResetStats
             return pref
         }

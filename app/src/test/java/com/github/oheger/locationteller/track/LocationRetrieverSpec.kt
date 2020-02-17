@@ -147,7 +147,8 @@ class LocationRetrieverSpec : StringSpec() {
         private val trackConfig = TrackConfig(
             minTrackInterval = 1, maxTrackInterval = 2,
             intervalIncrementOnIdle = 3, locationValidity = 4, locationUpdateThreshold = 5,
-            retryOnErrorTime = 6, gpsTimeout = 1, autoResetStats = false
+            retryOnErrorTime = 6, gpsTimeout = 1, autoResetStats = false, offlineStorageSize = 10,
+            maxOfflineStorageSyncTime = 30, multiUploadChunkSize = 2
         )
 
         /** Time constant that is set for invalid location updates. */

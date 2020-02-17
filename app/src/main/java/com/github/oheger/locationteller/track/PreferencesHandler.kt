@@ -74,11 +74,24 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         )
         val retryOnErrorTime = preferences.getNumeric(propRetryOnErrorTime, defaultValue = defaultRetryOnErrorTime)
         val gpsTimeout = preferences.getNumeric(propGpsTimeout, defaultValue = defaultGpsTimeout)
+        val offlineStorageSize = preferences.getNumeric(
+            propOfflineStorageSize,
+            defaultValue = defaultOfflineStorageSize
+        )
+        val offlineStorageSyncTime = preferences.getNumeric(
+            propOfflineStorageSyncTime,
+            defaultValue = defaultOfflineStorageSyncTime
+        )
+        val multiUploadChunkSize = preferences.getNumeric(
+            propMultiUploadChunkSize,
+            defaultValue = defaultMultiUploadChunkSize
+        )
         return TrackConfig(
             minTrackInterval = minTrackInterval, maxTrackInterval = maxTrackInterval,
             intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
             locationUpdateThreshold = locationUpdateThreshold, retryOnErrorTime = retryOnErrorTime,
-            gpsTimeout = gpsTimeout, autoResetStats = isAutoResetStats()
+            gpsTimeout = gpsTimeout, autoResetStats = isAutoResetStats(), offlineStorageSize = offlineStorageSize,
+            maxOfflineStorageSyncTime = offlineStorageSyncTime, multiUploadChunkSize = multiUploadChunkSize
         )
     }
 
@@ -348,6 +361,21 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the GPS timeout. */
         const val propGpsTimeout = "gpsTimeout"
 
+        /** Shared preferences property for the offline storage size. */
+        const val propOfflineStorageSize = "offlineStorageSize"
+
+        /**
+         * Shared preferences property for the sync time of the offline
+         * storage.
+         */
+        const val propOfflineStorageSyncTime = "offlineStorageSyncTime"
+
+        /**
+         * Shared preferences property for the chunk size of a multi upload
+         * operation to sync the offline storage.
+         */
+        const val propMultiUploadChunkSize = "multiUploadChunkSize"
+
         /** Shared preferences property for the tracking state.*/
         const val propTrackState = "trackEnabled"
 
@@ -404,6 +432,15 @@ class PreferencesHandler(val preferences: SharedPreferences) {
 
         /** A default value for the location update threshold property. */
         const val defaultLocationUpdateThreshold = 10
+
+        /** A default value for the size of the offline storage. */
+        const val defaultOfflineStorageSize = 32
+
+        /** A default value for the offline storage sync time (in sec). */
+        const val defaultOfflineStorageSyncTime = 30
+
+        /** A default value for the multi-upload chunk size. */
+        const val defaultMultiUploadChunkSize = 4
 
         /**
          * Constant for the minimum value accepted for a date (in millis).
