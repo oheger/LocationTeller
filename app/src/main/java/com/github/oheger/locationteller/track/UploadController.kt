@@ -18,7 +18,9 @@ package com.github.oheger.locationteller.track
 import android.location.Location
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
+import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.server.TrackService
+import com.github.oheger.locationteller.track.OfflineLocationStorage.Companion.MultiUploadProgress
 import kotlin.math.min
 
 
@@ -39,12 +41,20 @@ import kotlin.math.min
  *
  * This class keeps a state and is therefore not thread-safe. It is used inside
  * an actor to make sure that no concurrency issues occur.
+ *
+ * @param prefHandler the object that manages access to preferences
+ * @param trackService the _TrackService_ instance
+ * @param trackConfig the current track configuration
+ * @param offlineStorage the object for storing data that could not be uploaded
+ * temporarily
+ * @param timeService a service to obtain the current time
  */
 class UploadController(
     val prefHandler: PreferencesHandler,
     val trackService: TrackService,
     val trackConfig: TrackConfig,
-    val offlineStorage: OfflineLocationStorage
+    val offlineStorage: OfflineLocationStorage,
+    val timeService: TimeService
 ) {
     /**
      * Stores the last location that was reported. This is used to determine
@@ -115,18 +125,51 @@ class UploadController(
         orgLocation: Location?,
         distance: Int
     ): Boolean = if (orgLocation != null) {
-        val updateTime = locationData.time.currentTime
+        updateCount += 1
+        totalDistance += distance
+        prefHandler.recordUpdate(locationData.time.currentTime, updateCount, distance, totalDistance)
+        if (offlineStorage.canUploadDirectly(locationData)) {
+            processSingleUpload(locationData)
+        } else {
+            processMultiUpload()
+        }
+    } else false
+
+    /**
+     * Uploads a single _LocationData_ object to the server. Returns a flag
+     * whether this action was successful.
+     * @param locationData the data to be uploaded
+     * @return a flag whether the upload was successful
+     */
+    private suspend fun processSingleUpload(locationData: LocationData): Boolean {
         val outdatedRefTime = TimeData(
-            updateTime - trackConfig.locationValidity * 1000
+            locationData.time.currentTime - trackConfig.locationValidity * 1000
         )
         trackService.removeOutdated(outdatedRefTime)
-        if (trackService.addLocation(locationData)) {
-            updateCount += 1
-            totalDistance += distance
-            prefHandler.recordUpdate(updateTime, updateCount, distance, totalDistance)
+        return if (trackService.addLocation(locationData)) {
             true
-        } else false
-    } else false
+        } else {
+            offlineStorage.storeFailedUpload(locationData)
+            false
+        }
+    }
+
+    /**
+     * Executes a multi-upload operation. This function tries to upload data
+     * that has been buffered locally, as long as more is available, uploads
+     * are successful, and the configured maximum sync time is not exceeded.
+     * @return a flag whether all uploads have been successful
+     */
+    private suspend fun processMultiUpload(): Boolean {
+        val maxSyncTime = timeService.currentTime().currentTime + trackConfig.maxOfflineStorageSyncTime * 1000
+        var uploadProgress: MultiUploadProgress
+        do {
+            val uploadChunk = offlineStorage.nextUploadChunk(trackConfig.multiUploadChunkSize)
+            val uploadSuccess = trackService.addLocations(uploadChunk)
+            uploadProgress = offlineStorage.handleMultiUploadResult(uploadChunk, uploadSuccess)
+        } while (uploadProgress.canContinue && timeService.currentTime().currentTime < maxSyncTime)
+        return !uploadProgress.isError
+    }
 
     /**
      * Calculates the next update interval and the retry time based on the

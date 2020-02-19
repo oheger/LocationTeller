@@ -18,7 +18,9 @@ package com.github.oheger.locationteller.track
 import android.location.Location
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
+import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.server.TrackService
+import com.github.oheger.locationteller.track.OfflineLocationStorage.Companion.MultiUploadProgress
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
@@ -57,10 +59,9 @@ class UploadControllerSpec : StringSpec() {
                 orgLocation = loc2
             )
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .runUpload(locUpdate2)
             coVerify(exactly = 1) {
                 helper.trackService.addLocation(any())
@@ -86,10 +87,9 @@ class UploadControllerSpec : StringSpec() {
                 orgLocation = createLocation(0f)
             )
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .checkUpload(
                     locUpdate2,
                     defaultConfig.minTrackInterval + defaultConfig.intervalIncrementOnIdle
@@ -112,10 +112,9 @@ class UploadControllerSpec : StringSpec() {
                 orgLocation = createLocation(distance.toFloat())
             )
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .runUpload(locUpdate2)
                 .runUpload(locUpdate3)
                 .verifyPrefHandler {
@@ -139,10 +138,9 @@ class UploadControllerSpec : StringSpec() {
                 orgLocation = createLocation(distance2.toFloat())
             )
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .runUpload(locUpdate2)
                 .runUpload(locUpdate3)
                 .verifyPrefHandler {
@@ -167,10 +165,9 @@ class UploadControllerSpec : StringSpec() {
                 orgLocation = createLocation(0f)
             )
             val helper = ControllerTestHelper(config)
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .checkUpload(locUpdate2, defaultConfig.maxTrackInterval)
         }
 
@@ -182,10 +179,9 @@ class UploadControllerSpec : StringSpec() {
             )
             val locUpdate3 = locationUpdate(1)
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .runUpload(locUpdate2)
                 .checkUpload(locUpdate3, defaultConfig.minTrackInterval)
         }
@@ -193,23 +189,25 @@ class UploadControllerSpec : StringSpec() {
         "UploadController should record an error if an update fails" {
             val locUpdate = locationUpdate(locationData(1))
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns false
 
-            helper.runUpload(locUpdate)
+            helper.prepareTrackService(successUpload = false)
+                .expectStorageOfFailedUpload(locUpdate.locationData)
+                .runUpload(locUpdate)
                 .verifyPrefHandler {
                     recordError(locUpdate.updateTime(), initialErrorCount + 1)
                 }
+                .verifyStorageOfFailedUpload(locUpdate.locationData)
         }
 
         "UploadController should increment the error counter" {
             val locUpdate1 = locationUpdate(locationData(1))
             val locUpdate2 = locationUpdate(locationData(2))
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns false
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService(successUpload = false)
+                .expectStorageOfFailedUpload(locUpdate1.locationData)
+                .expectStorageOfFailedUpload(locUpdate2.locationData)
+                .runUpload(locUpdate1)
                 .runUpload(locUpdate2)
                 .verifyPrefHandler {
                     recordError(locUpdate1.updateTime(), initialErrorCount + 1)
@@ -220,10 +218,9 @@ class UploadControllerSpec : StringSpec() {
         "UploadController should treat an unknown location data as error" {
             val locUpdate = locationUpdate(locationData(1), orgLocation = null)
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locationUpdate(2))
+            helper.prepareTrackService()
+                .runUpload(locationUpdate(2))
                 .checkUpload(locUpdate, defaultConfig.retryOnErrorTime)
                 .verifyPrefHandler {
                     recordCheck(locUpdate.updateTime(), initialCheckCount + 2)
@@ -245,10 +242,9 @@ class UploadControllerSpec : StringSpec() {
             every { loc.distanceTo(locUpdate1.orgLocation) } returns 1f
             val locUpdate3 = locationUpdate(locUpdate1.locationData, orgLocation = loc)
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns true
 
-            helper.runUpload(locUpdate1)
+            helper.prepareTrackService()
+                .runUpload(locUpdate1)
                 .runUpload(locUpdate2)
                 .runUpload(locUpdate3)
             verify {
@@ -261,10 +257,12 @@ class UploadControllerSpec : StringSpec() {
             val locUpdate2 = locationUpdate(2)
             val locUpdate3 = locationUpdate(3)
             val helper = ControllerTestHelper()
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns false
 
-            helper.checkUpload(locUpdate1, defaultConfig.retryOnErrorTime)
+            helper.prepareTrackService(successUpload = false)
+                .expectStorageOfFailedUpload(locUpdate1.locationData)
+                .expectStorageOfFailedUpload(locUpdate2.locationData)
+                .expectStorageOfFailedUpload(locUpdate3.locationData)
+                .checkUpload(locUpdate1, defaultConfig.retryOnErrorTime)
                 .checkUpload(locUpdate2, 2 * defaultConfig.retryOnErrorTime)
                 .checkUpload(locUpdate3, 4 * defaultConfig.retryOnErrorTime)
         }
@@ -274,10 +272,11 @@ class UploadControllerSpec : StringSpec() {
             val locUpdate2 = locationUpdate(2)
             val config = defaultConfig.copy(retryOnErrorTime = defaultConfig.maxTrackInterval - 1)
             val helper = ControllerTestHelper(config)
-            coEvery { helper.trackService.removeOutdated(any()) } returns true
-            coEvery { helper.trackService.addLocation(any()) } returns false
 
-            helper.checkUpload(locUpdate1, config.retryOnErrorTime)
+            helper.prepareTrackService(successUpload = false)
+                .expectStorageOfFailedUpload(locUpdate1.locationData)
+                .expectStorageOfFailedUpload(locUpdate2.locationData)
+                .checkUpload(locUpdate1, config.retryOnErrorTime)
                 .checkUpload(locUpdate2, defaultConfig.maxTrackInterval)
         }
 
@@ -289,9 +288,109 @@ class UploadControllerSpec : StringSpec() {
             coEvery { helper.trackService.removeOutdated(any()) } returns true
             coEvery { helper.trackService.addLocation(any()) } returnsMany listOf(false, true, false)
 
-            helper.checkUpload(locUpdate1, defaultConfig.retryOnErrorTime)
+            helper.expectStorageOfFailedUpload(locUpdate1.locationData)
+                .expectStorageOfFailedUpload(locUpdate3.locationData)
+                .checkUpload(locUpdate1, defaultConfig.retryOnErrorTime)
                 .checkUpload(locUpdate2, defaultConfig.minTrackInterval)
                 .checkUpload(locUpdate3, defaultConfig.retryOnErrorTime)
+        }
+
+        "UploadController should handle multi-uploads" {
+            val locUpdate = locationUpdate(0)
+            val chunk1 = listOf(locationData(1), locationData(2), locationData(3))
+            val chunk2 = listOf(locationData(4), locationData(5))
+            val helper = ControllerTestHelper()
+            every { helper.offlineStorage.canUploadDirectly(locUpdate.locationData) } returns false
+            every {
+                helper.offlineStorage.nextUploadChunk(
+                    defaultConfig.multiUploadChunkSize
+                )
+            } returnsMany listOf(chunk1, chunk2)
+            every {
+                helper.offlineStorage.handleMultiUploadResult(
+                    chunk1,
+                    chunk1.size
+                )
+            } returns MultiUploadProgress.PROGRESS
+            every {
+                helper.offlineStorage.handleMultiUploadResult(
+                    chunk2,
+                    1
+                )
+            } returns MultiUploadProgress.DONE
+            coEvery { helper.trackService.addLocations(chunk1) } returns chunk1.size
+            coEvery { helper.trackService.addLocations(chunk2) } returns 1
+
+            helper.checkUpload(locUpdate, defaultConfig.minTrackInterval)
+                .verifyPrefHandler {
+                    recordUpdate(locUpdate.updateTime(), initialUpdateCount + 1, 0, initialDistance)
+                }
+            coVerify {
+                helper.trackService.addLocations(chunk1)
+                helper.trackService.addLocations(chunk2)
+            }
+        }
+
+        "UploadController should respect the sync time limit for multi-uploads" {
+            val locUpdate = locationUpdate(0)
+            val chunk1 = listOf(locationData(1), locationData(2))
+            val chunk2 = listOf(locationData(3), locationData(4))
+            val helper = ControllerTestHelper()
+            every { helper.offlineStorage.canUploadDirectly(locUpdate.locationData) } returns false
+            every {
+                helper.offlineStorage.nextUploadChunk(
+                    defaultConfig.multiUploadChunkSize
+                )
+            } returnsMany listOf(chunk1, chunk2)
+            every { helper.offlineStorage.handleMultiUploadResult(any(), any()) } returns MultiUploadProgress.PROGRESS
+            coEvery { helper.trackService.addLocations(any()) } returns 2
+
+            helper.timeTicks(
+                defaultConfig.maxOfflineStorageSyncTime / 2,
+                defaultConfig.maxOfflineStorageSyncTime
+            )
+                .checkUpload(locUpdate, defaultConfig.minTrackInterval)
+            coVerify {
+                helper.trackService.addLocations(chunk1)
+                helper.trackService.addLocations(chunk2)
+            }
+        }
+
+        "UploadController should handle errors during a multi-upload operation" {
+            val locUpdate = locationUpdate(0)
+            val chunk1 = listOf(locationData(1), locationData(2))
+            val chunk2 = listOf(locationData(3))
+            val helper = ControllerTestHelper()
+            every { helper.offlineStorage.canUploadDirectly(locUpdate.locationData) } returns false
+            every {
+                helper.offlineStorage.nextUploadChunk(
+                    defaultConfig.multiUploadChunkSize
+                )
+            } returnsMany listOf(chunk1, chunk2)
+            every {
+                helper.offlineStorage.handleMultiUploadResult(
+                    chunk1,
+                    chunk1.size
+                )
+            } returns MultiUploadProgress.PROGRESS
+            every {
+                helper.offlineStorage.handleMultiUploadResult(
+                    chunk2,
+                    0
+                )
+            } returns MultiUploadProgress.ERROR
+            coEvery { helper.trackService.addLocations(chunk1) } returns chunk1.size
+            coEvery { helper.trackService.addLocations(chunk2) } returns 0
+
+            helper.checkUpload(locUpdate, defaultConfig.retryOnErrorTime)
+                .verifyPrefHandler {
+                    recordUpdate(locUpdate.updateTime(), initialUpdateCount + 1, 0, initialDistance)
+                    recordError(locUpdate.updateTime(), initialErrorCount + 1)
+                }
+            coVerify {
+                helper.trackService.addLocations(chunk1)
+                helper.trackService.addLocations(chunk2)
+            }
         }
     }
 
@@ -306,9 +405,22 @@ class UploadControllerSpec : StringSpec() {
         /** The mock for the preferences handler. */
         val prefHandler = createPrefHandler()
 
+        /** The mock for the offline storage. */
+        val offlineStorage = createOfflineStorage()
+
+        /** The mock for the time service. */
+        val timeService = createTimeService()
+
         /** The test controller. */
         private val controller = createUploadController(trackConfig)
 
+        /**
+         * Executes the given block passing in the mock _PreferencesHandler_.
+         * This can be used for instance to do custom mock initializations or
+         * verifications.
+         * @param block the block to be executed on the handler mock
+         * @return this test helper
+         */
         fun doWithPrefHandler(block: (PreferencesHandler) -> Unit): ControllerTestHelper {
             block(prefHandler)
             return this
@@ -325,6 +437,53 @@ class UploadControllerSpec : StringSpec() {
                     it.block()
                 }
             }
+
+        /**
+         * Prepares the mock for the track service to expect and answer
+         * operations to remove outdated data and upload new data.
+         * @param successUpload flag whether the upload operation is successful
+         * @return this test helper
+         */
+        fun prepareTrackService(successUpload: Boolean = true): ControllerTestHelper {
+            coEvery { trackService.removeOutdated(any()) } returns true
+            coEvery { trackService.addLocation(any()) } returns successUpload
+            return this
+        }
+
+        /**
+         * Initializes the mock time service to return a sequence of time
+         * ticks. The first tick is the reference time; then the provided delta
+         * values are interpreted as seconds relative to this reference time.
+         * @param deltas the relative times to report by the service (in sec)
+         */
+        fun timeTicks(vararg deltas: Int): ControllerTestHelper {
+            val nextTimes = deltas.map { TimeData(referenceTime + it * 1000) }
+            val times = listOf(TimeData(referenceTime), *nextTimes.toTypedArray())
+            every { timeService.currentTime() } returnsMany times
+            return this
+        }
+
+        /**
+         * Prepares the mock for the offline storage to expect an invocation
+         * due to a failed upload.
+         * @param data the data that could not be uploaded
+         * @return this test helper
+         */
+        fun expectStorageOfFailedUpload(data: LocationData): ControllerTestHelper {
+            every { offlineStorage.storeFailedUpload(data) } just runs
+            return this
+        }
+
+        /**
+         * Verifies that the mock for the offline storage has been invoked to
+         * record a failed upload
+         * @param data the data that could not be uploaded
+         * @return this test helper
+         */
+        fun verifyStorageOfFailedUpload(data: LocationData): ControllerTestHelper {
+            verify { offlineStorage.storeFailedUpload(data) }
+            return this
+        }
 
         /**
          * Invokes the test upload controller with the passed in data and
@@ -369,12 +528,35 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
+         * Creates a mock for the offline storage and prepares it for the most
+         * frequent interactions.
+         * @return the mock for the _OfflineLocationStorage_
+         */
+        private fun createOfflineStorage(): OfflineLocationStorage {
+            val storage = mockk<OfflineLocationStorage>()
+            every { storage.canUploadDirectly(any()) } returns true
+            return storage
+        }
+
+        /**
+         * Creates a mock for the time service and prepares it to always return
+         * the reference time. This means that the simulated time does not
+         * flow.
+         * @return the mock time service
+         */
+        private fun createTimeService(): TimeService {
+            val timeService = mockk<TimeService>()
+            every { timeService.currentTime() } returns TimeData(referenceTime)
+            return timeService
+        }
+
+        /**
          * Creates the test upload controller.
          * @param trackConfig the tracking configuration
          * @return the test upload controller
          */
         private fun createUploadController(trackConfig: TrackConfig): UploadController =
-            UploadController(prefHandler, trackService, trackConfig, OfflineLocationStorage(10, 0))
+            UploadController(prefHandler, trackService, trackConfig, offlineStorage, timeService)
     }
 
     companion object {
@@ -390,12 +572,16 @@ class UploadControllerSpec : StringSpec() {
         /** The total distance recorded since tracking start. */
         private const val initialDistance = 4711L
 
+        /** The time returned per default by the mock time service. */
+        private const val referenceTime = 20200217182414L
+
         /** A test configuration with default values.*/
         private val defaultConfig = TrackConfig(
             minTrackInterval = 60, maxTrackInterval = 200,
             intervalIncrementOnIdle = 30, locationValidity = 3600,
             locationUpdateThreshold = 56, gpsTimeout = 10, retryOnErrorTime = 4,
-            autoResetStats = false
+            autoResetStats = false, offlineStorageSize = 32, maxOfflineStorageSyncTime = 60,
+            multiUploadChunkSize = 4
         )
 
         /**

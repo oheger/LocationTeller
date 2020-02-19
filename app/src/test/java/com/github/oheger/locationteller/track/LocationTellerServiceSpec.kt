@@ -49,6 +49,9 @@ class LocationTellerServiceSpec : StringSpec() {
                 service.davClient.config shouldBe defServerConfig
                 uploadController.prefHandler shouldBe prefHandler
                 uploadController.trackConfig shouldBe defTrackConfig
+                uploadController.offlineStorage.capacity shouldBe defTrackConfig.offlineStorageSize
+                uploadController.offlineStorage.minTrackInterval shouldBe defTrackConfig.minTrackInterval * 1000
+                uploadController.timeService shouldBe CurrentTimeService
                 actor
             }
             val factory = UpdaterActorFactory()
