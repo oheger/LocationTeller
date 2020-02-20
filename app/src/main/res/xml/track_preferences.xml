@@ -2,56 +2,87 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <EditTextPreference
-        android:key="minTrackInterval"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_min_track_interval"
-        app:useSimpleSummaryProvider="true" />
+    <PreferenceCategory
+        app:key="basicSettings"
+        app:title="@string/pref_basic_settings">
 
-    <EditTextPreference
-        android:key="maxTrackInterval"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_max_track_interval"
-        app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="minTrackInterval"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_min_track_interval"
+            app:useSimpleSummaryProvider="true" />
 
-    <EditTextPreference
-        android:key="intervalIncrementOnIdle"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_interval_idle_increment"
-        app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="maxTrackInterval"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_max_track_interval"
+            app:useSimpleSummaryProvider="true" />
 
-    <EditTextPreference
-        android:key="retryOnErrorTime"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_error_retry_time"
-        app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="intervalIncrementOnIdle"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_interval_idle_increment"
+            app:useSimpleSummaryProvider="true" />
 
-    <EditTextPreference
-        android:key="locationValidity"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_validity_time"
-        app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="locationValidity"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_validity_time"
+            app:useSimpleSummaryProvider="true" />
 
-    <EditTextPreference
-        android:key="gpsTimeout"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_gps_timeout"
-        app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            android:key="autoResetStats"
+            android:title="@string/pref_auto_reset_stats"/>
+    </PreferenceCategory>
 
-    <EditTextPreference
-        android:key="locationUpdateThreshold"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:title="@string/pref_location_update_threshold"
-        app:useSimpleSummaryProvider="true" />
+    <PreferenceCategory
+        app:key="advancedSettings"
+        app:title="@string/pref_advanced_settings">
 
-    <SwitchPreference
-        android:key="autoResetStats"
-        android:title="@string/pref_auto_reset_stats"/>
+        <EditTextPreference
+            android:key="retryOnErrorTime"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_error_retry_time"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="gpsTimeout"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_gps_timeout"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="locationUpdateThreshold"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_location_update_threshold"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="offlineStorageSize"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_offline_storage_size"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="offlineStorageSyncTime"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_offline_sync_time"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="multiUploadChunkSize"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_multi_upload_chunk_size"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
 </PreferenceScreen>
