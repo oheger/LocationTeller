@@ -69,22 +69,22 @@ class UpdaterActorFactory {
 }
 
 /**
- * A factory class for creating a [LocationRetriever].
+ * A factory class for creating a [LocationProcessor].
  *
  * This factory is used internally by [LocationTellerService]. By providing a
  * mock implementation, a mock actor can be injected for testing purposes.
  */
-class LocationRetrieverFactory {
+class LocationProcessorFactory {
     /**
-     * Creates a new _LocationRetriever_ based on the given parameters.
+     * Creates a new _LocationProcessor_ based on the given parameters.
      * @param context the context
      * @param updater the actor for publishing updates
      * @param trackConfig the track configuration
-     * @return the _LocationRetriever_ instance
+     * @return the _LocationProcessor_ instance
      */
-    fun createRetriever(context: Context, updater: SendChannel<LocationUpdate>, trackConfig: TrackConfig):
-            LocationRetriever =
-        LocationRetriever(
+    fun createProcessor(context: Context, updater: SendChannel<LocationUpdate>, trackConfig: TrackConfig):
+            LocationProcessor =
+        LocationProcessor(
             LocationServices.getFusedLocationProviderClient(context),
             updater, CurrentTimeService,
             trackConfig
@@ -102,13 +102,13 @@ class LocationRetrieverFactory {
  * service stops itself.
  *
  * @param updaterFactory the factory for creating an updater actor
- * @param retrieverFactory the factory for creating a _LocationRetriever_
+ * @param processorFactory the factory for creating a _LocationProcessor_
  * @param timeService the time service
  */
 @ObsoleteCoroutinesApi
 class LocationTellerService(
     val updaterFactory: UpdaterActorFactory,
-    val retrieverFactory: LocationRetrieverFactory,
+    val processorFactory: LocationProcessorFactory,
     val timeService: TimeService
 ) : Service(), CoroutineScope {
     private val tag = "LocationTellerService"
@@ -126,13 +126,13 @@ class LocationTellerService(
     private lateinit var preferencesHandler: PreferencesHandler
 
     /** The object that retrieves the current location.*/
-    private var locationRetriever: LocationRetriever? = null
+    private var locationProcessor: LocationProcessor? = null
 
     /**
      * Creates a new instance of _LocationTellerService_ that uses default
      * factories.
      */
-    constructor() : this(UpdaterActorFactory(), LocationRetrieverFactory(), CurrentTimeService)
+    constructor() : this(UpdaterActorFactory(), LocationProcessorFactory(), CurrentTimeService)
 
     @ObsoleteCoroutinesApi
     override fun onCreate() {
@@ -149,7 +149,7 @@ class LocationTellerService(
         val updaterActor = updaterFactory.createActor(preferencesHandler, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
-            locationRetriever = retrieverFactory.createRetriever(this, updaterActor, trackConfig)
+            locationProcessor = processorFactory.createProcessor(this, updaterActor, trackConfig)
         }
         startForegroundService()
     }
@@ -196,7 +196,7 @@ class LocationTellerService(
      * now possible. If so, it is triggered.
      */
     private fun tellLocation() = launch {
-        val retriever = locationRetriever
+        val retriever = locationProcessor
         if (retriever != null && preferencesHandler.isTrackingEnabled()) {
             Log.i(tag, "Triggering location update.")
             val nextUpdate = retriever.retrieveAndUpdateLocation()

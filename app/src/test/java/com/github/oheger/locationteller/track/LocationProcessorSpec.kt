@@ -27,7 +27,6 @@ import com.google.android.gms.location.LocationResult
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.doubles.shouldBeExactly
 import io.kotlintest.shouldBe
-import io.kotlintest.shouldNotBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,10 +34,10 @@ import kotlinx.coroutines.channels.SendChannel
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Test class for [LocationRetriever].
+ * Test class for [LocationProcessor].
  */
 @ExperimentalCoroutinesApi
-class LocationRetrieverSpec : StringSpec() {
+class LocationProcessorSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 
     /**
@@ -65,7 +64,7 @@ class LocationRetrieverSpec : StringSpec() {
     private fun initDispatcher(): MockDispatcher = MockDispatcher.installAsMain()
 
     init {
-        "LocationRetriever should pass a location data to the actor" {
+        "LocationProcessor should pass a location data to the actor" {
             val latitude = 123.456
             val longitude = 654.789
             val currentTime = TimeData(20190629180617L)
@@ -99,14 +98,14 @@ class LocationRetrieverSpec : StringSpec() {
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
             val dispatcher = initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, timeService, trackConfig)
+            val retriever = LocationProcessor(locClient, actor, timeService, trackConfig)
 
             retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             dispatcher.tasks.isEmpty() shouldBe false
             verify { locClient.removeLocationUpdates(refCallback.get()) }
         }
 
-        "LocationRetriever should handle a failure when retrieving the location" {
+        "LocationProcessor should handle a failure when retrieving the location" {
             val actor = createMockActorExpectingError()
             val locClient = mockk<FusedLocationProviderClient>()
             every { locClient.requestLocationUpdates(any(), any(), null) } answers {
@@ -116,19 +115,19 @@ class LocationRetrieverSpec : StringSpec() {
             }
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, errorTimeService(), trackConfig)
+            val retriever = LocationProcessor(locClient, actor, errorTimeService(), trackConfig)
 
             retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }
         }
 
-        "LocationRetriever should handle a timeout when retrieving the location" {
+        "LocationProcessor should handle a timeout when retrieving the location" {
             val actor = createMockActorExpectingError()
             val locClient = mockk<FusedLocationProviderClient>()
             every { locClient.requestLocationUpdates(any(), any(), null) } returns null
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, actor, errorTimeService(), trackConfig)
+            val retriever = LocationProcessor(locClient, actor, errorTimeService(), trackConfig)
 
             retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }

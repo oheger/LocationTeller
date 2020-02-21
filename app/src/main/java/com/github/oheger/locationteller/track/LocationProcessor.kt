@@ -43,7 +43,7 @@ import kotlin.coroutines.suspendCoroutine
  * @param timeService the time service
  * @param trackConfig the track configuration
  */
-class LocationRetriever(
+class LocationProcessor(
     val locationClient: FusedLocationProviderClient,
     val locationUpdateActor: SendChannel<LocationUpdate>,
     val timeService: TimeService,
@@ -155,7 +155,7 @@ class LocationRetriever(
 
     companion object {
         /** Tag for logging.*/
-        private const val tag = "LocationRetriever"
+        private const val tag = "LocationProcessor"
 
         /** The interval to request updates from the location provider.*/
         private const val updateInterval = 5000L

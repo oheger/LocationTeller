@@ -66,15 +66,15 @@ class LocationTellerServiceSpec : StringSpec() {
             factory.createActor(prefHandler, defTrackConfig, mockk()) shouldBe null
         }
 
-        "LocationRetrieverFactory should create a correct retriever object" {
+        "LocationProcessorFactory should create a correct retriever object" {
             val context = mockk<Context>()
             val actor = mockk<SendChannel<LocationUpdate>>()
             val locationClient = mockk<FusedLocationProviderClient>()
             mockkStatic(LocationServices::class)
             every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
-            val factory = LocationRetrieverFactory()
+            val factory = LocationProcessorFactory()
 
-            val retriever = factory.createRetriever(context, actor, defTrackConfig)
+            val retriever = factory.createProcessor(context, actor, defTrackConfig)
             retriever.locationClient shouldBe locationClient
             retriever.locationUpdateActor shouldBe actor
             retriever.timeService shouldBe CurrentTimeService
@@ -86,7 +86,7 @@ class LocationTellerServiceSpec : StringSpec() {
 
             // this test is not really meaningful; the relevant part is the
             // invocation of the secondary constructor
-            service.retrieverFactory shouldNotBe null
+            service.processorFactory shouldNotBe null
             service.updaterFactory shouldNotBe null
             service.timeService shouldBe CurrentTimeService
         }
@@ -195,7 +195,7 @@ class LocationTellerServiceSpec : StringSpec() {
             private val timeout = 1000L
 
             /** Mock for the location retriever.*/
-            private val retriever = mockk<LocationRetriever>()
+            private val locationProcessor = mockk<LocationProcessor>()
 
             /** Mock for the alarm manager.*/
             private val alarmManager = createAlarmManager()
@@ -259,7 +259,7 @@ class LocationTellerServiceSpec : StringSpec() {
              */
             fun verifyLocationUpdateTriggered(): TellerServiceTestHelper {
                 coVerify(timeout = timeout) {
-                    retriever.retrieveAndUpdateLocation()
+                    locationProcessor.retrieveAndUpdateLocation()
                 }
                 return this
             }
@@ -291,7 +291,7 @@ class LocationTellerServiceSpec : StringSpec() {
              */
             private fun createService(): LocationTellerService {
                 val updaterFactory = mockk<UpdaterActorFactory>()
-                val retrieverFactory = mockk<LocationRetrieverFactory>()
+                val retrieverFactory = mockk<LocationProcessorFactory>()
                 val timeService = mockk<TimeService>()
                 val service = LocationTellerService(updaterFactory, retrieverFactory, timeService)
                 mockkStatic(PendingIntent::class)
@@ -301,9 +301,9 @@ class LocationTellerServiceSpec : StringSpec() {
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
                 every { updaterFactory.createActor(prefs, defTrackConfig, any()) } returns actor
                 if (actor != null) {
-                    every { retrieverFactory.createRetriever(any(), actor, defTrackConfig) } returns retriever
+                    every { retrieverFactory.createProcessor(any(), actor, defTrackConfig) } returns locationProcessor
                 }
-                coEvery { retriever.retrieveAndUpdateLocation() } answers {
+                coEvery { locationProcessor.retrieveAndUpdateLocation() } answers {
                     nextUpdateInterval
                 }
                 every { timeService.currentTime() } returns TimeData(elapsedTime)
