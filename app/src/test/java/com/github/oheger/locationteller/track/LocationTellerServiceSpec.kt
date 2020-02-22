@@ -22,13 +22,11 @@ import android.app.Service
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.github.oheger.locationteller.track.TrackTestHelper.preparePreferences
 import io.kotlintest.shouldBe
 import io.kotlintest.shouldNotBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 
@@ -38,49 +36,6 @@ import kotlinx.coroutines.channels.SendChannel
 @ObsoleteCoroutinesApi
 class LocationTellerServiceSpec : StringSpec() {
     init {
-        "UpdaterActorFactory should create a correct actor" {
-            val crScope = mockk<CoroutineScope>()
-            val actor = mockk<SendChannel<LocationUpdate>>()
-            val prefHandler = preparePreferences()
-            mockkStatic("com.github.oheger.locationteller.track.LocationUpdaterKt")
-            every { locationUpdaterActor(any(), crScope) } answers {
-                val uploadController = arg<UploadController>(0)
-                val service = uploadController.trackService
-                service.davClient.config shouldBe defServerConfig
-                uploadController.prefHandler shouldBe prefHandler
-                uploadController.trackConfig shouldBe defTrackConfig
-                uploadController.offlineStorage.capacity shouldBe defTrackConfig.offlineStorageSize
-                uploadController.offlineStorage.minTrackInterval shouldBe defTrackConfig.minTrackInterval * 1000
-                uploadController.timeService shouldBe CurrentTimeService
-                actor
-            }
-            val factory = UpdaterActorFactory()
-
-            factory.createActor(prefHandler, defTrackConfig, crScope) shouldBe actor
-        }
-
-        "UpdateActorFactory should return null if no server config is defined" {
-            val prefHandler = preparePreferences(svrConf = null)
-            val factory = UpdaterActorFactory()
-
-            factory.createActor(prefHandler, defTrackConfig, mockk()) shouldBe null
-        }
-
-        "LocationProcessorFactory should create a correct retriever object" {
-            val context = mockk<Context>()
-            val actor = mockk<SendChannel<LocationUpdate>>()
-            val locationClient = mockk<FusedLocationProviderClient>()
-            mockkStatic(LocationServices::class)
-            every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
-            val factory = LocationProcessorFactory()
-
-            val retriever = factory.createProcessor(context, actor, defTrackConfig)
-            retriever.locationClient shouldBe locationClient
-            retriever.locationUpdateActor shouldBe actor
-            retriever.timeService shouldBe CurrentTimeService
-            retriever.trackConfig shouldBe defTrackConfig
-        }
-
         "LocationTellerService should create default dependencies" {
             val service = LocationTellerService()
 
@@ -88,6 +43,7 @@ class LocationTellerServiceSpec : StringSpec() {
             // invocation of the secondary constructor
             service.processorFactory shouldNotBe null
             service.updaterFactory shouldNotBe null
+            service.retrieverFactory shouldNotBe null
             service.timeService shouldBe CurrentTimeService
         }
 
@@ -137,50 +93,11 @@ class LocationTellerServiceSpec : StringSpec() {
     }
 
     companion object {
-        /** A default test server configuration.*/
-        private val defServerConfig = ServerConfig(
-            serverUri = "https://track-server.tst",
-            basePath = "/my-tracks", user = "scott", password = "tiger"
-        )
-
-        /** A default test track configuration.*/
-        private val defTrackConfig = TrackConfig(
-            minTrackInterval = 42, maxTrackInterval = 727,
-            locationValidity = 1000, intervalIncrementOnIdle = 50,
-            locationUpdateThreshold = 22, gpsTimeout = 10, retryOnErrorTime = 4,
-            autoResetStats = false, offlineStorageSize = 8, maxOfflineStorageSyncTime = 20,
-            multiUploadChunkSize = 4
-        )
-
         /** Constant for the next update interval returned by the retriever.*/
         const val nextUpdateInterval = 777
 
         /** The elapsed time to be returned by the time service mock.*/
         const val elapsedTime = 20190107192211L
-
-        /**
-         * Installs a mock preferences manager that returns shared preferences
-         * initialized with the test configurations.
-         * @param svrConf the server config to initialize preferences
-         * @param trackConf the track config to initialize preferences
-         * @param trackingEnabled flag whether tracking should be enabled
-         * @return the mock for the preferences handler
-         */
-        private fun preparePreferences(
-            svrConf: ServerConfig? = defServerConfig,
-            trackConf: TrackConfig = defTrackConfig,
-            trackingEnabled: Boolean = true
-        ): PreferencesHandler {
-            val handler = mockk<PreferencesHandler>()
-            every { handler.createTrackConfig() } returns trackConf
-            every { handler.createServerConfig() } returns svrConf
-            every { handler.isTrackingEnabled() } returns trackingEnabled
-            every { handler.checkCount() } returns 42
-            every { handler.updateCount() } returns 11
-            every { handler.errorCount() } returns 1
-            every { handler.totalDistance() } returns 100
-            return handler
-        }
 
         /**
          * A test helper class managing a service instance and its dependencies.
@@ -291,17 +208,20 @@ class LocationTellerServiceSpec : StringSpec() {
              */
             private fun createService(): LocationTellerService {
                 val updaterFactory = mockk<UpdaterActorFactory>()
-                val retrieverFactory = mockk<LocationProcessorFactory>()
+                val retrieverFactory = mockk<LocationRetrieverFactory>()
+                val processorFactory = mockk<LocationProcessorFactory>()
                 val timeService = mockk<TimeService>()
-                val service = LocationTellerService(updaterFactory, retrieverFactory, timeService)
+                val retriever = mockk<LocationRetriever>()
+                val service = LocationTellerService(updaterFactory, retrieverFactory, processorFactory, timeService)
                 mockkStatic(PendingIntent::class)
                 every { PendingIntent.getService(any(), 0, any(), 0) } returns pendingIntent
                 val prefs = preparePreferences(trackingEnabled = trackingEnabled)
 
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
-                every { updaterFactory.createActor(prefs, defTrackConfig, any()) } returns actor
+                every { updaterFactory.createActor(prefs, TrackTestHelper.defTrackConfig, any()) } returns actor
+                every { retrieverFactory.createRetriever(any(), TrackTestHelper.defTrackConfig) } returns retriever
                 if (actor != null) {
-                    every { retrieverFactory.createProcessor(any(), actor, defTrackConfig) } returns locationProcessor
+                    every { processorFactory.createProcessor(retriever, actor) } returns locationProcessor
                 }
                 coEvery { locationProcessor.retrieveAndUpdateLocation() } answers {
                     nextUpdateInterval

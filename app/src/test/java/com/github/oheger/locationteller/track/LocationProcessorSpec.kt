@@ -16,26 +16,26 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
-import com.github.oheger.locationteller.MockDispatcher
 import com.github.oheger.locationteller.ResetDispatcherListener
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.doubles.shouldBeExactly
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
-import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Test class for [LocationProcessor].
  */
+@ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
 class LocationProcessorSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
@@ -56,13 +56,6 @@ class LocationProcessorSpec : StringSpec() {
         return actor
     }
 
-    /**
-     * Installs a mock dispatcher for the main thread.
-     * @return the mock dispatcher
-     */
-    @ExperimentalCoroutinesApi
-    private fun initDispatcher(): MockDispatcher = MockDispatcher.installAsMain()
-
     init {
         "LocationProcessor should pass a location data to the actor" {
             val latitude = 123.456
@@ -72,22 +65,11 @@ class LocationProcessorSpec : StringSpec() {
             val timeService = mockk<TimeService>()
             val location = mockk<Location>()
             val locResult = mockk<LocationResult>()
-            val locClient = mockk<FusedLocationProviderClient>()
-            val refCallback = AtomicReference<LocationCallback>()
+            val locRetriever = mockk<LocationRetriever>()
             every { location.latitude } returns latitude
             every { location.longitude } returns longitude
             every { locResult.lastLocation } returns location
-            every { locClient.requestLocationUpdates(any(), any(), null) } answers {
-                val request = arg<LocationRequest>(0)
-                request.interval shouldBe 5000L
-                request.fastestInterval shouldBe request.interval
-                request.priority shouldBe LocationRequest.PRIORITY_HIGH_ACCURACY
-                val callback = arg<LocationCallback>(1)
-                callback.onLocationResult(locResult)
-                refCallback.set(callback)
-                null
-            }
-            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
+            coEvery { locRetriever.fetchLocation() } returns location
             every { timeService.currentTime() } returns currentTime
             coEvery { actor.send(any()) } answers {
                 val locUpdate = arg<LocationUpdate>(0)
@@ -97,58 +79,25 @@ class LocationProcessorSpec : StringSpec() {
                 locUpdate.orgLocation shouldBe location
                 locUpdate.nextTrackDelay.complete(nextUpdate)
             }
-            val dispatcher = initDispatcher()
-            val retriever = LocationProcessor(locClient, actor, timeService, trackConfig)
+            val processor = LocationProcessor(locRetriever, actor, timeService)
 
-            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
-            dispatcher.tasks.isEmpty() shouldBe false
-            verify { locClient.removeLocationUpdates(refCallback.get()) }
+            processor.retrieveAndUpdateLocation() shouldBe nextUpdate
         }
 
         "LocationProcessor should handle a failure when retrieving the location" {
             val actor = createMockActorExpectingError()
-            val locClient = mockk<FusedLocationProviderClient>()
-            every { locClient.requestLocationUpdates(any(), any(), null) } answers {
-                val callback = arg<LocationCallback>(1)
-                callback.onLocationResult(null)
-                null
-            }
-            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
-            initDispatcher()
-            val retriever = LocationProcessor(locClient, actor, errorTimeService(), trackConfig)
+            val locRetriever = mockk<LocationRetriever>()
+            coEvery { locRetriever.fetchLocation() } returns null
+            val processor = LocationProcessor(locRetriever, actor, errorTimeService())
 
-            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
+            processor.retrieveAndUpdateLocation() shouldBe nextUpdate
             coVerify { actor.send(any()) }
-        }
-
-        "LocationProcessor should handle a timeout when retrieving the location" {
-            val actor = createMockActorExpectingError()
-            val locClient = mockk<FusedLocationProviderClient>()
-            every { locClient.requestLocationUpdates(any(), any(), null) } returns null
-            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
-            initDispatcher()
-            val retriever = LocationProcessor(locClient, actor, errorTimeService(), trackConfig)
-
-            retriever.retrieveAndUpdateLocation() shouldBe nextUpdate
-            coVerify { actor.send(any()) }
-            verify { locClient.removeLocationUpdates(any() as LocationCallback) }
         }
     }
 
     companion object {
         /** Constant for the next update time to be returned by the mock actor.*/
         private const val nextUpdate = 42
-
-        /**
-         * A default track configuration. Only a subset of the properties is
-         * relevant for the tests.
-         */
-        private val trackConfig = TrackConfig(
-            minTrackInterval = 1, maxTrackInterval = 2,
-            intervalIncrementOnIdle = 3, locationValidity = 4, locationUpdateThreshold = 5,
-            retryOnErrorTime = 6, gpsTimeout = 1, autoResetStats = false, offlineStorageSize = 10,
-            maxOfflineStorageSyncTime = 30, multiUploadChunkSize = 2
-        )
 
         /** Time constant that is set for invalid location updates. */
         private val errorTime = TimeData(20200205215808L)

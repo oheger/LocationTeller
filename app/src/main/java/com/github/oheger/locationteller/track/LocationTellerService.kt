@@ -26,70 +26,11 @@ import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
-import com.github.oheger.locationteller.server.TrackService
-import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
-
-/**
- * A factory class for creating the actor to update location data.
- *
- * This factory is used internally by [LocationTellerService]. By providing a
- * mock implementation, a mock actor can be injected for testing purposes.
- */
-class UpdaterActorFactory {
-    /**
-     * Creates the actor for updating location data. Result may be *null* if
-     * mandatory configuration options are not set.
-     * @param preferencesHandler the preferences handler
-     * @param trackConfig the track configuration
-     * @param crScope the co-routine scope
-     * @return the new actor
-     */
-    @ObsoleteCoroutinesApi
-    fun createActor(
-        preferencesHandler: PreferencesHandler, trackConfig: TrackConfig,
-        crScope: CoroutineScope
-    ): SendChannel<LocationUpdate>? {
-        val serverConfig = preferencesHandler.createServerConfig()
-        return if (serverConfig != null) {
-            val trackService = TrackService.create(serverConfig)
-            val uploadController = UploadController(
-                preferencesHandler, trackService, trackConfig,
-                OfflineLocationStorage(trackConfig.offlineStorageSize, trackConfig.minTrackInterval * 1000L),
-                CurrentTimeService
-            )
-            locationUpdaterActor(uploadController, crScope)
-        } else null
-    }
-}
-
-/**
- * A factory class for creating a [LocationProcessor].
- *
- * This factory is used internally by [LocationTellerService]. By providing a
- * mock implementation, a mock actor can be injected for testing purposes.
- */
-class LocationProcessorFactory {
-    /**
-     * Creates a new _LocationProcessor_ based on the given parameters.
-     * @param context the context
-     * @param updater the actor for publishing updates
-     * @param trackConfig the track configuration
-     * @return the _LocationProcessor_ instance
-     */
-    fun createProcessor(context: Context, updater: SendChannel<LocationUpdate>, trackConfig: TrackConfig):
-            LocationProcessor =
-        LocationProcessor(
-            LocationServices.getFusedLocationProviderClient(context),
-            updater, CurrentTimeService,
-            trackConfig
-        )
-}
 
 /**
  * A service class that handles location updates in background.
@@ -102,12 +43,14 @@ class LocationProcessorFactory {
  * service stops itself.
  *
  * @param updaterFactory the factory for creating an updater actor
+ * @param retrieverFactory the factory for creating a _LocationRetriever_
  * @param processorFactory the factory for creating a _LocationProcessor_
  * @param timeService the time service
  */
 @ObsoleteCoroutinesApi
 class LocationTellerService(
     val updaterFactory: UpdaterActorFactory,
+    val retrieverFactory: LocationRetrieverFactory,
     val processorFactory: LocationProcessorFactory,
     val timeService: TimeService
 ) : Service(), CoroutineScope {
@@ -132,7 +75,10 @@ class LocationTellerService(
      * Creates a new instance of _LocationTellerService_ that uses default
      * factories.
      */
-    constructor() : this(UpdaterActorFactory(), LocationProcessorFactory(), CurrentTimeService)
+    constructor() : this(
+        UpdaterActorFactory(), LocationRetrieverFactory(), LocationProcessorFactory(),
+        CurrentTimeService
+    )
 
     @ObsoleteCoroutinesApi
     override fun onCreate() {
@@ -149,7 +95,8 @@ class LocationTellerService(
         val updaterActor = updaterFactory.createActor(preferencesHandler, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
-            locationProcessor = processorFactory.createProcessor(this, updaterActor, trackConfig)
+            val locRetriever = retrieverFactory.createRetriever(this, trackConfig)
+            locationProcessor = processorFactory.createProcessor(locRetriever, updaterActor)
         }
         startForegroundService()
     }
