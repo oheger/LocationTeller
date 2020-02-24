@@ -93,7 +93,7 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
      * @return the _PreferencesHandler_
      */
     protected open fun createPreferencesHandler(): PreferencesHandler =
-        PreferencesHandler.create(context!!)
+        PreferencesHandler.create(requireContext())
 
     /**
      * Creates the adapter for the list view with tracking statistics.
@@ -102,7 +102,7 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
      * @return the adapter for the tracking statistics list view
      */
     protected open fun createTrackingStatsAdapter(prefHandler: PreferencesHandler): TrackingStatsListAdapter =
-        TrackingStatsListAdapter.create(context!!, prefHandler)
+        TrackingStatsListAdapter.create(requireContext(), prefHandler)
 
     /**
      * Initializes a time component with a nullable time. If the time is
