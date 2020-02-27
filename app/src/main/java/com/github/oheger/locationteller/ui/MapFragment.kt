@@ -25,7 +25,6 @@ import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.map.TimeDeltaFormatter
-import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -59,8 +58,8 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     /** The map element. */
     private var map: GoogleMap? = null
 
-    /** The current server configuration. */
-    private var serverConfig: ServerConfig? = null
+    /** The object to interact with and update the map. */
+    private var mapUpdater: MapUpdater? = null
 
     /** The update interval for location data. */
     private var updateInterval: Long = 0
@@ -90,7 +89,8 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         deltaFormatter = TimeDeltaFormatter.create(requireContext())
         markerFactory = MarkerFactory(deltaFormatter)
         preferencesHandler = PreferencesHandler.create(requireContext())
-        serverConfig = preferencesHandler.createServerConfig()
+        val serverConfig = preferencesHandler.createServerConfig()
+        mapUpdater = serverConfig?.let { MapUpdater(it) }
         val trackConfig = preferencesHandler.createTrackConfig()
         updateInterval = trackConfig.minTrackInterval * 1000L
         Log.i(logTag, "Set update interval to $updateInterval ms.")
@@ -154,7 +154,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     override fun onMapReady(map: GoogleMap?) {
         Log.i(logTag, "Map is ready")
         this.map = map
-        canUpdate = serverConfig != null && map != null
+        canUpdate = mapUpdater != null && map != null
         Log.i(logTag, "Location updates possible: $canUpdate.")
         updateState(true)
     }
@@ -174,15 +174,14 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
             Log.i(logTag, "Triggering update operation.")
             updateInProgress()
             launch {
-                val currentState = MapUpdater.updateMap(
-                    serverConfig!!, currentMap, LocationFileState(emptyList(), emptyMap()),
-                    markerFactory, System.currentTimeMillis()
-                )
+                val currentState = mapUpdater?.updateMap(
+                    currentMap, emptyState, markerFactory, System.currentTimeMillis()
+                ) ?: emptyState
                 if (initView) {
-                    MapUpdater.zoomToAllMarkers(currentMap, currentState)
+                    mapUpdater?.zoomToAllMarkers(currentMap, currentState)
                 }
                 if (initView || (autoCenter && currentState != state)) {
-                    MapUpdater.centerRecentMarker(currentMap, currentState)
+                    mapUpdater?.centerRecentMarker(currentMap, currentState)
                 }
                 newStateArrived(currentState)
 
@@ -234,7 +233,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         val currentMap = map
         val currentState = state
         if (currentMap != null && currentState != null) {
-            MapUpdater.centerRecentMarker(currentMap, currentState)
+            mapUpdater?.centerRecentMarker(currentMap, currentState)
         }
     }
 
@@ -246,7 +245,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         val currentMap = map
         val currentState = state
         if (currentMap != null && currentState != null) {
-            MapUpdater.zoomToAllMarkers(currentMap, currentState)
+            mapUpdater?.zoomToAllMarkers(currentMap, currentState)
         }
     }
 
@@ -268,5 +267,11 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
          * the fragment becomes inactive or an update is requested manually.
          */
         private const val updateToken = "MAP_UPDATES"
+
+        /**
+         * Constant for a special, empty _LocationFileState_. This state is
+         * used as initial state and if no updater can be created.
+         */
+        private val emptyState = LocationFileState(emptyList(), emptyMap())
     }
 }

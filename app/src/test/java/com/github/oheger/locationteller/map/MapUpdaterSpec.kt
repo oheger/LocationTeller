@@ -49,7 +49,8 @@ class MapUpdaterSpec : StringSpec() {
 
     init {
         "MapUpdater should define a default track server factory" {
-            val service = MapUpdater.defaultTrackServerFactory(serverConfig)
+            val updater = MapUpdater(serverConfig)
+            val service = updater.trackServiceFactory(serverConfig)
             service.davClient.config shouldBe serverConfig
         }
 
@@ -135,8 +136,9 @@ class MapUpdaterSpec : StringSpec() {
             val map = mockk<GoogleMap>()
             every { CameraUpdateFactory.newLatLngBounds(expBounds, 0) } returns update
             every { map.moveCamera(update) } just runs
+            val updater = MapUpdater(serverConfig)
 
-            MapUpdater.zoomToAllMarkers(map, state)
+            updater.zoomToAllMarkers(map, state)
             verify { map.moveCamera(update) }
         }
 
@@ -149,16 +151,18 @@ class MapUpdaterSpec : StringSpec() {
             val map = mockk<GoogleMap>()
             every { CameraUpdateFactory.newLatLngZoom(markerData.position, 15f) } returns update
             every { map.moveCamera(update) } just runs
+            val updater = MapUpdater(serverConfig)
 
-            MapUpdater.zoomToAllMarkers(map, state)
+            updater.zoomToAllMarkers(map, state)
             verify { map.moveCamera(update) }
         }
 
         "MapUpdater should ignore a request to zoom when the state is empty" {
             val state = LocationFileState(emptyList(), emptyMap())
             val map = mockk<GoogleMap>()
+            val updater = MapUpdater(serverConfig)
 
-            MapUpdater.zoomToAllMarkers(map, state)  // not interactions with mocks
+            updater.zoomToAllMarkers(map, state)  // no interactions with mocks
         }
 
         "MapUpdater should center the map to the most recent marker" {
@@ -178,16 +182,18 @@ class MapUpdaterSpec : StringSpec() {
             every { map.cameraPosition } returns oldCameraPosition
             every { CameraUpdateFactory.newCameraPosition(cameraPosition) } returns update
             every { map.moveCamera(update) } just runs
+            val updater = MapUpdater(serverConfig)
 
-            MapUpdater.centerRecentMarker(map, state)
+            updater.centerRecentMarker(map, state)
             verify { map.moveCamera(update) }
         }
 
         "MapUpdater should ignore a center request for an empty state" {
             val state = LocationFileState(emptyList(), emptyMap())
             val map = mockk<GoogleMap>()
+            val updater = MapUpdater(serverConfig)
 
-            MapUpdater.centerRecentMarker(map, state)  // not interactions with mocks
+            updater.centerRecentMarker(map, state)  // no interactions with mocks
         }
     }
 
@@ -235,7 +241,8 @@ class MapUpdaterSpec : StringSpec() {
                 service
             }
             val currentMarkerFactory = markerFactory ?: createMarkerFactory(currentState)
-            return MapUpdater.updateMap(serverConfig, map, currentState, currentMarkerFactory, time, serviceFactory)
+            val updater = MapUpdater(serverConfig, serviceFactory)
+            return updater.updateMap(map, currentState, currentMarkerFactory, time)
         }
 
         /**

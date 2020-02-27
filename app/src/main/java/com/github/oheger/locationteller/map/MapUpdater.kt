@@ -26,46 +26,37 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * An object providing functionality to update a map with the most recent
+ * A class providing functionality to update a map with the most recent
  * locations loaded from the server.
  *
- * This object defines a function that loads the current status of location
+ * This class defines a function that loads the current status of location
  * files from the server. If there is a change compared with the current state,
  * the map is updated by adding markers for the new locations.
+ *
+ * There are some other functions to execute some operations on the map, e.g.
+ * setting specific zoom levels.
+ *
+ * @param serverConfig the configuration of the track server
+ * @param trackServiceFactory a factory to create new track service instances
  */
-object MapUpdater {
-    /**
-     * A default function for creating a _TrackService_ from a server
-     * configuration. This function just directly creates the service.
-     */
-    val defaultTrackServerFactory: (ServerConfig) -> TrackService =
-        { config -> TrackService.create(config) }
-
-    /**
-     * Constant for the default zoom level. This is used when there are not
-     * enough markers available to calculate a bounding box.
-     */
-    private const val defaultZoomLevel = 15f
-
+class MapUpdater(val serverConfig: ServerConfig,
+    val trackServiceFactory: (ServerConfig) -> TrackService = defaultTrackServerFactory) {
     /**
      * Updates the given map with the new state fetched from the server if
      * necessary. The updated state is returned which becomes the current
      * state for the next update.
-     * @param config the server configuration
      * @param map the map to be updated
      * @param currentState the current state of location data
      * @param markerFactory the factory for creating markers
      * @param currentTime the current time
-     * @param trackServerFactory the factory for a _TrackService_ instance
      * @return the updated state of location data
      */
     suspend fun updateMap(
-        config: ServerConfig, map: GoogleMap, currentState: LocationFileState,
-        markerFactory: MarkerFactory, currentTime: Long,
-        trackServerFactory: (ServerConfig) -> TrackService = defaultTrackServerFactory
+        map: GoogleMap, currentState: LocationFileState,
+        markerFactory: MarkerFactory, currentTime: Long
     ):
             LocationFileState = withContext(Dispatchers.IO) {
-        val trackService = trackServerFactory(config)
+        val trackService = trackServiceFactory(serverConfig)
         val filesOnServer = trackService.filesOnServer()
         if (currentState.stateChanged(filesOnServer)) {
             val knownData = createMarkerDataMap(currentState, filesOnServer, trackService)
@@ -174,5 +165,20 @@ object MapUpdater {
             val options = markerFactory.createMarker(state, file, time)
             map.addMarker(options)
         }
+    }
+
+    companion object {
+        /**
+         * A default function for creating a _TrackService_ from a server
+         * configuration. This function just directly creates the service.
+         */
+        val defaultTrackServerFactory: (ServerConfig) -> TrackService =
+            { config -> TrackService.create(config) }
+
+        /**
+         * Constant for the default zoom level. This is used when there are not
+         * enough markers available to calculate a bounding box.
+         */
+        private const val defaultZoomLevel = 15f
     }
 }
