@@ -25,6 +25,9 @@ import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.map.TimeDeltaFormatter
+import com.github.oheger.locationteller.server.CurrentTimeService
+import com.github.oheger.locationteller.server.ServerConfig
+import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -39,7 +42,7 @@ import kotlin.coroutines.CoroutineContext
  * A fragment class to display the location information read from the server
  * on a maps view.
  */
-class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, CoroutineScope {
+open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main
 
@@ -54,6 +57,9 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
 
     /** The factory for markers on the map. */
     private lateinit var markerFactory: MarkerFactory
+
+    /** The service for querying the current time. */
+    private lateinit var timeService: TimeService
 
     /** The map element. */
     private var map: GoogleMap? = null
@@ -71,7 +77,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     private var canUpdate: Boolean = false
 
     /** The current state of location data.*/
-    private var state: LocationFileState? = null
+    private var state: LocationFileState = emptyState
 
     /**
      * Flag whether the map should be centered automatically to the most recent
@@ -85,12 +91,13 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
 
         Log.i(logTag, "onCreate()")
         setHasOptionsMenu(true)
-        handler = Handler()
+        handler = createHandler()
         deltaFormatter = TimeDeltaFormatter.create(requireContext())
         markerFactory = MarkerFactory(deltaFormatter)
-        preferencesHandler = PreferencesHandler.create(requireContext())
+        preferencesHandler = createPreferencesHandler()
+        timeService = createTimeService()
         val serverConfig = preferencesHandler.createServerConfig()
-        mapUpdater = serverConfig?.let { MapUpdater(it) }
+        mapUpdater = serverConfig?.let(::createMapUpdater)
         val trackConfig = preferencesHandler.createTrackConfig()
         updateInterval = trackConfig.minTrackInterval * 1000L
         Log.i(logTag, "Set update interval to $updateInterval ms.")
@@ -135,6 +142,18 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
         }
     }
 
+    /**
+     * This implementation changes the enabled states of some menu items that
+     * depend on the availability of data.
+     */
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        val mapAvailable = map != null && mapUpdater != null
+        val locationsPresent = state.files.isNotEmpty()
+        menu.findItem(R.id.item_updateMap).isEnabled = mapAvailable
+        menu.findItem(R.id.item_center).isEnabled = locationsPresent
+        menu.findItem(R.id.item_zoomArea).isEnabled = locationsPresent
+    }
+
     override fun onPause() {
         Log.i(logTag, "onPause()")
         cancelPendingUpdates()
@@ -160,6 +179,32 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     }
 
     /**
+     * Creates the _PreferencesHandler_ used by this fragment.
+     * @return the _PreferencesHandler_ instance
+     */
+    protected open fun createPreferencesHandler(): PreferencesHandler =
+        PreferencesHandler.create(requireContext())
+
+    /**
+     * Creates the _MapUpdater_ to be used by this fragment.
+     * @return the _MapUpdater_ instance
+     */
+    protected open fun createMapUpdater(serverConfig: ServerConfig): MapUpdater =
+        MapUpdater(serverConfig)
+
+    /**
+     * Creates the _TimeService_ to be used by this fragment.
+     * @return the _TimeService_
+     */
+    protected open fun createTimeService(): TimeService = CurrentTimeService
+
+    /**
+     * Creates the loop handler to be used by this fragment.
+     * @return the _Handler_
+     */
+    protected open fun createHandler(): Handler = Handler()
+
+    /**
      * Updates the location state by fetching new location data from the server
      * and updating the map view if necessary. The boolean parameter indicates
      * whether the view should be initialized, i.e. a meaningful zoom level
@@ -175,7 +220,7 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
             updateInProgress()
             launch {
                 val currentState = mapUpdater?.updateMap(
-                    currentMap, emptyState, markerFactory, System.currentTimeMillis()
+                    currentMap, state, markerFactory, timeService.currentTime().currentTime
                 ) ?: emptyState
                 if (initView) {
                     mapUpdater?.zoomToAllMarkers(currentMap, currentState)
@@ -231,9 +276,8 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
      */
     private fun centerToRecentMarker() {
         val currentMap = map
-        val currentState = state
-        if (currentMap != null && currentState != null) {
-            mapUpdater?.centerRecentMarker(currentMap, currentState)
+        if (currentMap != null) {
+            mapUpdater?.centerRecentMarker(currentMap, state)
         }
     }
 
@@ -243,9 +287,8 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
      */
     private fun zoomToTrackedArea() {
         val currentMap = map
-        val currentState = state
-        if (currentMap != null && currentState != null) {
-            mapUpdater?.zoomToAllMarkers(currentMap, currentState)
+        if (currentMap != null) {
+            mapUpdater?.zoomToAllMarkers(currentMap, state)
         }
     }
 
@@ -258,15 +301,15 @@ class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, Corout
     }
 
     companion object {
-        /** Tag for log operations.*/
-        private const val logTag = "MapFragment"
-
         /**
          * A token used when posting delayed update operations using the
          * fragment's handler. With this token tasks can be removed again when
          * the fragment becomes inactive or an update is requested manually.
          */
-        private const val updateToken = "MAP_UPDATES"
+        const val updateToken = "MAP_UPDATES"
+
+        /** Tag for log operations.*/
+        private const val logTag = "MapFragment"
 
         /**
          * Constant for a special, empty _LocationFileState_. This state is
