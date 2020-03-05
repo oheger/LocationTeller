@@ -20,6 +20,8 @@ import com.github.oheger.locationteller.map.LocationTestHelper.createLocationDat
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
 import com.github.oheger.locationteller.map.LocationTestHelper.createState
 import com.github.oheger.locationteller.server.TimeData
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import io.kotlintest.matchers.floats.shouldBeGreaterThan
@@ -31,6 +33,7 @@ import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.verify
 
 /**
@@ -66,6 +69,49 @@ class MarkerFactorySpec : StringSpec() {
 
             options.title shouldBe title
             verify { factory.deltaFormatter.formatTimeDelta(delta) }
+        }
+
+        "MarkerFactory should set default values for optional properties" {
+            val data = createMarkerDataWithTime(currentTime - 10000)
+            val factory = createFactory()
+            val options = callFactoryForMarker(data, factory)
+
+            options.icon shouldBe null
+            options.zIndex shouldBe 0f
+            options.snippet shouldBe null
+        }
+
+        "MarkerFactory should set the zIndex when creating a marker" {
+            val zIndex = 11f
+            val data = createMarkerData(1)
+            val state = createStateWithData(data)
+            val factory = createFactory()
+
+            val options = factory.createMarker(state, state.files.first(), currentTime, zIndex = zIndex)
+            options.zIndex shouldBe zIndex
+        }
+
+        "MarkerFactory should set an additional text when creating a marker" {
+            val text = "This is additional information"
+            val data = createMarkerData(2)
+            val state = createStateWithData(data)
+            val factory = createFactory()
+
+            val options = factory.createMarker(state, state.files.first(), currentTime - 111, text = text)
+            options.snippet shouldBe text
+        }
+
+        "MarkerFactory should evaluate the color of the marker" {
+            val color = BitmapDescriptorFactory.HUE_GREEN
+            val descriptor = mockk<BitmapDescriptor>()
+            mockkStatic(BitmapDescriptorFactory::class)
+            every { BitmapDescriptorFactory.defaultMarker(color) } returns descriptor
+            val data = createMarkerData(3)
+            val state = createStateWithData(data)
+            val factory = createFactory()
+
+            val options = factory.createMarker(state, state.files.first(), currentTime - 22, color = color)
+            options.icon shouldBe descriptor
         }
 
         "MarkerFactory should set the alpha of the most recent marker to 1" {

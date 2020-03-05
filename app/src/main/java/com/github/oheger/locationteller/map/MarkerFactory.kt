@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.map
 
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.MarkerOptions
 
 /**
@@ -35,13 +37,23 @@ class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
      * @param state the current _LocationFileState_
      * @param key the key into the state (i.e. the path of the file)
      * @param time the current time
+     * @param zIndex a Z-index for the marker; markers with a high Z-index are
+     * drawn on top of markers with a low index
+     * @param text optional additional text for the marker
+     * @param color an optional marker color
      */
-    fun createMarker(state: LocationFileState, key: String, time: Long): MarkerOptions {
+    fun createMarker(
+        state: LocationFileState, key: String, time: Long, zIndex: Float = 0f,
+        text: String? = null, color: Float? = null
+    ): MarkerOptions {
         val data = state.markerData[key] ?: throw IllegalArgumentException("Cannot resolve key $key in state $state!")
         return MarkerOptions()
             .position(data.position)
             .title(createTitle(data, time))
+            .snippet(text)
+            .zIndex(zIndex)
             .alpha(calcAlpha(data, time, data === state.recentMarker()))
+            .icon(iconForColor(color))
     }
 
     /**
@@ -87,5 +99,13 @@ class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
 
         /** The alpha value used for markers in the day range. */
         const val AlphaDays = 0.1f
+
+        /**
+         * Obtains a special marker icon if a color has been provided.
+         * @param color the optional color of the marker
+         * @return the icon to be used for the marker
+         */
+        private fun iconForColor(color: Float?): BitmapDescriptor? =
+            color?.let { BitmapDescriptorFactory.defaultMarker(it) }
     }
 }
