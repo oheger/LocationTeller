@@ -15,15 +15,19 @@
  */
 package com.github.oheger.locationteller.map
 
+import android.location.Location
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.*
+import kotlin.math.round
 
 /**
  * A class providing functionality to update a map with the most recent
@@ -33,37 +37,53 @@ import kotlinx.coroutines.withContext
  * files from the server. If there is a change compared with the current state,
  * the map is updated by adding markers for the new locations.
  *
+ * Optionally, it is possible to display not only locations from the server but
+ * also the location of the current device (_own location_) on the map. If this
+ * data is passed, a marker with a different color is added to the map; in the
+ * text of this marker the distance to the last known server location is
+ * displayed.
+ *
  * There are some other functions to execute some operations on the map, e.g.
  * setting specific zoom levels.
  *
  * @param serverConfig the configuration of the track server
+ * @param distanceTemplate a format string for the distance of the own location
+ * to the last known server location
  * @param trackServiceFactory a factory to create new track service instances
  */
-class MapUpdater(val serverConfig: ServerConfig,
-    val trackServiceFactory: (ServerConfig) -> TrackService = defaultTrackServerFactory) {
+class MapUpdater(
+    val serverConfig: ServerConfig, val distanceTemplate: String,
+    val trackServiceFactory: (ServerConfig) -> TrackService = defaultTrackServerFactory
+) {
     /**
      * Updates the given map with the new state fetched from the server if
      * necessary. The updated state is returned which becomes the current
      * state for the next update.
      * @param map the map to be updated
      * @param currentState the current state of location data
+     * @param ownLocation the optional own location
      * @param markerFactory the factory for creating markers
      * @param currentTime the current time
      * @return the updated state of location data
      */
     suspend fun updateMap(
-        map: GoogleMap, currentState: LocationFileState,
+        map: GoogleMap, currentState: LocationFileState, ownLocation: MarkerData?,
         markerFactory: MarkerFactory, currentTime: Long
     ):
             LocationFileState = withContext(Dispatchers.IO) {
         val trackService = trackServiceFactory(serverConfig)
         val filesOnServer = trackService.filesOnServer()
-        if (currentState.stateChanged(filesOnServer)) {
+        val newState = if (currentState.stateChanged(filesOnServer)) {
             val knownData = createMarkerDataMap(currentState, filesOnServer, trackService)
             val newState = createNewLocationState(filesOnServer, knownData)
             updateMarkers(map, newState, markerFactory, currentTime)
             newState
         } else currentState
+
+        if (ownLocation != null) {
+            showOwnLocation(map, newState, ownLocation, markerFactory, currentTime)
+        }
+        newState
     }
 
     /**
@@ -99,11 +119,21 @@ class MapUpdater(val serverConfig: ServerConfig,
      * @param state the current state
      */
     fun centerRecentMarker(map: GoogleMap, state: LocationFileState) {
-        val recentMarker = state.recentMarker()
-        if (recentMarker != null) {
+        centerMarker(map, state.recentMarker())
+    }
+
+    /**
+     * Moves the camera of the map, so that the specified marker is in the
+     * center. The zoom level is not changed. If the marker is *null*, this
+     * function has not effect.
+     * @param map the map
+     * @param marker the marker to be centered
+     */
+    fun centerMarker(map: GoogleMap, marker: MarkerData?) {
+        if (marker != null) {
             val currentZoom = map.cameraPosition.zoom
             val cameraPosition = CameraPosition.Builder()
-                .target(recentMarker.position)
+                .target(marker.position)
                 .zoom(currentZoom)
                 .build()
             val cameraUpdate = CameraUpdateFactory.newCameraPosition(cameraPosition)
@@ -155,16 +185,70 @@ class MapUpdater(val serverConfig: ServerConfig,
      * Draws markers on the given map according to the given state.
      * @param map the map to be updated
      * @param state the current state of location data
+     * @param markerFactory the factory to create markers
+     * @param time the current time
      */
     private suspend fun updateMarkers(
         map: GoogleMap, state: LocationFileState, markerFactory: MarkerFactory,
         time: Long
     ) = withContext(Dispatchers.Main) {
         map.clear()
-        state.files.forEach { file ->
-            val options = markerFactory.createMarker(state, file, time)
-            map.addMarker(options)
-        }
+        val recentMarker = state.recentMarker()
+        val markerData = state.files.mapNotNull { state.markerData[it] }
+        markerData.withIndex()
+            .forEach { item ->
+                val options = markerFactory.createMarker(
+                    item.value, time, recentMarker = item.value == recentMarker,
+                    zIndex = item.index.toFloat()
+                )
+                map.addMarker(options)
+            }
+    }
+
+    /**
+     * Draws a marker representing the own location on the map. If there is a
+     * last known location in the state, the distance between this and the own
+     * location is calculated and added to the marker text. The marker for the
+     * own location has a different color, but otherwise behaves like other
+     * markers (also with regards to its alpha value).
+     * @param map the map to be updated
+     * @param state the current state of location data
+     * @param ownLocation the own location
+     * @param markerFactory the factory to create markers
+     * @param time the current time
+     */
+    private suspend fun showOwnLocation(
+        map: GoogleMap, state: LocationFileState, ownLocation: MarkerData,
+        markerFactory: MarkerFactory, time: Long
+    ) = withContext(Dispatchers.Main) {
+        val recentLocation = state.recentMarker()
+        val distanceString = generateDistanceString(recentLocation, ownLocation)
+        val options = markerFactory.createMarker(
+            ownLocation, time, recentMarker = false,
+            zIndex = state.files.size.toFloat() + 1, text = distanceString, color = BitmapDescriptorFactory.HUE_GREEN
+        )
+        map.addMarker(options)
+    }
+
+    /**
+     * Generates a string for the distance between the last known server
+     * location and the own location. The server location may be undefined,
+     * then the string is *null*. Otherwise, the distance is calculated and
+     * formatted according to the distance template string.
+     * @param recentLocation the recent location from the server
+     * @param ownLocation the own location
+     * @return a string with the distance between these locations
+     */
+    private fun generateDistanceString(
+        recentLocation: MarkerData?,
+        ownLocation: MarkerData
+    ): String? = recentLocation?.let {
+        val res = FloatArray(1)
+        Location.distanceBetween(
+            it.locationData.latitude, it.locationData.longitude,
+            ownLocation.locationData.latitude, ownLocation.locationData.longitude, res
+        )
+        String.format(Locale.ROOT, distanceTemplate, round(res[0]).toInt())
     }
 
     companion object {

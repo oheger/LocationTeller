@@ -59,7 +59,7 @@ class MapFragmentSpec {
             fragment.initMap()
             coVerify {
                 fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, LocationFileState(emptyList(), emptyMap()),
+                    fragment.mockMap, LocationFileState(emptyList(), emptyMap()), null,
                     any(), referenceTime.currentTime
                 )
                 fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextState)
@@ -142,12 +142,12 @@ class MapFragmentSpec {
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
-            coEvery { fragment.mockMapUpdater.updateMap(fragment.mockMap, any(), any(), any()) } returnsMany nextStates
+            coEvery { fragment.mockMapUpdater.updateMap(fragment.mockMap, any(), any(), any(), any()) } returnsMany nextStates
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             coVerify(exactly = 1) {
-                fragment.mockMapUpdater.updateMap(fragment.mockMap, initState, any(), any())
-                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextStates[0], any(), any())
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, initState, any(), any(), any())
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextStates[0], any(), any(), any())
                 fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[0])
                 fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[1])
                 fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextStates[0])
@@ -186,7 +186,7 @@ class MapFragmentSpec {
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
-            coEvery { fragment.mockMapUpdater.updateMap(any(), any(), any(), any()) } returnsMany nextStates
+            coEvery { fragment.mockMapUpdater.updateMap(any(), any(), any(), any(), any()) } returnsMany nextStates
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_autoCenter])
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
@@ -243,7 +243,7 @@ class MapFragmentSpec {
                 mockMenu[R.id.item_updateMap].isEnabled = false
             }
             coVerify(exactly = 0) {
-                fragment.mockMapUpdater.updateMap(any(), any(), any(), any())
+                fragment.mockMapUpdater.updateMap(any(), any(), any(), any(), any())
             }
         }
     }
@@ -353,7 +353,7 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
      * the given next state.
      */
     fun expectMapUpdate(nextState: LocationFileState) {
-        coEvery { mockMapUpdater.updateMap(any(), any(), any(), any()) } returns nextState
+        coEvery { mockMapUpdater.updateMap(any(), any(), any(), any(), any()) } returns nextState
     }
 
     /**

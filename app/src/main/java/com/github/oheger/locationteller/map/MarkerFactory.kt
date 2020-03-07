@@ -30,29 +30,25 @@ import com.google.android.gms.maps.model.MarkerOptions
 class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
     /**
      * Creates a _MarkerOptions_ object that corresponds to the given input
-     * parameters. The _MarkerData_ that is the basis for the options to be
-     * created is selected by the given key into a [LocationFileState] object.
-     * So all relevant information about the state as a whole is available as
-     * well.
-     * @param state the current _LocationFileState_
-     * @param key the key into the state (i.e. the path of the file)
+     * parameters.
+     * @param data the _MarkerData_ for which a marker is to be created
      * @param time the current time
+     * @param recentMarker flag whether this is the most recent marker
      * @param zIndex a Z-index for the marker; markers with a high Z-index are
      * drawn on top of markers with a low index
      * @param text optional additional text for the marker
      * @param color an optional marker color
      */
     fun createMarker(
-        state: LocationFileState, key: String, time: Long, zIndex: Float = 0f,
+        data: MarkerData, time: Long, recentMarker: Boolean, zIndex: Float = 0f,
         text: String? = null, color: Float? = null
     ): MarkerOptions {
-        val data = state.markerData[key] ?: throw IllegalArgumentException("Cannot resolve key $key in state $state!")
         return MarkerOptions()
             .position(data.position)
             .title(createTitle(data, time))
             .snippet(text)
             .zIndex(zIndex)
-            .alpha(calcAlpha(data, time, data === state.recentMarker()))
+            .alpha(calcAlpha(data, time, recentMarker))
             .icon(iconForColor(color))
     }
 

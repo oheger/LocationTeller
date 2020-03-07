@@ -15,10 +15,8 @@
  */
 package com.github.oheger.locationteller.map
 
-import com.github.oheger.locationteller.map.LocationTestHelper.createFile
 import com.github.oheger.locationteller.map.LocationTestHelper.createLocationData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
-import com.github.oheger.locationteller.map.LocationTestHelper.createState
 import com.github.oheger.locationteller.server.TimeData
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -29,7 +27,6 @@ import io.kotlintest.matchers.floats.shouldBeGreaterThanOrEqual
 import io.kotlintest.matchers.floats.shouldBeLessThan
 import io.kotlintest.matchers.floats.shouldBeLessThanOrEqual
 import io.kotlintest.shouldBe
-import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
@@ -42,23 +39,10 @@ import io.mockk.verify
 class MarkerFactorySpec : StringSpec() {
     init {
         "MarkerFactory should set the correct position" {
-            val state = createState(1..8)
-            val index = 5
-            val key = createFile(index)
-            val expLocation = createMarkerData(index)
-            val factory = createFactory()
+            val data = createMarkerData(5)
 
-            val options = factory.createMarker(state, key, 0)
-            options.position shouldBe expLocation.position
-        }
-
-        "MarkerFactory should throw if an invalid key is passed" {
-            val state = createState(1..2)
-            val factory = createFactory()
-
-            shouldThrow<IllegalArgumentException> {
-                factory.createMarker(state, createFile(4), 0)
-            }
+            val options = createOptionsForMarker(data)
+            options.position shouldBe data.position
         }
 
         "MarkerFactory should set a title using the time formatter" {
@@ -73,8 +57,7 @@ class MarkerFactorySpec : StringSpec() {
 
         "MarkerFactory should set default values for optional properties" {
             val data = createMarkerDataWithTime(currentTime - 10000)
-            val factory = createFactory()
-            val options = callFactoryForMarker(data, factory)
+            val options = createOptionsForMarker(data)
 
             options.icon shouldBe null
             options.zIndex shouldBe 0f
@@ -84,20 +67,18 @@ class MarkerFactorySpec : StringSpec() {
         "MarkerFactory should set the zIndex when creating a marker" {
             val zIndex = 11f
             val data = createMarkerData(1)
-            val state = createStateWithData(data)
             val factory = createFactory()
 
-            val options = factory.createMarker(state, state.files.first(), currentTime, zIndex = zIndex)
+            val options = factory.createMarker(data, currentTime, recentMarker = false, zIndex = zIndex)
             options.zIndex shouldBe zIndex
         }
 
         "MarkerFactory should set an additional text when creating a marker" {
             val text = "This is additional information"
             val data = createMarkerData(2)
-            val state = createStateWithData(data)
             val factory = createFactory()
 
-            val options = factory.createMarker(state, state.files.first(), currentTime - 111, text = text)
+            val options = factory.createMarker(data,currentTime - 111, recentMarker = false, text = text)
             options.snippet shouldBe text
         }
 
@@ -107,16 +88,15 @@ class MarkerFactorySpec : StringSpec() {
             mockkStatic(BitmapDescriptorFactory::class)
             every { BitmapDescriptorFactory.defaultMarker(color) } returns descriptor
             val data = createMarkerData(3)
-            val state = createStateWithData(data)
             val factory = createFactory()
 
-            val options = factory.createMarker(state, state.files.first(), currentTime - 22, color = color)
+            val options = factory.createMarker(data, currentTime - 22, recentMarker = false, color = color)
             options.icon shouldBe descriptor
         }
 
         "MarkerFactory should set the alpha of the most recent marker to 1" {
             val marker = createMarkerDataWithTime(currentTime - 5 * 24 * 60 * 60 * 1000)
-            val options = createOptionsForMarker(marker)
+            val options = createOptionsForMarker(marker, recentMarker = true)
 
             options.alpha shouldBe 1f
         }
@@ -124,11 +104,10 @@ class MarkerFactorySpec : StringSpec() {
         "MarkerFactory should set the alpha for markers in the minute range" {
             val marker1 = createMarkerDataWithTime(currentTime - 3 * 60 * 1000)
             val marker2 = createMarkerDataWithTime(currentTime - 59 * 60 * 1000)
-            val state = createStateWithData(marker2, marker1, currentMarker)
             val factory = createFactory()
 
-            val options1 = factory.createMarker(state, state.files.first(), currentTime)
-            val options2 = factory.createMarker(state, state.files[1], currentTime)
+            val options1 = factory.createMarker(marker2, currentTime, recentMarker = false)
+            val options2 = factory.createMarker(marker1, currentTime, recentMarker = false)
             options2.alpha shouldBeLessThan 1f
             options2.alpha shouldBeGreaterThan 0.9f
             options2.alpha shouldBeGreaterThan options1.alpha
@@ -139,11 +118,10 @@ class MarkerFactorySpec : StringSpec() {
             val deltaHour = 60 * 60 * 1000
             val marker1 = createMarkerDataWithTime(currentTime - 23 * deltaHour - 60)
             val marker2 = createMarkerDataWithTime(currentTime - 1 * deltaHour)
-            val state = createStateWithData(marker2, marker1, currentMarker)
             val factory = createFactory()
 
-            val options2 = factory.createMarker(state, state.files.first(), currentTime)
-            val options1 = factory.createMarker(state, state.files[1], currentTime)
+            val options2 = factory.createMarker(marker2, currentTime, recentMarker = false)
+            val options1 = factory.createMarker(marker1, currentTime, recentMarker = false)
             options2.alpha shouldBeLessThanOrEqual MarkerFactory.AlphaHoursMax
             options2.alpha shouldBeGreaterThan MarkerFactory.AlphaHoursMax - 0.02f
             options2.alpha shouldBeGreaterThan options1.alpha
@@ -154,11 +132,10 @@ class MarkerFactorySpec : StringSpec() {
             val deltaDay = (24 * 60 * 60 + 1) * 1000L
             val marker1 = createMarkerDataWithTime(currentTime - deltaDay)
             val marker2 = createMarkerDataWithTime(currentTime - 50 * deltaDay)
-            val state = createStateWithData(marker2, marker1, currentMarker)
             val factory = createFactory()
 
-            val options2 = factory.createMarker(state, state.files.first(), currentTime)
-            val options1 = factory.createMarker(state, state.files[1], currentTime)
+            val options2 = factory.createMarker(marker1, currentTime, recentMarker = false)
+            val options1 = factory.createMarker(marker2, currentTime, recentMarker = false)
             options1.alpha shouldBe MarkerFactory.AlphaDays
             options2.alpha shouldBe MarkerFactory.AlphaDays
         }
@@ -171,9 +148,6 @@ class MarkerFactorySpec : StringSpec() {
         /** The title to be returned in marker options. */
         private const val title = "formattedTimeDelta"
 
-        /** Constant for a marker created at the current reference time.*/
-        private val currentMarker = createMarkerDataWithTime(currentTime)
-
         /**
          * Creates a _MarkerData_ object with the given timestamp.
          * @param time the time of the marker
@@ -185,26 +159,15 @@ class MarkerFactorySpec : StringSpec() {
         }
 
         /**
-         * Creates a state object that contains exactly the given marker data
-         * objects.
-         * @param data the _MarkerData_ objects
-         * @return the state
-         */
-        private fun createStateWithData(vararg data: MarkerData): LocationFileState {
-            val keys = data.map { it.locationData.time.timeString }
-            val mappings = keys.zip(data)
-            return LocationFileState(keys, mappings.toMap())
-        }
-
-        /**
          * Invokes the factory to create marker options for the given marker
          * data. Creates a state that contains only this data. Then creates a
          * test factory and invokes it.
          * @param data the test _MarkerData_
+         * @param recentMarker flag whether this is the most recent marker
          * @return the options created for this data
          */
-        private fun createOptionsForMarker(data: MarkerData): MarkerOptions =
-            callFactoryForMarker(data, createFactory())
+        private fun createOptionsForMarker(data: MarkerData, recentMarker: Boolean = false): MarkerOptions =
+            callFactoryForMarker(data, createFactory(), recentMarker)
 
         /**
          * Invokes the given factory on a specific marker data object and
@@ -215,10 +178,10 @@ class MarkerFactorySpec : StringSpec() {
          */
         private fun callFactoryForMarker(
             data: MarkerData,
-            factory: MarkerFactory
+            factory: MarkerFactory,
+            recentMarker: Boolean = false
         ): MarkerOptions {
-            val state = createStateWithData(data)
-            return factory.createMarker(state, state.files.first(), currentTime)
+            return factory.createMarker(data, currentTime, recentMarker)
         }
 
         /**

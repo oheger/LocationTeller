@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.map
 
+import android.location.Location
 import com.github.oheger.locationteller.MockDispatcher
 import com.github.oheger.locationteller.ResetDispatcherListener
 import com.github.oheger.locationteller.map.LocationTestHelper.createFiles
@@ -28,10 +29,7 @@ import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotlintest.matchers.collections.shouldHaveSize
@@ -49,12 +47,12 @@ class MapUpdaterSpec : StringSpec() {
 
     init {
         "MapUpdater should define a default track server factory" {
-            val updater = MapUpdater(serverConfig)
+            val updater = MapUpdater(serverConfig, distanceTemplate)
             val service = updater.trackServiceFactory(serverConfig)
             service.davClient.config shouldBe serverConfig
         }
 
-        "MapUpdater should not update anything if there is not change" {
+        "MapUpdater should not update anything if there is no change" {
             val map = mockk<GoogleMap>()
             val state = mockk<LocationFileState>()
             val service = createMockService()
@@ -113,6 +111,70 @@ class MapUpdaterSpec : StringSpec() {
             newState shouldBe createState(1..3)
         }
 
+        "MapUpdater should handle the own location when updating the map" {
+            val map = mockk<GoogleMap>()
+            val state = createState(1..4)
+            val ownLocation = createMarkerData(42)
+            val lastLocation = state.recentMarker()!!
+            val distance = 1249.51f
+            val service = createMockService()
+            val newFiles = createFiles(1..4)
+            coEvery { service.readLocations(newFiles) } returns createLocationDataMap(1..4)
+            every { map.clear() } just runs
+            mockkStatic(Location::class)
+            every {
+                Location.distanceBetween(
+                    lastLocation.locationData.latitude, lastLocation.locationData.longitude,
+                    ownLocation.locationData.latitude, ownLocation.locationData.longitude, any()
+                )
+            } answers {
+                val res = arg<FloatArray>(4)
+                res[0] = distance
+                res.size shouldBe 1
+            }
+            val markerOptionsOwn = mockk<MarkerOptions>()
+            val markerFactory = mockk<MarkerFactory>()
+            val expMarkers = prepareMarkerFactory(markerFactory, state).toMutableList()
+            every {
+                markerFactory.createMarker(
+                    ownLocation, time, recentMarker = false,
+                    zIndex = 5f, text = "1250 m", color = BitmapDescriptorFactory.HUE_GREEN
+                )
+            } returns markerOptionsOwn
+            val actMarkers = trackAddedMarkers(map)
+            expMarkers.add(markerOptionsOwn)
+            MockDispatcher.installAsMain()
+
+            invokeUpdater(
+                map, LocationFileState(emptyList(), emptyMap()), service, markerFactory = markerFactory,
+                ownLocation = ownLocation
+            )
+            actMarkers shouldContainExactlyInAnyOrder expMarkers
+        }
+
+        "MapUpdater should handle the own location if there are no locations from the server" {
+            val map = mockk<GoogleMap>()
+            val ownLocation = createMarkerData(42)
+            val service = mockk<TrackService>()
+            coEvery { service.filesOnServer() } returns emptyList()
+            val markerOptionsOwn = mockk<MarkerOptions>()
+            val markerFactory = mockk<MarkerFactory>()
+            every {
+                markerFactory.createMarker(
+                    ownLocation, time, recentMarker = false,
+                    zIndex = 1f, color = BitmapDescriptorFactory.HUE_GREEN
+                )
+            } returns markerOptionsOwn
+            val actMarkers = trackAddedMarkers(map)
+            MockDispatcher.installAsMain()
+
+            invokeUpdater(
+                map, LocationFileState(emptyList(), emptyMap()), service, markerFactory = markerFactory,
+                ownLocation = ownLocation
+            )
+            actMarkers shouldContainExactlyInAnyOrder listOf(markerOptionsOwn)
+        }
+
         "MapUpdater should set a zoom level to view all markers in the given state object" {
             val minLat = 47.125
             val maxLat = 47.985
@@ -136,7 +198,7 @@ class MapUpdaterSpec : StringSpec() {
             val map = mockk<GoogleMap>()
             every { CameraUpdateFactory.newLatLngBounds(expBounds, 0) } returns update
             every { map.moveCamera(update) } just runs
-            val updater = MapUpdater(serverConfig)
+            val updater = MapUpdater(serverConfig, distanceTemplate)
 
             updater.zoomToAllMarkers(map, state)
             verify { map.moveCamera(update) }
@@ -151,7 +213,7 @@ class MapUpdaterSpec : StringSpec() {
             val map = mockk<GoogleMap>()
             every { CameraUpdateFactory.newLatLngZoom(markerData.position, 15f) } returns update
             every { map.moveCamera(update) } just runs
-            val updater = MapUpdater(serverConfig)
+            val updater = MapUpdater(serverConfig, distanceTemplate)
 
             updater.zoomToAllMarkers(map, state)
             verify { map.moveCamera(update) }
@@ -160,7 +222,7 @@ class MapUpdaterSpec : StringSpec() {
         "MapUpdater should ignore a request to zoom when the state is empty" {
             val state = LocationFileState(emptyList(), emptyMap())
             val map = mockk<GoogleMap>()
-            val updater = MapUpdater(serverConfig)
+            val updater = MapUpdater(serverConfig, distanceTemplate)
 
             updater.zoomToAllMarkers(map, state)  // no interactions with mocks
         }
@@ -182,7 +244,7 @@ class MapUpdaterSpec : StringSpec() {
             every { map.cameraPosition } returns oldCameraPosition
             every { CameraUpdateFactory.newCameraPosition(cameraPosition) } returns update
             every { map.moveCamera(update) } just runs
-            val updater = MapUpdater(serverConfig)
+            val updater = MapUpdater(serverConfig, distanceTemplate)
 
             updater.centerRecentMarker(map, state)
             verify { map.moveCamera(update) }
@@ -191,7 +253,7 @@ class MapUpdaterSpec : StringSpec() {
         "MapUpdater should ignore a center request for an empty state" {
             val state = LocationFileState(emptyList(), emptyMap())
             val map = mockk<GoogleMap>()
-            val updater = MapUpdater(serverConfig)
+            val updater = MapUpdater(serverConfig, distanceTemplate)
 
             updater.centerRecentMarker(map, state)  // no interactions with mocks
         }
@@ -200,6 +262,9 @@ class MapUpdaterSpec : StringSpec() {
     companion object {
         /** Constant for the current time.*/
         private const val time = 20190722181704L
+
+        /** The template to generate the distance information. */
+        private const val distanceTemplate = "%d m"
 
         /** A test server configuration used by this class.*/
         private val serverConfig = ServerConfig(
@@ -233,7 +298,7 @@ class MapUpdaterSpec : StringSpec() {
          */
         private suspend fun invokeUpdater(
             map: GoogleMap, currentState: LocationFileState, service: TrackService,
-            markerFactory: MarkerFactory? = null
+            markerFactory: MarkerFactory? = null, ownLocation: MarkerData? = null
         ):
                 LocationFileState {
             val serviceFactory: (ServerConfig) -> TrackService = { config ->
@@ -241,8 +306,8 @@ class MapUpdaterSpec : StringSpec() {
                 service
             }
             val currentMarkerFactory = markerFactory ?: createMarkerFactory(currentState)
-            val updater = MapUpdater(serverConfig, serviceFactory)
-            return updater.updateMap(map, currentState, currentMarkerFactory, time)
+            val updater = MapUpdater(serverConfig, distanceTemplate, serviceFactory)
+            return updater.updateMap(map, currentState, ownLocation, currentMarkerFactory, time)
         }
 
         /**
@@ -268,10 +333,21 @@ class MapUpdaterSpec : StringSpec() {
          */
         private fun prepareMarkerFactory(factory: MarkerFactory, state: LocationFileState): List<MarkerOptions> {
             val markerOptions = mutableListOf<MarkerOptions>()
-            state.files.forEach { file ->
-                val option = mockk<MarkerOptions>()
-                every { factory.createMarker(state, file, time) } returns option
-                markerOptions.add(option)
+            state.files.withIndex().forEach { item ->
+                val data = state.markerData[item.value]
+                if (data != null) {
+                    val recent = item.index == state.files.size - 1
+                    val option = mockk<MarkerOptions>()
+                    every {
+                        factory.createMarker(
+                            data,
+                            time,
+                            recent,
+                            zIndex = item.index.toFloat()
+                        )
+                    } returns option
+                    markerOptions.add(option)
+                }
             }
             return markerOptions
         }
@@ -296,7 +372,7 @@ class MapUpdaterSpec : StringSpec() {
          */
         private fun createRelaxedMarkerFactory(): MarkerFactory {
             val factory = mockk<MarkerFactory>()
-            every { factory.createMarker(any(), any(), time) } returns mockk()
+            every { factory.createMarker(any(), time, any(), any()) } returns mockk()
             return factory
         }
     }

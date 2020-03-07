@@ -190,7 +190,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * @return the _MapUpdater_ instance
      */
     protected open fun createMapUpdater(serverConfig: ServerConfig): MapUpdater =
-        MapUpdater(serverConfig)
+        MapUpdater(serverConfig, "")  //TODO set correct template
 
     /**
      * Creates the _TimeService_ to be used by this fragment.
@@ -220,7 +220,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
             updateInProgress()
             launch {
                 val currentState = mapUpdater?.updateMap(
-                    currentMap, state, markerFactory, timeService.currentTime().currentTime
+                    currentMap, state, null, markerFactory, timeService.currentTime().currentTime
                 ) ?: emptyState
                 if (initView) {
                     mapUpdater?.zoomToAllMarkers(currentMap, currentState)
