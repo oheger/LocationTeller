@@ -20,21 +20,24 @@ import android.os.Handler
 import android.os.SystemClock
 import android.util.Log
 import android.view.*
+import android.widget.Toast
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.map.LocationFileState
-import com.github.oheger.locationteller.map.MapUpdater
-import com.github.oheger.locationteller.map.MarkerFactory
-import com.github.oheger.locationteller.map.TimeDeltaFormatter
+import com.github.oheger.locationteller.map.*
 import com.github.oheger.locationteller.server.CurrentTimeService
+import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TimeService
+import com.github.oheger.locationteller.track.LocationRetriever
+import com.github.oheger.locationteller.track.LocationRetrieverFactory
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.android.synthetic.main.fragment_map.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
@@ -61,6 +64,9 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     /** The service for querying the current time. */
     private lateinit var timeService: TimeService
 
+    /** The object to retrieve the location of this device. */
+    private lateinit var locationRetriever: LocationRetriever
+
     /** The map element. */
     private var map: GoogleMap? = null
 
@@ -78,6 +84,9 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
 
     /** The current state of location data.*/
     private var state: LocationFileState = emptyState
+
+    /** Stores the marker for the own location. */
+    private var ownMarker: MarkerData? = null
 
     /**
      * Flag whether the map should be centered automatically to the most recent
@@ -101,6 +110,9 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         val trackConfig = preferencesHandler.createTrackConfig()
         updateInterval = trackConfig.minTrackInterval * 1000L
         Log.i(logTag, "Set update interval to $updateInterval ms.")
+
+        val retrieverFactory = createLocationRetrieverFactory()
+        locationRetriever = retrieverFactory.createRetriever(requireContext(), trackConfig)
     }
 
     override fun onCreateView(
@@ -118,6 +130,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         super.onCreateOptionsMenu(menu, inflater)
     }
 
+    @ObsoleteCoroutinesApi
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.item_center -> {
@@ -138,6 +151,14 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
                 item.isChecked = autoCenter
                 true
             }
+            R.id.item_own_location -> {
+                showOwnLocation()
+                true
+            }
+            R.id.item_center_own_location -> {
+                centerToOwnLocation()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -152,6 +173,8 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         menu.findItem(R.id.item_updateMap).isEnabled = mapAvailable
         menu.findItem(R.id.item_center).isEnabled = locationsPresent
         menu.findItem(R.id.item_zoomArea).isEnabled = locationsPresent
+        menu.findItem(R.id.item_own_location).isEnabled = mapAvailable
+        menu.findItem(R.id.item_center_own_location).isEnabled = ownMarker != null
     }
 
     override fun onPause() {
@@ -190,7 +213,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * @return the _MapUpdater_ instance
      */
     protected open fun createMapUpdater(serverConfig: ServerConfig): MapUpdater =
-        MapUpdater(serverConfig, "")  //TODO set correct template
+        MapUpdater(serverConfig, getString(R.string.map_distance))
 
     /**
      * Creates the _TimeService_ to be used by this fragment.
@@ -205,12 +228,17 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     protected open fun createHandler(): Handler = Handler()
 
     /**
+     * Creates the factory to create a _LocationRetriever_ object.
+     * @return the factory for a _LocationRetriever_
+     */
+    protected open fun createLocationRetrieverFactory(): LocationRetrieverFactory =
+        LocationRetrieverFactory()
+
+    /**
      * Updates the location state by fetching new location data from the server
      * and updating the map view if necessary. The boolean parameter indicates
      * whether the view should be initialized, i.e. a meaningful zoom level
-     * and position should be set. Note that this method is called only if all
-     * prerequisites for an update operation are fulfilled; therefore, the
-     * !! operator can be used to state that fields are not *null*.
+     * and position should be set.
      * @param initView flag whether the view should be initialized
      */
     private fun updateState(initView: Boolean) {
@@ -220,7 +248,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
             updateInProgress()
             launch {
                 val currentState = mapUpdater?.updateMap(
-                    currentMap, state, null, markerFactory, timeService.currentTime().currentTime
+                    currentMap, state, ownMarker, markerFactory, timeService.currentTime().currentTime
                 ) ?: emptyState
                 if (initView) {
                     mapUpdater?.zoomToAllMarkers(currentMap, currentState)
@@ -289,6 +317,45 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         val currentMap = map
         if (currentMap != null) {
             mapUpdater?.zoomToAllMarkers(currentMap, state)
+        }
+    }
+
+    /**
+     * Queries the location of the device and updates the map to display it.
+     */
+    @ObsoleteCoroutinesApi
+    private fun showOwnLocation() {
+        map?.let { currentMap ->
+            launch {
+                val marker  = locationRetriever.fetchLocation()?.let {
+                    MarkerData(
+                        LocationData(it.latitude, it.longitude, timeService.currentTime()),
+                        LatLng(it.latitude, it.longitude)
+                    )
+                }
+                if(marker != null) {
+                    cancelPendingUpdates()
+                    mapUpdater?.updateMap(
+                        currentMap, state, marker, markerFactory,
+                        timeService.currentTime().currentTime
+                    )
+                    mapUpdater?.centerMarker(currentMap, marker)
+                    ownMarker = marker
+                } else {
+                    val toast = Toast.makeText(requireContext(), R.string.map_no_own_location,
+                    Toast.LENGTH_SHORT)
+                    toast.show()
+                }
+            }
+        }
+    }
+
+    /**
+     * Changes the map view, so that the own location marker is in the center.
+     */
+    private fun centerToOwnLocation() {
+        map?.let { currentMap ->
+            mapUpdater?.centerMarker(currentMap, ownMarker)
         }
     }
 

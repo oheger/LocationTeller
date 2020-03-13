@@ -62,4 +62,8 @@
     <string name="pref_multi_upload_chunk_size">No of uploads per offline sync op</string>
     <string name="pref_basic_settings">Basic</string>
     <string name="pref_advanced_settings">Advanced</string>
+    <string name="map_distance">Current distance: %d m</string>
+    <string name="item_update_my_location">Update my location</string>
+    <string name="item_center_to_my_location">Center to my location</string>
+    <string name="map_no_own_location">Failed to retrieve the current location</string>
 </resources>

@@ -15,37 +15,45 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.location.Location
 import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapUpdater
-import com.github.oheger.locationteller.server.ServerConfig
-import com.github.oheger.locationteller.server.TimeData
-import com.github.oheger.locationteller.server.TimeService
+import com.github.oheger.locationteller.map.MarkerData
+import com.github.oheger.locationteller.server.*
+import com.github.oheger.locationteller.track.LocationRetriever
+import com.github.oheger.locationteller.track.LocationRetrieverFactory
 import com.github.oheger.locationteller.track.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.LatLng
 import io.kotlintest.shouldBe
 import io.mockk.*
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
  * Test class for [[MapFragment]].
  */
+@ObsoleteCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class MapFragmentSpec {
     @Test
-    fun `server config is used to create MapUpdater`() {
+    fun `correct MapUpdater is created`() {
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
-            fragment.configForMapUpdater shouldBe TrackTestHelper.defServerConfig
+            fragment.orgMapUpdater.serverConfig shouldBe TrackTestHelper.defServerConfig
+            val distTemplate = fragment.getString(R.string.map_distance)
+            fragment.orgMapUpdater.distanceTemplate shouldBe distTemplate
         }
     }
 
@@ -125,6 +133,7 @@ class MapFragmentSpec {
             fragment.onPrepareOptionsMenu(mockMenu.menu)
             verify {
                 mockMenu[R.id.item_updateMap].isEnabled = true
+                mockMenu[R.id.item_own_location].isEnabled = true
                 mockMenu[R.id.item_center].isEnabled = false
                 mockMenu[R.id.item_zoomArea].isEnabled = false
             }
@@ -142,7 +151,15 @@ class MapFragmentSpec {
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
-            coEvery { fragment.mockMapUpdater.updateMap(fragment.mockMap, any(), any(), any(), any()) } returnsMany nextStates
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap,
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            } returnsMany nextStates
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             coVerify(exactly = 1) {
@@ -241,6 +258,7 @@ class MapFragmentSpec {
             fragment.onPrepareOptionsMenu(mockMenu.menu)
             verify {
                 mockMenu[R.id.item_updateMap].isEnabled = false
+                mockMenu[R.id.item_own_location].isEnabled = false
             }
             coVerify(exactly = 0) {
                 fragment.mockMapUpdater.updateMap(any(), any(), any(), any(), any())
@@ -260,9 +278,161 @@ class MapFragmentSpec {
         }
     }
 
+    @Test
+    fun `center to own position command is disabled if own location is unknown`() {
+        val mockMenu = createMockMenu()
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+
+        scenario.onFragment { fragment ->
+            fragment.onPrepareOptionsMenu(mockMenu.menu)
+            verify {
+                mockMenu[R.id.item_center_own_location].isEnabled = false
+            }
+        }
+    }
+
+    @Test
+    fun `show own location command can be executed`() {
+        val mockMenu = createMockMenu()
+        val initState = LocationFileState(emptyList(), emptyMap())
+        val nextState1 = LocationFileState(files = listOf("location"), markerData = emptyMap())
+        val nextState2 = LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+
+        scenario.onFragment { fragment ->
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, initState, null,
+                    any(), any()
+                )
+            } returns nextState1
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, nextState1, ownMarker,
+                    any(), any()
+                )
+            } returns nextState2
+            coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
+            fragment.initMap()
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            fragment.onPrepareOptionsMenu(mockMenu.menu)
+            verify {
+                fragment.handler.removeCallbacksAndMessages(MapFragment.updateToken)
+                fragment.mockMapUpdater.centerMarker(fragment.mockMap, ownMarker)
+                mockMenu[R.id.item_center_own_location].isEnabled = true
+            }
+            coVerify {
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
+            }
+        }
+    }
+
+    @Test
+    fun `show own location command should handle the case that no location can be retrieved`() {
+        val mockMenu = createMockMenu()
+        val nextState = LocationFileState(files = listOf("location"), markerData = emptyMap())
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+        mockkStatic(Toast::class)
+        val toast = mockk<Toast>()
+
+        scenario.onFragment { fragment ->
+            every {
+                Toast.makeText(
+                    fragment.requireContext(), R.string.map_no_own_location,
+                    Toast.LENGTH_SHORT
+                )
+            } returns toast
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, any(), null,
+                    any(), any()
+                )
+            } returns nextState
+            coEvery { fragment.mockLocationRetriever.fetchLocation() } returns null
+            fragment.initMap()
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            verify { toast.show() }
+        }
+    }
+
+    @Test
+    fun `center to own location command can be executed`() {
+        val mockMenu = createMockMenu()
+        val initState = LocationFileState(emptyList(), emptyMap())
+        val nextState1 = LocationFileState(files = listOf("location"), markerData = emptyMap())
+        val nextState2 = LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+
+        scenario.onFragment { fragment ->
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, initState, null,
+                    any(), any()
+                )
+            } returns nextState1
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, nextState1, ownMarker,
+                    any(), any()
+                )
+            } returns nextState2
+            coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
+            fragment.initMap()
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_center_own_location])
+            verify(exactly = 2) {
+                fragment.mockMapUpdater.centerMarker(fragment.mockMap, ownMarker)
+            }
+        }
+    }
+
+    @Test
+    fun `update map command also updates the own location marker`() {
+        val mockMenu = createMockMenu()
+        val initState = LocationFileState(emptyList(), emptyMap())
+        val nextState1 = LocationFileState(files = listOf("location"), markerData = emptyMap())
+        val nextState2 = LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+
+        scenario.onFragment { fragment ->
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, initState, null,
+                    any(), any()
+                )
+            } returns nextState1
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, nextState1, ownMarker,
+                    any(), any()
+                )
+            } returns nextState2
+            coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
+            every { fragment.mockMapUpdater.centerMarker(fragment.mockMap, any()) } just runs
+            fragment.initMap()
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
+
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_center_own_location])
+            coVerify {
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
+            }
+        }
+    }
+
     companion object {
         /** A reference time to be returned by the time service per default. */
         val referenceTime = TimeData(20200228182652L)
+
+        /** The latitude of the own location. */
+        private const val ownLat = 33.12
+
+        /** The longitude of the own location. */
+        private const val ownLng = 7.77
+
+        /** A marker representing the own location. */
+        private val ownMarker = MarkerData(LocationData(ownLat, ownLng, referenceTime), LatLng(ownLat, ownLng))
 
         /**
          * A class storing the data of the mocked options menu. The class
@@ -285,7 +455,7 @@ class MapFragmentSpec {
         private fun createMockMenu(): MockMenu {
             val itemIds = listOf(
                 R.id.item_updateMap, R.id.item_zoomArea, R.id.item_center,
-                R.id.item_autoCenter
+                R.id.item_autoCenter, R.id.item_own_location, R.id.item_center_own_location
             )
             val itemMocks = itemIds.map { id ->
                 val item = mockk<MenuItem>(relaxed = true)
@@ -299,6 +469,17 @@ class MapFragmentSpec {
             }
             return MockMenu(menu, itemsMap)
         }
+
+        /**
+         * Creates a mock _Location_ with the coordinates of the own location.
+         * @return the mock _Location_ object
+         */
+        private fun mockOwnLocation(): Location {
+            val ownLoc = mockk<Location>()
+            every { ownLoc.latitude } returns ownLat
+            every { ownLoc.longitude } returns ownLng
+            return ownLoc
+        }
     }
 }
 
@@ -306,6 +487,7 @@ class MapFragmentSpec {
  * A test implementation base class of _MapFragment_ that injects mock objects
  * for important dependencies.
  */
+@ObsoleteCoroutinesApi
 open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTestHelper.defServerConfig) :
     MapFragment() {
     /** The mock for the preferences handler. */
@@ -317,28 +499,45 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
     /** The mock for the map managed by the fragment. */
     val mockMap = mockk<GoogleMap>()
 
+    /** The mock location retriever. */
+    val mockLocationRetriever = mockk<LocationRetriever>()
+
     /** A spy for the handler used by the fragment. */
     lateinit var handler: Handler
 
     /** The mock time service. */
     private val mockTimeService = createMockTimeService()
 
-    /** Stores the config used for the creation of the map updater. */
-    var configForMapUpdater: ServerConfig? = null
+    /** Stores the original map updater that was created. */
+    lateinit var orgMapUpdater: MapUpdater
 
     override fun createPreferencesHandler(): PreferencesHandler = mockPrefHandler
 
     override fun createMapUpdater(serverConfig: ServerConfig): MapUpdater {
-        configForMapUpdater = serverConfig
+        orgMapUpdater = super.createMapUpdater(serverConfig)
         return mockMapUpdater
     }
 
-    override fun createTimeService(): TimeService = mockTimeService
+    override fun createTimeService(): TimeService {
+        super.createTimeService() shouldBe CurrentTimeService
+        return mockTimeService
+    }
 
     override fun createHandler(): Handler {
         val orgHandler = super.createHandler()
         handler = spyk(orgHandler)
         return handler
+    }
+
+    override fun createLocationRetrieverFactory(): LocationRetrieverFactory {
+        val factory = mockk<LocationRetrieverFactory>()
+        every {
+            factory.createRetriever(
+                requireContext(),
+                TrackTestHelper.defTrackConfig
+            )
+        } returns mockLocationRetriever
+        return factory
     }
 
     /**
@@ -380,6 +579,7 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
      * Creates the mock time service and prepares it to return a standard
      * reference time.
      */
+    @ObsoleteCoroutinesApi
     private fun createMockTimeService(): TimeService {
         val service = mockk<TimeService>()
         every { service.currentTime() } returns MapFragmentSpec.referenceTime
@@ -391,10 +591,12 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
  * An implementation of _MapFragment_ with a valid server configuration. Here
  * everything should be active.
  */
+@ObsoleteCoroutinesApi
 class MapFragmentTestImplWithConfig : MapFragmentTestImpl()
 
 /**
  * An implementation of _MapFragment_ that simulates the scenario that no valid
  * server configuration is available. Here most actions should be disabled.
  */
+@ObsoleteCoroutinesApi
 class MapFragmentTestImplWithNoConfig : MapFragmentTestImpl(serverConfig = null)

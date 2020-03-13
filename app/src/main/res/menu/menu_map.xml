@@ -14,6 +14,14 @@
           android:title="@string/item_center_to_recent"
           android:orderInCategory="100"
           app:showAsAction="ifRoom"/>
+    <item android:id="@+id/item_own_location"
+          android:title="@string/item_update_my_location"
+          android:orderInCategory="100"
+          app:showAsAction="ifRoom"/>
+    <item android:id="@+id/item_center_own_location"
+          android:title="@string/item_center_to_my_location"
+          android:orderInCategory="100"
+          app:showAsAction="ifRoom"/>
     <item android:id="@+id/item_autoCenter"
           android:title="@string/item_auto_center"
           android:orderInCategory="100"
