@@ -25,6 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
+import com.github.oheger.locationteller.map.MapMarkerState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.server.*
@@ -59,7 +60,7 @@ class MapFragmentSpec {
 
     @Test
     fun `MapUpdater is invoked when all dependencies are present`() {
-        val nextState = LocationFileState(files = listOf("foo"), markerData = emptyMap())
+        val nextState = markerState("foo")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -67,18 +68,18 @@ class MapFragmentSpec {
             fragment.initMap()
             coVerify {
                 fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, LocationFileState(emptyList(), emptyMap()), null,
-                    any(), referenceTime.currentTime
+                    fragment.mockMap, MapMarkerState(LocationFileState(emptyList(), emptyMap()), null),
+                    null, any(), referenceTime.currentTime
                 )
-                fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextState)
-                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextState)
+                fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextState.locations)
+                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextState.locations)
             }
         }
     }
 
     @Test
     fun `update is scheduled periodically`() {
-        val nextState = LocationFileState(files = listOf("foo_loc"), markerData = emptyMap())
+        val nextState = markerState("foo_loc")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -108,7 +109,7 @@ class MapFragmentSpec {
     fun `menu items are enabled if markers are available`() {
         val enabledItems = listOf(R.id.item_updateMap, R.id.item_center, R.id.item_zoomArea)
         val mockMenu = createMockMenu()
-        val nextState = LocationFileState(files = listOf("data"), markerData = emptyMap())
+        val nextState = markerState("data")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -124,7 +125,7 @@ class MapFragmentSpec {
     @Test
     fun `some menu items are enabled only if markers are available`() {
         val mockMenu = createMockMenu()
-        val nextState = LocationFileState(files = emptyList(), markerData = emptyMap())
+        val nextState = markerState()
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -143,10 +144,9 @@ class MapFragmentSpec {
     @Test
     fun `update map command can be executed`() {
         val mockMenu = createMockMenu()
-        val initState = LocationFileState(emptyList(), emptyMap())
         val nextStates = listOf(
-            LocationFileState(files = listOf("location"), markerData = emptyMap()),
-            LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+            markerState("location"),
+            markerState("loc1", "loc2")
         )
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
@@ -163,11 +163,11 @@ class MapFragmentSpec {
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             coVerify(exactly = 1) {
-                fragment.mockMapUpdater.updateMap(fragment.mockMap, initState, any(), any(), any())
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, initMarkerState, any(), any(), any())
                 fragment.mockMapUpdater.updateMap(fragment.mockMap, nextStates[0], any(), any(), any())
-                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[0])
-                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[1])
-                fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextStates[0])
+                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[0].locations)
+                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[1].locations)
+                fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextStates[0].locations)
             }
             verify {
                 fragment.handler.removeCallbacksAndMessages(MapFragment.updateToken)
@@ -178,7 +178,7 @@ class MapFragmentSpec {
     @Test
     fun `center to last location is only done if the state changes`() {
         val mockMenu = createMockMenu()
-        val nextState = LocationFileState(files = listOf("loc"), markerData = emptyMap())
+        val nextState = markerState("loc")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -186,7 +186,7 @@ class MapFragmentSpec {
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             coVerify(exactly = 1) {
-                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextState)
+                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextState.locations)
             }
         }
     }
@@ -197,8 +197,8 @@ class MapFragmentSpec {
         val itemAutoCenter = mockMenu[R.id.item_autoCenter]
         every { itemAutoCenter.isChecked } returns true
         val nextStates = listOf(
-            LocationFileState(files = listOf("location"), markerData = emptyMap()),
-            LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+            markerState("location"),
+            markerState("loc1", "loc2")
         )
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
@@ -208,7 +208,7 @@ class MapFragmentSpec {
             fragment.onOptionsItemSelected(mockMenu[R.id.item_autoCenter])
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             coVerify(exactly = 0) {
-                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[1])
+                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextStates[1].locations)
             }
             verify {
                 itemAutoCenter.isChecked = false
@@ -219,7 +219,7 @@ class MapFragmentSpec {
     @Test
     fun `center to recent marker command can be executed`() {
         val mockMenu = createMockMenu()
-        val nextState = LocationFileState(files = listOf("loc"), markerData = emptyMap())
+        val nextState = markerState("loc")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -227,7 +227,7 @@ class MapFragmentSpec {
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_center])
             coVerify(exactly = 2) {
-                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextState)
+                fragment.mockMapUpdater.centerRecentMarker(fragment.mockMap, nextState.locations)
             }
         }
     }
@@ -235,7 +235,7 @@ class MapFragmentSpec {
     @Test
     fun `zoom to all markers command can be executed`() {
         val mockMenu = createMockMenu()
-        val nextState = LocationFileState(files = listOf("loc"), markerData = emptyMap())
+        val nextState = markerState("loc")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
@@ -243,7 +243,7 @@ class MapFragmentSpec {
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_zoomArea])
             coVerify(exactly = 2) {
-                fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextState)
+                fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextState.locations)
             }
         }
     }
@@ -294,15 +294,14 @@ class MapFragmentSpec {
     @Test
     fun `show own location command can be executed`() {
         val mockMenu = createMockMenu()
-        val initState = LocationFileState(emptyList(), emptyMap())
-        val nextState1 = LocationFileState(files = listOf("location"), markerData = emptyMap())
-        val nextState2 = LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+        val nextState1 = markerState("location")
+        val nextState2 = markerState("loc1", "loc2")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
             coEvery {
                 fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, initState, null,
+                    fragment.mockMap, initMarkerState, null,
                     any(), any()
                 )
             } returns nextState1
@@ -312,10 +311,13 @@ class MapFragmentSpec {
                     any(), any()
                 )
             } returns nextState2
+            coEvery { fragment.mockMapUpdater.updateMap(fragment.mockMap,nextState2, ownMarker, any(),
+                any()) } returns markerState("loc3", "loc4")
             coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
             fragment.onPrepareOptionsMenu(mockMenu.menu)
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             verify {
                 fragment.handler.removeCallbacksAndMessages(MapFragment.updateToken)
                 fragment.mockMapUpdater.centerMarker(fragment.mockMap, ownMarker)
@@ -323,6 +325,7 @@ class MapFragmentSpec {
             }
             coVerify {
                 fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
+                fragment.mockMapUpdater.updateMap(fragment.mockMap,nextState2, ownMarker, any(), any())
             }
         }
     }
@@ -330,7 +333,7 @@ class MapFragmentSpec {
     @Test
     fun `show own location command should handle the case that no location can be retrieved`() {
         val mockMenu = createMockMenu()
-        val nextState = LocationFileState(files = listOf("location"), markerData = emptyMap())
+        val nextState = markerState("location")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
         mockkStatic(Toast::class)
         val toast = mockk<Toast>()
@@ -358,15 +361,14 @@ class MapFragmentSpec {
     @Test
     fun `center to own location command can be executed`() {
         val mockMenu = createMockMenu()
-        val initState = LocationFileState(emptyList(), emptyMap())
-        val nextState1 = LocationFileState(files = listOf("location"), markerData = emptyMap())
-        val nextState2 = LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+        val nextState1 = markerState("location")
+        val nextState2 = markerState("loc1", "loc2")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
             coEvery {
                 fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, initState, null,
+                    fragment.mockMap, initMarkerState, null,
                     any(), any()
                 )
             } returns nextState1
@@ -390,15 +392,14 @@ class MapFragmentSpec {
     @Test
     fun `update map command also updates the own location marker`() {
         val mockMenu = createMockMenu()
-        val initState = LocationFileState(emptyList(), emptyMap())
-        val nextState1 = LocationFileState(files = listOf("location"), markerData = emptyMap())
-        val nextState2 = LocationFileState(files = listOf("loc1", "loc2"), markerData = emptyMap())
+        val nextState1 = markerState("location")
+        val nextState2 = markerState("loc1", "loc2")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
             coEvery {
                 fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, initState, null,
+                    fragment.mockMap, initMarkerState, null,
                     any(), any()
                 )
             } returns nextState1
@@ -433,6 +434,9 @@ class MapFragmentSpec {
 
         /** A marker representing the own location. */
         private val ownMarker = MarkerData(LocationData(ownLat, ownLng, referenceTime), LatLng(ownLat, ownLng))
+
+        /** The expected initial map marker state. */
+        private val initMarkerState = MapMarkerState(LocationFileState(emptyList(), emptyMap()), null)
 
         /**
          * A class storing the data of the mocked options menu. The class
@@ -480,6 +484,15 @@ class MapFragmentSpec {
             every { ownLoc.longitude } returns ownLng
             return ownLoc
         }
+
+        /**
+         * Convenience function to create a _MapMarkerState_ object from the
+         * given parameters.
+         * @param locFiles list with location file names
+         * @return the resulting _MapMarkerState_
+         */
+        private fun markerState(vararg locFiles: String): MapMarkerState =
+            MapMarkerState(LocationFileState(listOf(*locFiles), emptyMap()), mockk())
     }
 }
 
@@ -551,7 +564,7 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
      * Prepares the mock for the map updater to expect an invocation and return
      * the given next state.
      */
-    fun expectMapUpdate(nextState: LocationFileState) {
+    fun expectMapUpdate(nextState: MapMarkerState) {
         coEvery { mockMapUpdater.updateMap(any(), any(), any(), any(), any()) } returns nextState
     }
 

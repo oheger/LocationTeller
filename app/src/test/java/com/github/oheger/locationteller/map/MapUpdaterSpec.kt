@@ -59,7 +59,7 @@ class MapUpdaterSpec : StringSpec() {
             every { state.files } returns emptyList()
             every { state.stateChanged(serverFiles) } returns false
 
-            invokeUpdater(map, state, service) shouldBe state
+            invokeUpdater(map, state, service) shouldBe MapMarkerState(state, null)
         }
 
         "MapUpdater should update the map as necessary" {
@@ -74,11 +74,11 @@ class MapUpdaterSpec : StringSpec() {
             val actMarkers = trackAddedMarkers(map)
             val mockDispatcher = MockDispatcher.installAsMain()
 
-            val newState = invokeUpdater(map, state, service, markerFactory = markerFactory)
+            val newState = invokeUpdater(map, state, service, markerFactory = markerFactory).locations
             newState shouldBe createState(1..4)
             verify { map.clear() }
             actMarkers shouldHaveSize expMarkers.size
-            actMarkers shouldContainExactlyInAnyOrder expMarkers
+            extractMarkerOptions(actMarkers) shouldContainExactlyInAnyOrder expMarkers
             mockDispatcher.tasks shouldHaveSize 1
         }
 
@@ -91,7 +91,7 @@ class MapUpdaterSpec : StringSpec() {
             val markers = trackAddedMarkers(map)
             MockDispatcher.installAsMain()
 
-            val newState = invokeUpdater(map, state, service, markerFactory = createRelaxedMarkerFactory())
+            val newState = invokeUpdater(map, state, service, markerFactory = createRelaxedMarkerFactory()).locations
             newState shouldBe createState(1..4)
             verify { map.clear() }
             markers shouldHaveSize expMarkers.size
@@ -107,7 +107,7 @@ class MapUpdaterSpec : StringSpec() {
             trackAddedMarkers(map)
             MockDispatcher.installAsMain()
 
-            val newState = invokeUpdater(map, state, service, markerFactory = createRelaxedMarkerFactory())
+            val newState = invokeUpdater(map, state, service, markerFactory = createRelaxedMarkerFactory()).locations
             newState shouldBe createState(1..3)
         }
 
@@ -145,11 +145,13 @@ class MapUpdaterSpec : StringSpec() {
             expMarkers.add(markerOptionsOwn)
             MockDispatcher.installAsMain()
 
-            invokeUpdater(
+            val nextState = invokeUpdater(
                 map, LocationFileState(emptyList(), emptyMap()), service, markerFactory = markerFactory,
                 ownLocation = ownLocation
             )
-            actMarkers shouldContainExactlyInAnyOrder expMarkers
+            extractMarkerOptions(actMarkers) shouldContainExactlyInAnyOrder expMarkers
+            val ownMarker = actMarkers.last().second
+            nextState.ownMarker shouldBe ownMarker
         }
 
         "MapUpdater should handle the own location if there are no locations from the server" {
@@ -168,11 +170,37 @@ class MapUpdaterSpec : StringSpec() {
             val actMarkers = trackAddedMarkers(map)
             MockDispatcher.installAsMain()
 
-            invokeUpdater(
+            val nextState = invokeUpdater(
                 map, LocationFileState(emptyList(), emptyMap()), service, markerFactory = markerFactory,
                 ownLocation = ownLocation
             )
-            actMarkers shouldContainExactlyInAnyOrder listOf(markerOptionsOwn)
+            extractMarkerOptions(actMarkers) shouldContainExactlyInAnyOrder listOf(markerOptionsOwn)
+            val ownMarker = actMarkers.last().second
+            nextState.ownMarker shouldBe ownMarker
+        }
+
+        "MapUpdater should remove the old marker for the own position" {
+            val map = mockk<GoogleMap>()
+            val ownLocation = createMarkerData(42)
+            val service = mockk<TrackService>()
+            coEvery { service.filesOnServer() } returns emptyList()
+            val ownMarker = mockk<Marker>()
+            every { ownMarker.remove() } just runs
+            val markerFactory = mockk<MarkerFactory>()
+            every {
+                markerFactory.createMarker(
+                    any(), time, recentMarker = any(), zIndex = any(),
+                    color = any(), text = any()
+                )
+            } returns mockk()
+            every { map.addMarker(any()) } returns mockk()
+            MockDispatcher.installAsMain()
+
+            invokeUpdater(
+                map, LocationFileState(emptyList(), emptyMap()), service, ownLocation = ownLocation,
+                ownMarker = ownMarker, markerFactory = markerFactory
+            )
+            verify { ownMarker.remove() }
         }
 
         "MapUpdater should set a zoom level to view all markers in the given state object" {
@@ -294,37 +322,53 @@ class MapUpdaterSpec : StringSpec() {
          * @param currentState the current file state
          * @param service the mock track service
          * @param markerFactory an optional marker factory
+         * @param ownLocation optional _MarkerData_ for the own location
+         * @param ownMarker optional marker for the own location
          * @return the result of the invocation
          */
         private suspend fun invokeUpdater(
             map: GoogleMap, currentState: LocationFileState, service: TrackService,
-            markerFactory: MarkerFactory? = null, ownLocation: MarkerData? = null
+            markerFactory: MarkerFactory? = null, ownLocation: MarkerData? = null,
+            ownMarker: Marker? = null
         ):
-                LocationFileState {
+                MapMarkerState {
             val serviceFactory: (ServerConfig) -> TrackService = { config ->
                 config shouldBe serverConfig
                 service
             }
+            val currentMapState = MapMarkerState(currentState, ownMarker)
             val currentMarkerFactory = markerFactory ?: createMarkerFactory(currentState)
             val updater = MapUpdater(serverConfig, distanceTemplate, serviceFactory)
-            return updater.updateMap(map, currentState, ownLocation, currentMarkerFactory, time)
+            return updater.updateMap(map, currentMapState, ownLocation, currentMarkerFactory, time)
         }
 
         /**
          * Prepares the given map object to expect markers to be added. Each
          * marker that has been added is later available in the list returned
-         * by this function.
+         * by this function, as well as the options used to obtain the marker.
          * @param map the mock for the map
-         * @return a list with the options for the markers that have been added
+         * @return a list storing the markers and their options that have been
+         * added
          */
-        private fun trackAddedMarkers(map: GoogleMap): List<MarkerOptions> {
-            val markers = mutableListOf<MarkerOptions>()
+        private fun trackAddedMarkers(map: GoogleMap): List<Pair<MarkerOptions, Marker>> {
+            val markers = mutableListOf<Pair<MarkerOptions, Marker>>()
             every { map.addMarker(any()) } answers {
-                markers.add(arg(0))
-                null
+                val options = arg<MarkerOptions>(0)
+                val marker = mockk<Marker>()
+                markers.add(Pair(options, marker))
+                marker
             }
             return markers
         }
+
+        /**
+         * Obtains only the marker options that were used to add markers to the
+         * test map.
+         * @param data the list with marker options and markers
+         * @return a list containing only the marker options
+         */
+        private fun extractMarkerOptions(data: List<Pair<MarkerOptions, Marker>>): List<MarkerOptions> =
+            data.unzip().first
 
         /**
          * Prepares a mock for a marker factory to create markers for the given

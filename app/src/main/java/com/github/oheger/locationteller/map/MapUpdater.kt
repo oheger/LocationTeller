@@ -20,10 +20,7 @@ import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.*
@@ -67,23 +64,22 @@ class MapUpdater(
      * @return the updated state of location data
      */
     suspend fun updateMap(
-        map: GoogleMap, currentState: LocationFileState, ownLocation: MarkerData?,
+        map: GoogleMap, currentState: MapMarkerState, ownLocation: MarkerData?,
         markerFactory: MarkerFactory, currentTime: Long
-    ):
-            LocationFileState = withContext(Dispatchers.IO) {
+    ): MapMarkerState = withContext(Dispatchers.IO) {
         val trackService = trackServiceFactory(serverConfig)
         val filesOnServer = trackService.filesOnServer()
-        val newState = if (currentState.stateChanged(filesOnServer)) {
-            val knownData = createMarkerDataMap(currentState, filesOnServer, trackService)
+        val newLocationState = if (currentState.locations.stateChanged(filesOnServer)) {
+            val knownData = createMarkerDataMap(currentState.locations, filesOnServer, trackService)
             val newState = createNewLocationState(filesOnServer, knownData)
             updateMarkers(map, newState, markerFactory, currentTime)
             newState
-        } else currentState
+        } else currentState.locations
 
-        if (ownLocation != null) {
-            showOwnLocation(map, newState, ownLocation, markerFactory, currentTime)
-        }
-        newState
+        val newOwnMarker = if (ownLocation != null) {
+            showOwnLocation(map, newLocationState, ownLocation, currentState.ownMarker, markerFactory, currentTime)
+        } else null
+        MapMarkerState(newLocationState, newOwnMarker)
     }
 
     /**
@@ -214,13 +210,15 @@ class MapUpdater(
      * @param map the map to be updated
      * @param state the current state of location data
      * @param ownLocation the own location
+     * @param lastOwnMarker the last marker for the own position
      * @param markerFactory the factory to create markers
      * @param time the current time
      */
     private suspend fun showOwnLocation(
-        map: GoogleMap, state: LocationFileState, ownLocation: MarkerData,
+        map: GoogleMap, state: LocationFileState, ownLocation: MarkerData, lastOwnMarker: Marker?,
         markerFactory: MarkerFactory, time: Long
-    ) = withContext(Dispatchers.Main) {
+    ): Marker = withContext(Dispatchers.Main) {
+        lastOwnMarker?.remove()
         val recentLocation = state.recentMarker()
         val distanceString = generateDistanceString(recentLocation, ownLocation)
         val options = markerFactory.createMarker(

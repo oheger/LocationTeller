@@ -83,7 +83,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     private var canUpdate: Boolean = false
 
     /** The current state of location data.*/
-    private var state: LocationFileState = emptyState
+    private var state = emptyState
 
     /** Stores the marker for the own location. */
     private var ownMarker: MarkerData? = null
@@ -169,7 +169,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      */
     override fun onPrepareOptionsMenu(menu: Menu) {
         val mapAvailable = map != null && mapUpdater != null
-        val locationsPresent = state.files.isNotEmpty()
+        val locationsPresent = state.locations.files.isNotEmpty()
         menu.findItem(R.id.item_updateMap).isEnabled = mapAvailable
         menu.findItem(R.id.item_center).isEnabled = locationsPresent
         menu.findItem(R.id.item_zoomArea).isEnabled = locationsPresent
@@ -251,10 +251,10 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
                     currentMap, state, ownMarker, markerFactory, timeService.currentTime().currentTime
                 ) ?: emptyState
                 if (initView) {
-                    mapUpdater?.zoomToAllMarkers(currentMap, currentState)
+                    mapUpdater?.zoomToAllMarkers(currentMap, currentState.locations)
                 }
                 if (initView || (autoCenter && currentState != state)) {
-                    mapUpdater?.centerRecentMarker(currentMap, currentState)
+                    mapUpdater?.centerRecentMarker(currentMap, currentState.locations)
                 }
                 newStateArrived(currentState)
 
@@ -278,12 +278,12 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * Updates the state after it has been retrieved from the server.
      * @param newState the new state
      */
-    private fun newStateArrived(newState: LocationFileState) {
+    private fun newStateArrived(newState: MapMarkerState) {
         Log.i(logTag, "Got new state.")
         state = newState
         mapProgressBar.visibility = View.INVISIBLE
-        val statusText = if (newState.files.isEmpty()) getString(R.string.map_status_empty)
-        else getString(R.string.map_status, newState.files.size, recentMarkerTime(newState))
+        val statusText = if (newState.locations.files.isEmpty()) getString(R.string.map_status_empty)
+        else getString(R.string.map_status, newState.locations.files.size, recentMarkerTime(newState.locations))
         mapStatusLine.text = statusText
     }
 
@@ -305,7 +305,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     private fun centerToRecentMarker() {
         val currentMap = map
         if (currentMap != null) {
-            mapUpdater?.centerRecentMarker(currentMap, state)
+            mapUpdater?.centerRecentMarker(currentMap, state.locations)
         }
     }
 
@@ -316,7 +316,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     private fun zoomToTrackedArea() {
         val currentMap = map
         if (currentMap != null) {
-            mapUpdater?.zoomToAllMarkers(currentMap, state)
+            mapUpdater?.zoomToAllMarkers(currentMap, state.locations)
         }
     }
 
@@ -327,23 +327,25 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     private fun showOwnLocation() {
         map?.let { currentMap ->
             launch {
-                val marker  = locationRetriever.fetchLocation()?.let {
+                val marker = locationRetriever.fetchLocation()?.let {
                     MarkerData(
                         LocationData(it.latitude, it.longitude, timeService.currentTime()),
                         LatLng(it.latitude, it.longitude)
                     )
                 }
-                if(marker != null) {
+                if (marker != null) {
                     cancelPendingUpdates()
-                    mapUpdater?.updateMap(
+                    state = mapUpdater?.updateMap(
                         currentMap, state, marker, markerFactory,
                         timeService.currentTime().currentTime
-                    )
+                    ) ?: state
                     mapUpdater?.centerMarker(currentMap, marker)
                     ownMarker = marker
                 } else {
-                    val toast = Toast.makeText(requireContext(), R.string.map_no_own_location,
-                    Toast.LENGTH_SHORT)
+                    val toast = Toast.makeText(
+                        requireContext(), R.string.map_no_own_location,
+                        Toast.LENGTH_SHORT
+                    )
                     toast.show()
                 }
             }
@@ -379,9 +381,9 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         private const val logTag = "MapFragment"
 
         /**
-         * Constant for a special, empty _LocationFileState_. This state is
+         * Constant for a special, empty _MapMarkerState. This state is
          * used as initial state and if no updater can be created.
          */
-        private val emptyState = LocationFileState(emptyList(), emptyMap())
+        private val emptyState = MapMarkerState(LocationFileState(emptyList(), emptyMap()), null)
     }
 }
