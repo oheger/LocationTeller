@@ -62,8 +62,12 @@ class LocationRetriever(
                 tickerChannel.receive()
                 callback.cancelLocationUpdate()
             }
-            locationClient.requestLocationUpdates(locationRequest, callback, null)
-            Log.d(tag, "Requested location update.")
+            try {
+                locationClient.requestLocationUpdates(locationRequest, callback, null)
+                Log.d(tag, "Requested location update.")
+            } catch (e: SecurityException) {
+                Log.e(tag, "Missing right to request location.", e)
+            }
         }
     }
 

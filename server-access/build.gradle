@@ -1,7 +1,7 @@
 apply plugin: 'java-library'
 apply plugin: 'kotlin'
 
-def versionHttpClient = "4.0.1"
+def versionHttpClient = "4.3.0"
 def versionCoroutines = '1.3.0-RC'
 def versionSlf4j = '1.7.26'
 def versionCommonsCodec = '1.12'
