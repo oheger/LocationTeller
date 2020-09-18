@@ -229,7 +229,7 @@ class LocationTellerServiceSpec : StringSpec() {
                 every { timeService.currentTime() } returns TimeData(elapsedTime)
 
                 val notificationBuilder = mockk<NotificationCompat.Builder>()
-                every { notificationBuilder.setSmallIcon(any()) } returns notificationBuilder
+                every { notificationBuilder.setSmallIcon(any<Int>()) } returns notificationBuilder
                 every { notificationBuilder.setContentTitle(any()) } returns notificationBuilder
                 every { notificationBuilder.build() } returns notification
 
