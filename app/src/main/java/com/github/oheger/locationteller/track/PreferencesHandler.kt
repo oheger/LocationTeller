@@ -17,9 +17,9 @@ package com.github.oheger.locationteller.track
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import com.github.oheger.locationteller.server.ServerConfig
-import java.util.*
+import java.util.Date
 
 /**
  * A class managing access to the preferences for the location teller
