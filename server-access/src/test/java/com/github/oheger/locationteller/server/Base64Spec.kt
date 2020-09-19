@@ -15,8 +15,8 @@
  */
 package com.github.oheger.locationteller.server
 
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import org.apache.commons.lang3.RandomStringUtils
 
 /**

@@ -15,13 +15,16 @@
  */
 package com.github.oheger.locationteller.server
 
-import io.kotlintest.matchers.collections.shouldContain
-import io.kotlintest.matchers.collections.shouldContainExactly
-import io.kotlintest.matchers.collections.shouldNotContain
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
-import io.mockk.*
-import java.util.*
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.coVerifyOrder
+import io.mockk.mockk
+import java.util.Calendar
 
 /**
  * Test class for [TrackService].

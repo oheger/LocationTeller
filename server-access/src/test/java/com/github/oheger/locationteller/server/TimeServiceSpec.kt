@@ -15,11 +15,11 @@
  */
 package com.github.oheger.locationteller.server
 
-import io.kotlintest.matchers.numerics.shouldBeLessThan
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.comparables.shouldBeLessThan
+import io.kotest.matchers.shouldBe
 import java.lang.Math.abs
-import java.util.*
+import java.util.Calendar
 
 /**
  * Test class for [TimeService] implementations and related classes.

@@ -4,17 +4,6 @@ apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
 
-def versionKoTest = '4.2.5'
-def versionMockK = '1.10.0'
-def versionCoroutines = '1.3.7'
-def versionRobolectric = '4.3.1'
-def versionJUnit = '4.12'
-def versionFragment = '1.2.5'
-
-buildscript {
-    ext.kotlin_version = '1.3.72'
-}
-
 android {
     compileSdkVersion 29
     defaultConfig {
@@ -55,7 +44,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versionKotlin"
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.appcompat:appcompat:1.3.0-alpha02'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.1'

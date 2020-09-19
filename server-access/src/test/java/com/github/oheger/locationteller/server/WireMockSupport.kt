@@ -20,17 +20,17 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import com.github.tomakehurst.wiremock.matching.UrlPattern
-import io.kotlintest.Spec
-import io.kotlintest.TestCase
-import io.kotlintest.TestResult
-import io.kotlintest.extensions.TestListener
+import io.kotest.core.listeners.TestListener
+import io.kotest.core.spec.Spec
+import io.kotest.core.test.TestCase
+import io.kotest.core.test.TestResult
 
 /**
  * An object providing functionality to use a WireMock server in a test spec.
  */
 object WireMockSupport : TestListener {
     /** Test base path for server requests.*/
-    const val basePath = "/track/base"
+    private const val basePath = "/track/base"
 
     /** Test user name.*/
     const val user = "scott"
@@ -47,7 +47,7 @@ object WireMockSupport : TestListener {
     /**
      * This implementation stops the managed server.
      */
-    override fun afterSpec(spec: Spec) {
+    override suspend fun afterSpec(spec: Spec) {
         server.stop()
     }
 
@@ -55,14 +55,14 @@ object WireMockSupport : TestListener {
      * This implementation resets the server, so that new verifications can be
      * made for the next test case.
      */
-    override fun afterTest(testCase: TestCase, result: TestResult) {
+    override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         server.resetAll()
     }
 
     /**
      * This implementation creates the server to run tests against.
      */
-    override fun beforeSpec(spec: Spec) {
+    override suspend fun beforeSpec(spec: Spec) {
         val serverOptions = options().dynamicPort()
         server = WireMockServer(serverOptions)
         server.start()

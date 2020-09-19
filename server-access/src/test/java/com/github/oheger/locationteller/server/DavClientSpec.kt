@@ -20,10 +20,10 @@ import com.github.oheger.locationteller.server.WireMockSupport.authorized
 import com.github.oheger.locationteller.server.WireMockSupport.serverPath
 import com.github.tomakehurst.wiremock.client.BasicCredentials
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import io.kotlintest.extensions.TestListener
-import io.kotlintest.matchers.collections.shouldHaveSize
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.listeners.TestListener
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
 
 /**
  * Test class for [DavClient].
