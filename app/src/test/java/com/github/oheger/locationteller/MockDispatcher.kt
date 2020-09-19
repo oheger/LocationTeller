@@ -15,9 +15,9 @@
  */
 package com.github.oheger.locationteller
 
-import io.kotlintest.TestCase
-import io.kotlintest.TestResult
-import io.kotlintest.extensions.TestListener
+import io.kotest.core.listeners.TestListener
+import io.kotest.core.test.TestCase
+import io.kotest.core.test.TestResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -80,7 +80,7 @@ class MockDispatcher(private val directExecution: Boolean = true) : CoroutineDis
  */
 object ResetDispatcherListener : TestListener {
     @ExperimentalCoroutinesApi
-    override fun afterTest(testCase: TestCase, result: TestResult) {
+    override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         Dispatchers.resetMain()
     }
 }

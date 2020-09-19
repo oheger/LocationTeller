@@ -35,7 +35,7 @@ import com.github.oheger.locationteller.track.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
-import io.kotlintest.shouldBe
+import io.kotest.matchers.shouldBe
 import io.mockk.*
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test

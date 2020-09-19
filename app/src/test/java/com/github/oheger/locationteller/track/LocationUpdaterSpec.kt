@@ -18,10 +18,10 @@ package com.github.oheger.locationteller.track
 import android.location.Location
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
-import com.github.oheger.locationteller.server.TrackService
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
-import io.mockk.*
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel

@@ -18,8 +18,8 @@ package com.github.oheger.locationteller.map
 import android.content.Context
 import android.content.res.Resources
 import com.github.oheger.locationteller.R
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 

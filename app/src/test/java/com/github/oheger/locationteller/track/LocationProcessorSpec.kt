@@ -20,10 +20,10 @@ import com.github.oheger.locationteller.ResetDispatcherListener
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.google.android.gms.location.LocationResult
-import io.kotlintest.extensions.TestListener
-import io.kotlintest.matchers.doubles.shouldBeExactly
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.listeners.TestListener
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.doubles.shouldBeExactly
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

@@ -23,9 +23,9 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
 import com.github.oheger.locationteller.track.TrackTestHelper.preparePreferences
-import io.kotlintest.shouldBe
-import io.kotlintest.shouldNotBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.mockk.*
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel

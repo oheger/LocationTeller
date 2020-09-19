@@ -19,9 +19,9 @@ import com.github.oheger.locationteller.map.LocationTestHelper.createFiles
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerDataMap
 import com.github.oheger.locationteller.map.LocationTestHelper.createState
-import io.kotlintest.matchers.collections.shouldContainExactly
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
 
 /**
  * Test class for _LocationFileState_.
