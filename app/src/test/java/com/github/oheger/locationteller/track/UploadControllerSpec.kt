@@ -581,7 +581,7 @@ class UploadControllerSpec : StringSpec() {
             intervalIncrementOnIdle = 30, locationValidity = 3600,
             locationUpdateThreshold = 56, gpsTimeout = 10, retryOnErrorTime = 4,
             autoResetStats = false, offlineStorageSize = 32, maxOfflineStorageSyncTime = 60,
-            multiUploadChunkSize = 4
+            multiUploadChunkSize = 4, maxSpeedIncrease = 2.0, walkingSpeed = 1.0
         )
 
         /**

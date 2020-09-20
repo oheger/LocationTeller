@@ -91,7 +91,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
             locationUpdateThreshold = locationUpdateThreshold, retryOnErrorTime = retryOnErrorTime,
             gpsTimeout = gpsTimeout, autoResetStats = isAutoResetStats(), offlineStorageSize = offlineStorageSize,
-            maxOfflineStorageSyncTime = offlineStorageSyncTime, multiUploadChunkSize = multiUploadChunkSize
+            maxOfflineStorageSyncTime = offlineStorageSyncTime, multiUploadChunkSize = multiUploadChunkSize,
+            maxSpeedIncrease = 0.0, walkingSpeed = 0.0
         )
     }
 

@@ -38,6 +38,12 @@ package com.github.oheger.locationteller.track
  * storage to upload in a single operation
  * @param autoResetStats a flag whether tracking statistics should be reset
  * automatically when tracking is started
+ * @param maxSpeedIncrease a factor defining the maximum increase of speed to
+ * be considered normal; this is used to detect wrong GPS locations: if the
+ * speed between two GPS locations increases more than this factory, the
+ * current locations is treated as inaccurate
+ * @param walkingSpeed the average walking speed (in m/s); as long as the
+ * speed is in this area, no illegal speed increment is reported
  */
 data class TrackConfig(
     val minTrackInterval: Int,
@@ -50,5 +56,7 @@ data class TrackConfig(
     val offlineStorageSize: Int,
     val maxOfflineStorageSyncTime: Int,
     val multiUploadChunkSize: Int,
-    val autoResetStats: Boolean
+    val autoResetStats: Boolean,
+    val maxSpeedIncrease: Double,
+    val walkingSpeed: Double
 )

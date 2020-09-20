@@ -376,7 +376,7 @@ class PreferencesHandlerSpec : StringSpec() {
         "PreferencesHandler should create a track configuration" {
             val trackConfig = TrackConfig(
                 60, 600, 120, 3600, 15, 27, 11,
-                16, 30, 2, true
+                16, 30, 2, true, 0.0, 0.0
             )
             val pref = preferencesFromTrackConfig(trackConfig)
             val handler = PreferencesHandler(pref)

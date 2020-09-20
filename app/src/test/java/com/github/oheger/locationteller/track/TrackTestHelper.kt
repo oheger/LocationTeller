@@ -39,7 +39,7 @@ object TrackTestHelper {
         locationValidity = 1000, intervalIncrementOnIdle = 50,
         locationUpdateThreshold = 22, gpsTimeout = 10, retryOnErrorTime = 4,
         autoResetStats = false, offlineStorageSize = 8, maxOfflineStorageSyncTime = 20,
-        multiUploadChunkSize = 4
+        multiUploadChunkSize = 4, maxSpeedIncrease = 2.0, walkingSpeed = 1.1111
     )
 
     /**
