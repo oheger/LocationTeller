@@ -37,10 +37,10 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the server configuration or *null*
      */
     fun createServerConfig(): ServerConfig? {
-        val serverUri = preferences.getString(propServerUri, null)
-        val basePath = preferences.getString(propBasePath, null)
-        val user = preferences.getString(propUser, null)
-        val password = preferences.getString(propPassword, null)
+        val serverUri = preferences.getString(PROP_SERVER_URI, null)
+        val basePath = preferences.getString(PROP_BASE_PATH, null)
+        val user = preferences.getString(PROP_USER, null)
+        val password = preferences.getString(PROP_PASSWORD, null)
         return if (serverUri == null || basePath == null || user == null || password == null) {
             return null
         } else ServerConfig(serverUri, basePath, user, password)
@@ -53,46 +53,50 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      */
     fun createTrackConfig(): TrackConfig {
         val minTrackInterval = preferences.getNumeric(
-            propMinTrackInterval, factor = minute,
-            defaultValue = defaultMinTrackInterval
+            PROP_MIN_TRACK_INTERVAL, factor = MINUTE,
+            defaultValue = DEFAULT_MIN_TRACK_INTERVAL
         )
         val maxTrackInterval = preferences.getNumeric(
-            propMaxTrackInterval, factor = minute,
-            defaultValue = defaultMaxTrackInterval
+            PROP_MAX_TRACK_INTERVAL, factor = MINUTE,
+            defaultValue = DEFAULT_MAX_TRACK_INTERVAL
         )
         val intervalIncrementOnIdle = preferences.getNumeric(
-            propIdleIncrement, factor = minute,
-            defaultValue = defaultIdleIncrement
+            PROP_IDLE_INCREMENT, factor = MINUTE,
+            defaultValue = DEFAULT_IDLE_INCREMENT
         )
         val locationValidity = preferences.getNumeric(
-            propLocationValidity, factor = minute,
-            defaultValue = defaultLocationValidity
+            PROP_LOCATION_VALIDITY, factor = MINUTE,
+            defaultValue = DEFAULT_LOCATION_VALIDITY
         )
         val locationUpdateThreshold = preferences.getNumeric(
-            propLocationUpdateThreshold,
-            defaultValue = defaultLocationUpdateThreshold
+            PROP_LOCATION_UPDATE_THRESHOLD,
+            defaultValue = DEFAULT_LOCATION_UPDATE_THRESHOLD
         )
-        val retryOnErrorTime = preferences.getNumeric(propRetryOnErrorTime, defaultValue = defaultRetryOnErrorTime)
-        val gpsTimeout = preferences.getNumeric(propGpsTimeout, defaultValue = defaultGpsTimeout)
+        val retryOnErrorTime =
+            preferences.getNumeric(PROP_RETRY_ON_ERROR_TIME, defaultValue = DEFAULT_RETRY_ON_ERROR_TIME)
+        val gpsTimeout = preferences.getNumeric(PROP_GPS_TIMEOUT, defaultValue = DEFAULT_GPS_TIMEOUT)
         val offlineStorageSize = preferences.getNumeric(
-            propOfflineStorageSize,
-            defaultValue = defaultOfflineStorageSize
+            PROP_OFFLINE_STORAGE_SIZE,
+            defaultValue = DEFAULT_OFFLINE_STORAGE_SIZE
         )
         val offlineStorageSyncTime = preferences.getNumeric(
-            propOfflineStorageSyncTime,
-            defaultValue = defaultOfflineStorageSyncTime
+            PROP_OFFLINE_STORAGE_SYNC_TIME,
+            defaultValue = DEFAULT_OFFLINE_STORAGE_SYNC_TIME
         )
         val multiUploadChunkSize = preferences.getNumeric(
-            propMultiUploadChunkSize,
-            defaultValue = defaultMultiUploadChunkSize
+            PROP_MULTI_UPLOAD_CHUNK_SIZE,
+            defaultValue = DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
         )
+        val maxSpeedIncrease = preferences.getDouble(PROP_MAX_SPEED_INCREASE, defaultValue = DEFAULT_MAX_SPEED_INCREASE)
+        val walkingSpeed =
+            preferences.getDouble(PROP_WALKING_SPEED, factor = METER_PER_SECOND, defaultValue = DEFAULT_WALKING_SPEED)
         return TrackConfig(
             minTrackInterval = minTrackInterval, maxTrackInterval = maxTrackInterval,
             intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
             locationUpdateThreshold = locationUpdateThreshold, retryOnErrorTime = retryOnErrorTime,
             gpsTimeout = gpsTimeout, autoResetStats = isAutoResetStats(), offlineStorageSize = offlineStorageSize,
             maxOfflineStorageSyncTime = offlineStorageSyncTime, multiUploadChunkSize = multiUploadChunkSize,
-            maxSpeedIncrease = 0.0, walkingSpeed = 0.0
+            maxSpeedIncrease = maxSpeedIncrease, walkingSpeed = walkingSpeed
         )
     }
 
@@ -114,7 +118,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return a flag whether tracking is active
      */
     fun isTrackingEnabled(): Boolean =
-        preferences.getBoolean(propTrackState, false)
+        preferences.getBoolean(PROP_TRACK_STATE, false)
 
     /**
      * Updates the tracking enabled state in the managed preferences. This
@@ -124,12 +128,12 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     fun setTrackingEnabled(flag: Boolean) {
         update {
             val currentTime = System.currentTimeMillis()
-            putBoolean(propTrackState, flag)
+            putBoolean(PROP_TRACK_STATE, flag)
             if (flag) {
-                putLong(propTrackingStart, currentTime)
-                remove(propTrackingEnd)
+                putLong(PROP_TRACKING_START, currentTime)
+                remove(PROP_TRACKING_END)
             } else {
-                putLong(propTrackingEnd, currentTime)
+                putLong(PROP_TRACKING_END, currentTime)
             }
         }
     }
@@ -139,7 +143,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * automatically when starting a new track operation.
      * @return the auto reset statistics flag
      */
-    fun isAutoResetStats(): Boolean = preferences.getBoolean(propAutoResetStats, false)
+    fun isAutoResetStats(): Boolean = preferences.getBoolean(PROP_AUTO_RESET_STATS, false)
 
     /**
      * Sets the preferences property for the last error to the given timestamp
@@ -149,8 +153,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      */
     fun recordError(at: Long, count: Int) {
         update {
-            putLong(propLastError, at)
-            putInt(propErrorCount, count)
+            putLong(PROP_LAST_ERROR, at)
+            putInt(PROP_ERROR_COUNT, count)
         }
     }
 
@@ -164,10 +168,10 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      */
     fun recordUpdate(at: Long, count: Int, distance: Int, totalDistance: Long) {
         update {
-            putLong(propLastUpdate, at)
-            putInt(propUpdateCount, count)
-            putInt(propLastDistance, distance)
-            putLong(propTotalDistance, totalDistance)
+            putLong(PROP_LAST_UPDATE, at)
+            putInt(PROP_UPDATE_COUNT, count)
+            putInt(PROP_LAST_DISTANCE, distance)
+            putLong(PROP_TOTAL_DISTANCE, totalDistance)
         }
     }
 
@@ -179,8 +183,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      */
     fun recordCheck(at: Long, count: Int) {
         update {
-            putLong(propLastCheck, at)
-            putInt(propCheckCount, count)
+            putLong(PROP_LAST_CHECK, at)
+            putInt(PROP_CHECK_COUNT, count)
         }
     }
 
@@ -189,35 +193,35 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * the last update was successful.
      * @return the date of the last error
      */
-    fun lastError(): Date? = preferences.getDate(propLastError)
+    fun lastError(): Date? = preferences.getDate(PROP_LAST_ERROR)
 
     /**
      * Returns the number of errors that have been encountered since the
      * statistics have been reset.
      * @return the number of errors
      */
-    fun errorCount(): Int = preferences.getInt(propErrorCount, 0)
+    fun errorCount(): Int = preferences.getInt(PROP_ERROR_COUNT, 0)
 
     /**
      * Returns the number of checks that have been performed since the
      * statistics have been reset.
      * @return the number of checks
      */
-    fun checkCount(): Int = preferences.getInt(propCheckCount, 0)
+    fun checkCount(): Int = preferences.getInt(PROP_CHECK_COUNT, 0)
 
     /**
      * Returns the number of updates that have been performed since the
      * statistics have been reset.
      * @return the number of updates
      */
-    fun updateCount(): Int = preferences.getInt(propUpdateCount, 0)
+    fun updateCount(): Int = preferences.getInt(PROP_UPDATE_COUNT, 0)
 
     /**
      * Returns a _Date_ when the last updated took place. Result is *null* if
      * no update has been recorded so far.
      * @return the date of the last update
      */
-    fun lastUpdate(): Date? = preferences.getDate(propLastUpdate)
+    fun lastUpdate(): Date? = preferences.getDate(PROP_LAST_UPDATE)
 
     /**
      * Returns a _Date_ when the last check for a location update took place.
@@ -226,34 +230,34 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * has been recorded so far.
      * @return the date of the last check
      */
-    fun lastCheck(): Date? = preferences.getDate(propLastCheck)
+    fun lastCheck(): Date? = preferences.getDate(PROP_LAST_CHECK)
 
     /**
      * Returns the distance of the last location update in meters.
      * @return the distance of the last location update
      */
-    fun lastDistance(): Int = preferences.getInt(propLastDistance, 0)
+    fun lastDistance(): Int = preferences.getInt(PROP_LAST_DISTANCE, 0)
 
     /**
      * Returns the total distance of all checks that have been recorded (in
      * meters).
      * @return the total distance of all location updates
      */
-    fun totalDistance(): Long = preferences.getLong(propTotalDistance, 0)
+    fun totalDistance(): Long = preferences.getLong(PROP_TOTAL_DISTANCE, 0)
 
     /**
      * Returns the recorded start date of the current tracking process.
      * Result is *null* if tracking has never been started.
      * @return the start date of the current tracking process
      */
-    fun trackingStartDate(): Date? = preferences.getDate(propTrackingStart)
+    fun trackingStartDate(): Date? = preferences.getDate(PROP_TRACKING_START)
 
     /**
      * Returns the recorded end date of the current tracking process. Result
      * is *null* if tracking is currently active.
      * @return the time tracking was stopped or *null*
      */
-    fun trackingEndDate(): Date? = preferences.getDate(propTrackingEnd)
+    fun trackingEndDate(): Date? = preferences.getDate(PROP_TRACKING_END)
 
     /**
      * Registers the given change listener at the managed preferences.
@@ -278,7 +282,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * meaningful value.
      */
     fun initTrackConfigDefaults() {
-        val undefinedProps = configDefaults.filterNot { preferences.contains(it.key) }
+        val undefinedProps = CONFIG_DEFAULTS.filterNot { preferences.contains(it.key) }
         if (undefinedProps.isNotEmpty()) {
             val editor = preferences.edit()
             undefinedProps.forEach { pair ->
@@ -293,7 +297,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      */
     fun resetStatistics() {
         update {
-            resetProps.forEach { remove(it) }
+            RESET_PROPS.forEach { remove(it) }
         }
     }
 
@@ -310,9 +314,22 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @param defaultValue the default value to be applied
      * @return the numeric value of this key
      */
-    private fun SharedPreferences.getNumeric(key: String, factor: Int = 1, defaultValue: Int = undefinedNumber): Int {
-        val value = getString(key, undefinedNumberStr)?.toInt() ?: undefinedNumber
-        return if (value == undefinedNumber) defaultValue else value * factor
+    private fun SharedPreferences.getNumeric(key: String, factor: Int = 1, defaultValue: Int = UNDEFINED_NUMBER): Int {
+        val value = getString(key, UNDEFINED_NUMBER_STR)?.toInt() ?: UNDEFINED_NUMBER
+        return if (value == UNDEFINED_NUMBER) defaultValue else value * factor
+    }
+
+    /**
+     * Extension function to query a double property from a preferences object.
+     * Like _getNumeric()_, but for doubles.
+     * @param key the key to be queried
+     * @param factor a factor to be applied to the value
+     * @param defaultValue the default value to be applied
+     * @return the double value of this key
+     */
+    private fun SharedPreferences.getDouble(key: String, factor: Double = 1.0, defaultValue: Double): Double {
+        val value = getString(key, UNDEFINED_NUMBER_STR) ?: UNDEFINED_NUMBER_STR
+        return if (value == UNDEFINED_NUMBER_STR) defaultValue else value.toDouble() * factor
     }
 
     /**
@@ -325,169 +342,195 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     private fun SharedPreferences.getDate(key: String): Date? =
         if (contains(key)) {
             val time = getLong(key, 0)
-            if (time < minDateValue) null else Date(time)
+            if (time < MIN_DATE_VALUE) null else Date(time)
         } else null
 
     companion object {
         /** Shared preferences property for the track server URI.*/
-        const val propServerUri = "trackServerUri"
+        const val PROP_SERVER_URI = "trackServerUri"
 
         /** Shared preferences property for the base path on the server.*/
-        const val propBasePath = "trackRelativePath"
+        const val PROP_BASE_PATH = "trackRelativePath"
 
         /** Shared preferences property for the user name.*/
-        const val propUser = "userName"
+        const val PROP_USER = "userName"
 
         /** Shared preferences property for the password.*/
-        const val propPassword = "password"
+        const val PROP_PASSWORD = "password"
 
         /** Shared preferences property for the minimum track interval.*/
-        const val propMinTrackInterval = "minTrackInterval"
+        const val PROP_MIN_TRACK_INTERVAL = "minTrackInterval"
 
         /** Shared preferences property for the maximum track interval.*/
-        const val propMaxTrackInterval = "maxTrackInterval"
+        const val PROP_MAX_TRACK_INTERVAL = "maxTrackInterval"
 
         /** Shared preferences property for the increment interval.*/
-        const val propIdleIncrement = "intervalIncrementOnIdle"
+        const val PROP_IDLE_INCREMENT = "intervalIncrementOnIdle"
 
         /** Shared preferences property for the increment interval.*/
-        const val propLocationValidity = "locationValidity"
+        const val PROP_LOCATION_VALIDITY = "locationValidity"
 
         /** Shared preferences property for the location update threshold.*/
-        const val propLocationUpdateThreshold = "locationUpdateThreshold"
+        const val PROP_LOCATION_UPDATE_THRESHOLD = "locationUpdateThreshold"
 
         /** Shared preferences property for the retry on error time. */
-        const val propRetryOnErrorTime = "retryOnErrorTime"
+        const val PROP_RETRY_ON_ERROR_TIME = "retryOnErrorTime"
 
         /** Shared preferences property for the GPS timeout. */
-        const val propGpsTimeout = "gpsTimeout"
+        const val PROP_GPS_TIMEOUT = "gpsTimeout"
 
         /** Shared preferences property for the offline storage size. */
-        const val propOfflineStorageSize = "offlineStorageSize"
+        const val PROP_OFFLINE_STORAGE_SIZE = "offlineStorageSize"
 
         /**
          * Shared preferences property for the sync time of the offline
          * storage.
          */
-        const val propOfflineStorageSyncTime = "offlineStorageSyncTime"
+        const val PROP_OFFLINE_STORAGE_SYNC_TIME = "offlineStorageSyncTime"
 
         /**
          * Shared preferences property for the chunk size of a multi upload
          * operation to sync the offline storage.
          */
-        const val propMultiUploadChunkSize = "multiUploadChunkSize"
+        const val PROP_MULTI_UPLOAD_CHUNK_SIZE = "multiUploadChunkSize"
+
+        /**
+         * Shared preferences property for the maximum speed increase, used to
+         * detect suspicious GPS locations.
+         */
+        const val PROP_MAX_SPEED_INCREASE = "maxSpeedIncrease"
+
+        /** Shared preferences property for the normal walking speed. */
+        const val PROP_WALKING_SPEED = "walkingSpeed"
 
         /** Shared preferences property for the tracking state.*/
-        const val propTrackState = "trackEnabled"
+        const val PROP_TRACK_STATE = "trackEnabled"
 
         /** Shared preferences property for the latest update of location data. */
-        const val propLastUpdate = "lastUpdate"
+        const val PROP_LAST_UPDATE = "lastUpdate"
 
         /** Shared preferences property for the distance of the last update. */
-        const val propLastDistance = "lastDistance"
+        const val PROP_LAST_DISTANCE = "lastDistance"
 
         /** Shared preferences property for the latest error that occurred.*/
-        const val propLastError = "lastError"
+        const val PROP_LAST_ERROR = "lastError"
 
         /** Shared preferences property for the last check for an update. */
-        const val propLastCheck = "lastCheck"
+        const val PROP_LAST_CHECK = "lastCheck"
 
         /** Shared preferences property for the last tracking start time. */
-        const val propTrackingStart = "trackingStart"
+        const val PROP_TRACKING_START = "trackingStart"
 
         /** Shared preferences property for the last time tracking was stopped. */
-        const val propTrackingEnd = "trackingEnd"
+        const val PROP_TRACKING_END = "trackingEnd"
 
         /** Shared preferences property for the number of errors encountered.*/
-        const val propErrorCount = "errorCount"
+        const val PROP_ERROR_COUNT = "errorCount"
 
         /** Shared preferences property for the number of checks. */
-        const val propCheckCount = "checkCount"
+        const val PROP_CHECK_COUNT = "checkCount"
 
         /** Shared preferences property for the number of updates. */
-        const val propUpdateCount = "updateCount"
+        const val PROP_UPDATE_COUNT = "updateCount"
 
         /** Shared preferences property for the accumulated distance (in meters). */
-        const val propTotalDistance = "totalDistance"
+        const val PROP_TOTAL_DISTANCE = "totalDistance"
 
         /** Shared preferences property to trigger the auto-reset of stats. */
-        const val propAutoResetStats = "autoResetStats"
+        const val PROP_AUTO_RESET_STATS = "autoResetStats"
 
         /** A default value for the minimum track interval (in seconds). */
-        const val defaultMinTrackInterval = 180
+        const val DEFAULT_MIN_TRACK_INTERVAL = 180
 
         /** A default value for the maximum track interval (in seconds). */
-        const val defaultMaxTrackInterval = 900
+        const val DEFAULT_MAX_TRACK_INTERVAL = 900
 
         /** A default value for the idle increment interval (in seconds). */
-        const val defaultIdleIncrement = 120
+        const val DEFAULT_IDLE_INCREMENT = 120
 
         /** A default value for the location validity time (in seconds).*/
-        const val defaultLocationValidity = 43200 // 12 hours
+        const val DEFAULT_LOCATION_VALIDITY = 43200 // 12 hours
 
         /** A default value for the retry on error time (in seconds). */
-        const val defaultRetryOnErrorTime = 30
+        const val DEFAULT_RETRY_ON_ERROR_TIME = 30
 
         /** A default value for the GPS timeout (in seconds). */
-        const val defaultGpsTimeout = 45
+        const val DEFAULT_GPS_TIMEOUT = 45
 
         /** A default value for the location update threshold property. */
-        const val defaultLocationUpdateThreshold = 10
+        const val DEFAULT_LOCATION_UPDATE_THRESHOLD = 10
 
         /** A default value for the size of the offline storage. */
-        const val defaultOfflineStorageSize = 32
+        const val DEFAULT_OFFLINE_STORAGE_SIZE = 32
 
         /** A default value for the offline storage sync time (in sec). */
-        const val defaultOfflineStorageSyncTime = 30
+        const val DEFAULT_OFFLINE_STORAGE_SYNC_TIME = 30
 
         /** A default value for the multi-upload chunk size. */
-        const val defaultMultiUploadChunkSize = 4
+        const val DEFAULT_MULTI_UPLOAD_CHUNK_SIZE = 4
+
+        /** A default value for the maximum speed increase. */
+        const val DEFAULT_MAX_SPEED_INCREASE = 2.0
+
+        /** A default value for the average walking speed. */
+        const val DEFAULT_WALKING_SPEED = 4.0 / 3.6 // 4 km/h in m/s
 
         /**
          * Constant for the minimum value accepted for a date (in millis).
          * This value should prevent that an undefined date property (set to 0)
          * is reported as a date in the 1970s.
          */
-        const val minDateValue = 100000L
+        const val MIN_DATE_VALUE = 100000L
 
         /** Constant for an undefined numeric property.*/
-        private const val undefinedNumber = -1
+        private const val UNDEFINED_NUMBER = -1
 
         /** String value of an undefined numeric property.*/
-        private const val undefinedNumberStr = undefinedNumber.toString()
+        private const val UNDEFINED_NUMBER_STR = UNDEFINED_NUMBER.toString()
 
         /** A set with all properties related to configuration.*/
-        private val configProps = setOf(
-            propServerUri, propBasePath, propUser, propPassword,
-            propMinTrackInterval, propMaxTrackInterval, propIdleIncrement, propLocationValidity,
-            propLocationUpdateThreshold, propRetryOnErrorTime, propGpsTimeout
+        private val CONFIG_PROPS = setOf(
+            PROP_SERVER_URI, PROP_BASE_PATH, PROP_USER, PROP_PASSWORD,
+            PROP_MIN_TRACK_INTERVAL, PROP_MAX_TRACK_INTERVAL, PROP_IDLE_INCREMENT, PROP_LOCATION_VALIDITY,
+            PROP_LOCATION_UPDATE_THRESHOLD, PROP_RETRY_ON_ERROR_TIME, PROP_GPS_TIMEOUT,
+            PROP_OFFLINE_STORAGE_SIZE, PROP_OFFLINE_STORAGE_SYNC_TIME, PROP_MULTI_UPLOAD_CHUNK_SIZE,
+            PROP_MAX_SPEED_INCREASE, PROP_WALKING_SPEED
         )
 
         /**
          * A map with configuration properties and their default values. This
          * is used to initialize shared preferences.
          */
-        private val configDefaults = mapOf(
-            propMinTrackInterval to (defaultMinTrackInterval / 60),
-            propMaxTrackInterval to (defaultMaxTrackInterval / 60),
-            propIdleIncrement to (defaultIdleIncrement / 60),
-            propLocationValidity to (defaultLocationValidity / 60),
-            propLocationUpdateThreshold to defaultLocationUpdateThreshold,
-            propRetryOnErrorTime to defaultRetryOnErrorTime,
-            propGpsTimeout to defaultGpsTimeout
+        private val CONFIG_DEFAULTS = mapOf(
+            PROP_MIN_TRACK_INTERVAL to (DEFAULT_MIN_TRACK_INTERVAL / 60),
+            PROP_MAX_TRACK_INTERVAL to (DEFAULT_MAX_TRACK_INTERVAL / 60),
+            PROP_IDLE_INCREMENT to (DEFAULT_IDLE_INCREMENT / 60),
+            PROP_LOCATION_VALIDITY to (DEFAULT_LOCATION_VALIDITY / 60),
+            PROP_LOCATION_UPDATE_THRESHOLD to DEFAULT_LOCATION_UPDATE_THRESHOLD,
+            PROP_RETRY_ON_ERROR_TIME to DEFAULT_RETRY_ON_ERROR_TIME,
+            PROP_GPS_TIMEOUT to DEFAULT_GPS_TIMEOUT
         )
 
         /**
          * A set with the names of all the properties that need to be cleared
          * when statistics are reset.
          */
-        private val resetProps = setOf(
-            propTotalDistance, propErrorCount, propLastCheck, propLastDistance, propLastUpdate, propLastError,
-            propCheckCount, propUpdateCount
+        private val RESET_PROPS = setOf(
+            PROP_TOTAL_DISTANCE,
+            PROP_ERROR_COUNT,
+            PROP_LAST_CHECK,
+            PROP_LAST_DISTANCE,
+            PROP_LAST_UPDATE,
+            PROP_LAST_ERROR,
+            PROP_CHECK_COUNT,
+            PROP_UPDATE_COUNT
         )
 
         /** Factor to convert minutes to seconds. */
-        private const val minute = 60
+        private const val MINUTE = 60
+
+        /** Factor to convert Km/h to m/s. */
+        private const val METER_PER_SECOND = 1.0 / 3.6
 
         /**
          * Creates a _PreferencesHandler_ object based on the given context.
@@ -506,7 +549,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
          * @param prop the property in question
          * @return *true* for a configuration property; *false* otherwise
          */
-        fun isConfigProperty(prop: String): Boolean = configProps.contains(prop)
+        fun isConfigProperty(prop: String): Boolean = CONFIG_PROPS.contains(prop)
 
         /**
          * Registers a preferences change listener at the default preferences.

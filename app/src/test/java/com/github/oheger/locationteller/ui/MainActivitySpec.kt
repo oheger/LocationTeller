@@ -35,16 +35,16 @@ class MainActivitySpec {
     fun testTrackingIsDisabledOnAConfigurationChange() {
         val pref = mockk<SharedPreferences>()
         val editor = mockk<SharedPreferences.Editor>()
-        every { pref.getBoolean(PreferencesHandler.propTrackState, false) } returns true
+        every { pref.getBoolean(PreferencesHandler.PROP_TRACK_STATE, false) } returns true
         every { pref.edit() } returns editor
-        every { editor.putBoolean(PreferencesHandler.propTrackState, false) } returns editor
+        every { editor.putBoolean(PreferencesHandler.PROP_TRACK_STATE, false) } returns editor
         every { editor.putLong(any(), any()) } returns editor
         every { editor.apply() } just runs
         val activity = MainActivity()
 
-        activity.onSharedPreferenceChanged(pref, PreferencesHandler.propServerUri)
+        activity.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_SERVER_URI)
         verifyOrder {
-            editor.putBoolean(PreferencesHandler.propTrackState, false)
+            editor.putBoolean(PreferencesHandler.PROP_TRACK_STATE, false)
             editor.apply()
         }
     }
@@ -52,10 +52,10 @@ class MainActivitySpec {
     @Test
     fun testTrackingIsDisabledOnlyIfActive() {
         val pref = mockk<SharedPreferences>()
-        every { pref.getBoolean(PreferencesHandler.propTrackState, false) } returns false
+        every { pref.getBoolean(PreferencesHandler.PROP_TRACK_STATE, false) } returns false
         val activity = MainActivity()
 
-        activity.onSharedPreferenceChanged(pref, PreferencesHandler.propBasePath)
+        activity.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_BASE_PATH)
     }
 
     @Test
@@ -68,7 +68,7 @@ class MainActivitySpec {
             val activitySpy = spyk(activity)
             every { activitySpy.startService(any()) } returns null
 
-            activitySpy.onSharedPreferenceChanged(pref, PreferencesHandler.propTrackState)
+            activitySpy.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_TRACK_STATE)
             verify {
                 activitySpy.startService(any())
             }

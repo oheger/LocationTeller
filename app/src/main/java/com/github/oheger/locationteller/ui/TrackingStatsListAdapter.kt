@@ -234,10 +234,10 @@ class TrackingStatsListAdapter private constructor(
          * needs to be updated.
          */
         private val statisticsProperties = setOf(
-            PreferencesHandler.propTrackingStart,
-            PreferencesHandler.propTrackingEnd, PreferencesHandler.propLastError,
-            PreferencesHandler.propLastUpdate, PreferencesHandler.propLastCheck,
-            PreferencesHandler.propLastDistance
+            PreferencesHandler.PROP_TRACKING_START,
+            PreferencesHandler.PROP_TRACKING_END, PreferencesHandler.PROP_LAST_ERROR,
+            PreferencesHandler.PROP_LAST_UPDATE, PreferencesHandler.PROP_LAST_CHECK,
+            PreferencesHandler.PROP_LAST_DISTANCE
         )
 
         /**

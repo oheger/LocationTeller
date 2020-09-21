@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
      */
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
         Log.d(logTag, "Change of shared properties. Affected key is $key.")
-        if (PreferencesHandler.propTrackState == key) {
+        if (PreferencesHandler.PROP_TRACK_STATE == key) {
             Intent(this, LocationTellerService::class.java).also { startService(it) }
         } else if (PreferencesHandler.isConfigProperty(key)) {
             val handler = PreferencesHandler(sharedPreferences)
