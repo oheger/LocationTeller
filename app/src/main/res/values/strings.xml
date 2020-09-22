@@ -66,4 +66,6 @@
     <string name="item_update_my_location">Update my location</string>
     <string name="item_center_to_my_location">Center to my location</string>
     <string name="map_no_own_location">Failed to retrieve the current location</string>
+    <string name="pref_max_speed_increase">Maximum speed increase factor</string>
+    <string name="pref_walking_speed">Average walking speed (km/h)</string>
 </resources>

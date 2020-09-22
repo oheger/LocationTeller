@@ -17,7 +17,6 @@ package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import android.text.InputType
-import android.widget.EditText
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
 import com.github.oheger.locationteller.R
@@ -32,18 +31,25 @@ class TrackSettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.track_preferences, rootKey)
 
-        val numberBindListener = { editText: EditText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER
+        fun inputTypeBindListener(inputType: Int): EditTextPreference.OnBindEditTextListener =
+            EditTextPreference.OnBindEditTextListener { it.inputType = inputType }
+
+        fun setBindListener(key: String, listener: EditTextPreference.OnBindEditTextListener) {
+            findPreference<EditTextPreference>(key)?.setOnBindEditTextListener(listener)
         }
 
-        fun makeNumericSetting(key: String) {
-            val pref: EditTextPreference? = findPreference(key)
-            pref?.setOnBindEditTextListener(numberBindListener)
-        }
+        val intBindListener = inputTypeBindListener(InputType.TYPE_CLASS_NUMBER)
+        val floatBindListener =
+            inputTypeBindListener(InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL)
 
-        listOf("minTrackInterval", "maxTrackInterval", "intervalIncrementOnIdle", "locationValidity",
+        listOf(
+            "minTrackInterval", "maxTrackInterval", "intervalIncrementOnIdle", "locationValidity",
             "locationUpdateThreshold", "retryOnErrorTime", "gpsTimeout", "offlineStorageSize",
-            "offlineStorageSyncTime", "multiUploadChunkSize")
-            .forEach { makeNumericSetting(it) }
+            "offlineStorageSyncTime", "multiUploadChunkSize"
+        )
+            .forEach { setBindListener(it, intBindListener) }
+
+        listOf("maxSpeedIncrease", "walkingSpeed")
+            .forEach { setBindListener(it, floatBindListener) }
     }
 }

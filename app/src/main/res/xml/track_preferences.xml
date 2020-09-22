@@ -84,5 +84,19 @@
             android:singleLine="true"
             android:title="@string/pref_multi_upload_chunk_size"
             app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="maxSpeedIncrease"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_max_speed_increase"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:key="walkingSpeed"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/pref_walking_speed"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 </PreferenceScreen>

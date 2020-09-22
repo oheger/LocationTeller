@@ -62,4 +62,6 @@
     <string name="item_center_to_my_location">Meine Position zentrieren</string>
     <string name="item_update_my_location">Aktualisiere meine Position</string>
     <string name="map_no_own_location">Die aktuelle Position konnte nicht ermittelt werden</string>
+    <string name="pref_max_speed_increase">Maximale Geschwindigkeitszunahme (Faktor)</string>
+    <string name="pref_walking_speed">Normale Lauf-Geschwindigkeit (Km/h)</string>
 </resources>
