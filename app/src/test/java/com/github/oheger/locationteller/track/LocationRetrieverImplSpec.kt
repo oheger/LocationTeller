@@ -33,11 +33,11 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Test class for [[LocationRetriever]].
+ * Test class for [[LocationRetrieverImpl]].
  */
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
-class LocationRetrieverSpec : StringSpec() {
+class LocationRetrieverImplSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 
     /**
@@ -65,7 +65,7 @@ class LocationRetrieverSpec : StringSpec() {
             }
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             val dispatcher = initDispatcher()
-            val retriever = LocationRetriever(locClient, gpsTimeout)
+            val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
 
             retriever.fetchLocation() shouldBe location
             dispatcher.tasks.isEmpty() shouldBe false
@@ -81,7 +81,7 @@ class LocationRetrieverSpec : StringSpec() {
             }
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, gpsTimeout)
+            val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
 
             retriever.fetchLocation() shouldBe null
         }
@@ -91,7 +91,7 @@ class LocationRetrieverSpec : StringSpec() {
             every { locClient.requestLocationUpdates(any(), any(), null) } returns null
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
             initDispatcher()
-            val retriever = LocationRetriever(locClient, gpsTimeout)
+            val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
 
             retriever.fetchLocation() shouldBe null
             verify { locClient.removeLocationUpdates(any() as LocationCallback) }

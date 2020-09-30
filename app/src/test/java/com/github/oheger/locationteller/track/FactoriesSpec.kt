@@ -21,6 +21,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -70,6 +71,7 @@ class FactoriesSpec : StringSpec() {
             val factory = LocationRetrieverFactory()
 
             val retriever = factory.createRetriever(context, TrackTestHelper.defTrackConfig)
+            retriever.shouldBeInstanceOf<LocationRetrieverImpl>()
             retriever.locationClient shouldBe locationClient
             retriever.timeout shouldBe TrackTestHelper.defTrackConfig.gpsTimeout * 1000
         }

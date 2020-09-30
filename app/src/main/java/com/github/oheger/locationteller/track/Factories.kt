@@ -71,7 +71,7 @@ class LocationRetrieverFactory {
      * @return the _LocationRetriever_ instance
      */
     fun createRetriever(context: Context, trackConfig: TrackConfig): LocationRetriever =
-        LocationRetriever(
+        LocationRetrieverImpl(
             LocationServices.getFusedLocationProviderClient(context),
             trackConfig.gpsTimeout * 1000L
         )

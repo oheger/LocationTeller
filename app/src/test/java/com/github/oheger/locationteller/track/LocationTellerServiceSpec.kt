@@ -211,7 +211,7 @@ class LocationTellerServiceSpec : StringSpec() {
                 val retrieverFactory = mockk<LocationRetrieverFactory>()
                 val processorFactory = mockk<LocationProcessorFactory>()
                 val timeService = mockk<TimeService>()
-                val retriever = mockk<LocationRetriever>()
+                val retriever = mockk<LocationRetrieverImpl>()
                 val service = LocationTellerService(updaterFactory, retrieverFactory, processorFactory, timeService)
                 mockkStatic(PendingIntent::class)
                 every { PendingIntent.getService(any(), 0, any(), 0) } returns pendingIntent

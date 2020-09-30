@@ -28,7 +28,7 @@ import kotlinx.coroutines.channels.SendChannel
  * this update to the server via a location updater actor.
  *
  * This class is invoked from the service responsible for tracking the
- * location. It asks the given [[LocationRetriever]] for the last known
+ * location. It asks the given [LocationRetriever] for the last known
  * location. This information is then passed to the given channel.
  *
  * @param locationRetriever the object to retrieve the GPS location
