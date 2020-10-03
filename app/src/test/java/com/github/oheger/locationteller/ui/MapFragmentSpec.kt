@@ -559,7 +559,8 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
         every {
             factory.createRetriever(
                 requireContext(),
-                TrackTestHelper.defTrackConfig
+                TrackTestHelper.defTrackConfig,
+                false
             )
         } returns mockLocationRetriever
         return factory

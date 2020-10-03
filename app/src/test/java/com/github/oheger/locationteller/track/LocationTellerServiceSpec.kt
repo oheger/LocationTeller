@@ -219,7 +219,9 @@ class LocationTellerServiceSpec : StringSpec() {
 
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
                 every { updaterFactory.createActor(prefs, TrackTestHelper.defTrackConfig, any()) } returns actor
-                every { retrieverFactory.createRetriever(any(), TrackTestHelper.defTrackConfig) } returns retriever
+                every {
+                    retrieverFactory.createRetriever(any(), TrackTestHelper.defTrackConfig, validating = true)
+                } returns retriever
                 if (actor != null) {
                     every { processorFactory.createProcessor(retriever, actor) } returns locationProcessor
                 }

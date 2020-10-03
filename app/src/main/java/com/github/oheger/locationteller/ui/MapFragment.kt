@@ -122,7 +122,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         Log.i(logTag, "Set update interval to $updateInterval ms.")
 
         val retrieverFactory = createLocationRetrieverFactory()
-        locationRetriever = retrieverFactory.createRetriever(requireContext(), trackConfig)
+        locationRetriever = retrieverFactory.createRetriever(requireContext(), trackConfig, false)
     }
 
     override fun onCreateView(

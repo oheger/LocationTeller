@@ -70,10 +70,28 @@ class FactoriesSpec : StringSpec() {
             every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
             val factory = LocationRetrieverFactory()
 
-            val retriever = factory.createRetriever(context, TrackTestHelper.defTrackConfig)
+            val retriever = factory.createRetriever(context, TrackTestHelper.defTrackConfig, false)
             retriever.shouldBeInstanceOf<LocationRetrieverImpl>()
             retriever.locationClient shouldBe locationClient
             retriever.timeout shouldBe TrackTestHelper.defTrackConfig.gpsTimeout * 1000
+        }
+
+        "LocationRetrieverFactory should create a validating retriever object" {
+            val context = mockk<Context>()
+            val locationClient = mockk<FusedLocationProviderClient>()
+            mockkStatic(LocationServices::class)
+            every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
+            val factory = LocationRetrieverFactory()
+
+            val retriever = factory.createRetriever(context, TrackTestHelper.defTrackConfig, true)
+            retriever.shouldBeInstanceOf<ValidatingLocationRetriever>()
+            val wrappedRetriever = retriever.wrappedRetriever
+            wrappedRetriever.shouldBeInstanceOf<LocationRetrieverImpl>()
+            wrappedRetriever.locationClient shouldBe locationClient
+            wrappedRetriever.timeout shouldBe TrackTestHelper.defTrackConfig.gpsTimeout * 1000
+            retriever.maxSpeedIncrease shouldBe TrackTestHelper.defTrackConfig.maxSpeedIncrease
+            retriever.walkingSpeed shouldBe TrackTestHelper.defTrackConfig.walkingSpeed
+            retriever.timeService shouldBe ElapsedTimeService
         }
 
         "LocationProcessorFactory should create a correct processor object" {

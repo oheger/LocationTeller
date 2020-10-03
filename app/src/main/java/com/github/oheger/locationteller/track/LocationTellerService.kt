@@ -95,7 +95,7 @@ class LocationTellerService(
         val updaterActor = updaterFactory.createActor(preferencesHandler, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
-            val locRetriever = retrieverFactory.createRetriever(this, trackConfig)
+            val locRetriever = retrieverFactory.createRetriever(this, trackConfig, validating = true)
             locationProcessor = processorFactory.createProcessor(locRetriever, updaterActor)
         }
         startForegroundService()

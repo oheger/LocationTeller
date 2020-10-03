@@ -58,23 +58,35 @@ class UpdaterActorFactory {
 }
 
 /**
- * A factory class for creating a [[LocationRetriever]].
+ * A factory class for creating a [LocationRetriever].
  *
  * This class mainly abstracts over obtaining a fused location provider which
- * is needed by a _LocationRetriever_.
+ * is needed by a _LocationRetriever_. Optionally, validation of the GPS
+ * positions can be added to the retriever.
  */
 class LocationRetrieverFactory {
     /**
      * Creates a new _LocationRetriever_ based on the parameters specified.
      * @param context the context
      * @param trackConfig the track configuration
+     * @param validating flag whether the resulting _LocationRetriever_ should
+     * validate its GPS positions
      * @return the _LocationRetriever_ instance
      */
-    fun createRetriever(context: Context, trackConfig: TrackConfig): LocationRetriever =
-        LocationRetrieverImpl(
+    fun createRetriever(context: Context, trackConfig: TrackConfig, validating: Boolean): LocationRetriever {
+        val retriever = LocationRetrieverImpl(
             LocationServices.getFusedLocationProviderClient(context),
             trackConfig.gpsTimeout * 1000L
         )
+        return if (validating) {
+            ValidatingLocationRetriever(
+                retriever,
+                ElapsedTimeService,
+                trackConfig.maxSpeedIncrease,
+                trackConfig.walkingSpeed
+            )
+        } else retriever
+    }
 }
 
 /**
