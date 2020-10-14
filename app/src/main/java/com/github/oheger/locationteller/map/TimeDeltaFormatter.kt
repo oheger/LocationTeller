@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.map
 
 import android.content.Context
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.server.TimeData
 
 /**
  * A class to format time deltas as strings according to their age.
@@ -29,7 +30,16 @@ import com.github.oheger.locationteller.R
  * constructing an instance.
  */
 class TimeDeltaFormatter(
-    private val unitSec: String, private val unitMin: String, private val unitHour: String,
+    /** String to be displayed for the unit "seconds". */
+    private val unitSec: String,
+
+    /** String to be displayed for the unit "minutes". */
+    private val unitMin: String,
+
+    /** String to be displayed for the unit "hours". */
+    private val unitHour: String,
+
+    /** String to be displayed for the unit "days". */
     private val unitDay: String
 ) {
     /**
@@ -52,13 +62,32 @@ class TimeDeltaFormatter(
                     "$deltaHour $unitHour"
                 } else {
                     val deltaDay = deltaHour / 24
-                    "$deltaDay $unitDay"
+                    val remainingHours = (deltaHour % 24).takeIf { it > 0 }
+                        ?.let { " $it $unitHour" } ?: ""
+                    "$deltaDay $unitDay$remainingHours"
                 }
             }
         }
     }
 
+    /**
+     * Generates a string representation for the given time delta or uses the
+     * string representation of the time itself if the delta is less than a
+     * day. This function can be used to have more detailed information for
+     * timestamps that are younger.
+     * @param deltaMillis the delta in milliseconds
+     * @param timeData the object with full time information
+     * @return a string representing this delta
+     */
+    fun formatTimeDeltaOrTime(deltaMillis: Long, timeData: TimeData): String =
+        if (deltaMillis < DAY_MILLIS)
+            timeData.timeString.substring(0, 5).replace('_', ':')
+        else formatTimeDelta(deltaMillis)
+
     companion object {
+        /** The number of milliseconds of a day. */
+        private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
+
         /**
          * Creates a new instance of _TimeDeltaFormatter_ and initializes it
          * from the given Android context.
