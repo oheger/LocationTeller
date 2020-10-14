@@ -60,7 +60,10 @@ class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
      * @return a title for the marker
      */
     private fun createTitle(data: MarkerData, time: Long): String =
-        deltaFormatter.formatTimeDelta(time - data.locationData.time.currentTime)
+        deltaFormatter.formatTimeDeltaOrTime(
+            time - data.locationData.time.currentTime,
+            data.locationData.time
+        )
 
     /**
      * Calculates an alpha value for a marker based on its age. There are

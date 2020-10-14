@@ -47,16 +47,16 @@ class MarkerFactorySpec : StringSpec() {
 
         "MarkerFactory should set a title using the time formatter" {
             val delta = 987123L
-            val data = createMarkerDataWithTime(currentTime - delta)
+            val data = createMarkerDataWithTime(CURRENT_TIME - delta)
             val factory = createFactory()
             val options = callFactoryForMarker(data, factory)
 
-            options.title shouldBe title
-            verify { factory.deltaFormatter.formatTimeDelta(delta) }
+            options.title shouldBe TITLE
+            verify { factory.deltaFormatter.formatTimeDeltaOrTime(delta, data.locationData.time) }
         }
 
         "MarkerFactory should set default values for optional properties" {
-            val data = createMarkerDataWithTime(currentTime - 10000)
+            val data = createMarkerDataWithTime(CURRENT_TIME - 10000)
             val options = createOptionsForMarker(data)
 
             options.icon shouldBe null
@@ -69,7 +69,7 @@ class MarkerFactorySpec : StringSpec() {
             val data = createMarkerData(1)
             val factory = createFactory()
 
-            val options = factory.createMarker(data, currentTime, recentMarker = false, zIndex = zIndex)
+            val options = factory.createMarker(data, CURRENT_TIME, recentMarker = false, zIndex = zIndex)
             options.zIndex shouldBe zIndex
         }
 
@@ -78,7 +78,7 @@ class MarkerFactorySpec : StringSpec() {
             val data = createMarkerData(2)
             val factory = createFactory()
 
-            val options = factory.createMarker(data,currentTime - 111, recentMarker = false, text = text)
+            val options = factory.createMarker(data, CURRENT_TIME - 111, recentMarker = false, text = text)
             options.snippet shouldBe text
         }
 
@@ -90,24 +90,24 @@ class MarkerFactorySpec : StringSpec() {
             val data = createMarkerData(3)
             val factory = createFactory()
 
-            val options = factory.createMarker(data, currentTime - 22, recentMarker = false, color = color)
+            val options = factory.createMarker(data, CURRENT_TIME - 22, recentMarker = false, color = color)
             options.icon shouldBe descriptor
         }
 
         "MarkerFactory should set the alpha of the most recent marker to 1" {
-            val marker = createMarkerDataWithTime(currentTime - 5 * 24 * 60 * 60 * 1000)
+            val marker = createMarkerDataWithTime(CURRENT_TIME - 5 * 24 * 60 * 60 * 1000)
             val options = createOptionsForMarker(marker, recentMarker = true)
 
             options.alpha shouldBe 1f
         }
 
         "MarkerFactory should set the alpha for markers in the minute range" {
-            val marker1 = createMarkerDataWithTime(currentTime - 3 * 60 * 1000)
-            val marker2 = createMarkerDataWithTime(currentTime - 59 * 60 * 1000)
+            val marker1 = createMarkerDataWithTime(CURRENT_TIME - 3 * 60 * 1000)
+            val marker2 = createMarkerDataWithTime(CURRENT_TIME - 59 * 60 * 1000)
             val factory = createFactory()
 
-            val options1 = factory.createMarker(marker2, currentTime, recentMarker = false)
-            val options2 = factory.createMarker(marker1, currentTime, recentMarker = false)
+            val options1 = factory.createMarker(marker2, CURRENT_TIME, recentMarker = false)
+            val options2 = factory.createMarker(marker1, CURRENT_TIME, recentMarker = false)
             options2.alpha shouldBeLessThan 1f
             options2.alpha shouldBeGreaterThan 0.9f
             options2.alpha shouldBeGreaterThan options1.alpha
@@ -116,12 +116,12 @@ class MarkerFactorySpec : StringSpec() {
 
         "MarkerFactory should set the alpha for markers in the hours range" {
             val deltaHour = 60 * 60 * 1000
-            val marker1 = createMarkerDataWithTime(currentTime - 23 * deltaHour - 60)
-            val marker2 = createMarkerDataWithTime(currentTime - 1 * deltaHour)
+            val marker1 = createMarkerDataWithTime(CURRENT_TIME - 23 * deltaHour - 60)
+            val marker2 = createMarkerDataWithTime(CURRENT_TIME - 1 * deltaHour)
             val factory = createFactory()
 
-            val options2 = factory.createMarker(marker2, currentTime, recentMarker = false)
-            val options1 = factory.createMarker(marker1, currentTime, recentMarker = false)
+            val options2 = factory.createMarker(marker2, CURRENT_TIME, recentMarker = false)
+            val options1 = factory.createMarker(marker1, CURRENT_TIME, recentMarker = false)
             options2.alpha shouldBeLessThanOrEqual MarkerFactory.AlphaHoursMax
             options2.alpha shouldBeGreaterThan MarkerFactory.AlphaHoursMax - 0.02f
             options2.alpha shouldBeGreaterThan options1.alpha
@@ -130,12 +130,12 @@ class MarkerFactorySpec : StringSpec() {
 
         "MarkerFactory should set the alpha for markers in the days range" {
             val deltaDay = (24 * 60 * 60 + 1) * 1000L
-            val marker1 = createMarkerDataWithTime(currentTime - deltaDay)
-            val marker2 = createMarkerDataWithTime(currentTime - 50 * deltaDay)
+            val marker1 = createMarkerDataWithTime(CURRENT_TIME - deltaDay)
+            val marker2 = createMarkerDataWithTime(CURRENT_TIME - 50 * deltaDay)
             val factory = createFactory()
 
-            val options2 = factory.createMarker(marker1, currentTime, recentMarker = false)
-            val options1 = factory.createMarker(marker2, currentTime, recentMarker = false)
+            val options2 = factory.createMarker(marker1, CURRENT_TIME, recentMarker = false)
+            val options1 = factory.createMarker(marker2, CURRENT_TIME, recentMarker = false)
             options1.alpha shouldBe MarkerFactory.AlphaDays
             options2.alpha shouldBe MarkerFactory.AlphaDays
         }
@@ -143,10 +143,10 @@ class MarkerFactorySpec : StringSpec() {
 
     companion object {
         /** The current time passed to the factory.*/
-        private const val currentTime = 20190723220948L
+        private const val CURRENT_TIME = 20190723220948L
 
         /** The title to be returned in marker options. */
-        private const val title = "formattedTimeDelta"
+        private const val TITLE = "formattedTimeDelta"
 
         /**
          * Creates a _MarkerData_ object with the given timestamp.
@@ -181,7 +181,7 @@ class MarkerFactorySpec : StringSpec() {
             factory: MarkerFactory,
             recentMarker: Boolean = false
         ): MarkerOptions {
-            return factory.createMarker(data, currentTime, recentMarker)
+            return factory.createMarker(data, CURRENT_TIME, recentMarker)
         }
 
         /**
@@ -190,7 +190,7 @@ class MarkerFactorySpec : StringSpec() {
          */
         private fun createFactory(): MarkerFactory {
             val formatter = mockk<TimeDeltaFormatter>()
-            every { formatter.formatTimeDelta(any()) } returns title
+            every { formatter.formatTimeDeltaOrTime(any(), any()) } returns TITLE
             return MarkerFactory(formatter)
         }
     }
