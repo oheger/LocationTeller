@@ -23,10 +23,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.comparables.shouldBeGreaterThan
-import io.kotest.matchers.comparables.shouldBeLessThan
-import io.kotest.matchers.floats.shouldBeGreaterThanOrEqual
-import io.kotest.matchers.floats.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
@@ -101,43 +97,16 @@ class MarkerFactorySpec : StringSpec() {
             options.alpha shouldBe 1f
         }
 
-        "MarkerFactory should set the alpha for markers in the minute range" {
-            val marker1 = createMarkerDataWithTime(CURRENT_TIME - 3 * 60 * 1000)
-            val marker2 = createMarkerDataWithTime(CURRENT_TIME - 59 * 60 * 1000)
+        "MarkerFactory should call the alpha calculator to determine the alpha value" {
+            val delta = 3 * 60 * 1000L
+            val marker = createMarkerDataWithTime(CURRENT_TIME - delta)
             val factory = createFactory()
 
-            val options1 = factory.createMarker(marker2, CURRENT_TIME, recentMarker = false)
-            val options2 = factory.createMarker(marker1, CURRENT_TIME, recentMarker = false)
-            options2.alpha shouldBeLessThan 1f
-            options2.alpha shouldBeGreaterThan 0.9f
-            options2.alpha shouldBeGreaterThan options1.alpha
-            options1.alpha shouldBeGreaterThanOrEqual MarkerFactory.AlphaMinutesMin
-        }
-
-        "MarkerFactory should set the alpha for markers in the hours range" {
-            val deltaHour = 60 * 60 * 1000
-            val marker1 = createMarkerDataWithTime(CURRENT_TIME - 23 * deltaHour - 60)
-            val marker2 = createMarkerDataWithTime(CURRENT_TIME - 1 * deltaHour)
-            val factory = createFactory()
-
-            val options2 = factory.createMarker(marker2, CURRENT_TIME, recentMarker = false)
-            val options1 = factory.createMarker(marker1, CURRENT_TIME, recentMarker = false)
-            options2.alpha shouldBeLessThanOrEqual MarkerFactory.AlphaHoursMax
-            options2.alpha shouldBeGreaterThan MarkerFactory.AlphaHoursMax - 0.02f
-            options2.alpha shouldBeGreaterThan options1.alpha
-            options1.alpha shouldBeGreaterThan MarkerFactory.AlphaHoursMin
-        }
-
-        "MarkerFactory should set the alpha for markers in the days range" {
-            val deltaDay = (24 * 60 * 60 + 1) * 1000L
-            val marker1 = createMarkerDataWithTime(CURRENT_TIME - deltaDay)
-            val marker2 = createMarkerDataWithTime(CURRENT_TIME - 50 * deltaDay)
-            val factory = createFactory()
-
-            val options2 = factory.createMarker(marker1, CURRENT_TIME, recentMarker = false)
-            val options1 = factory.createMarker(marker2, CURRENT_TIME, recentMarker = false)
-            options1.alpha shouldBe MarkerFactory.AlphaDays
-            options2.alpha shouldBe MarkerFactory.AlphaDays
+            val options = factory.createMarker(marker, CURRENT_TIME, recentMarker = false)
+            options.alpha shouldBe ALPHA
+            verify {
+                factory.alphaCalculator.calculateAlpha(delta)
+            }
         }
     }
 
@@ -147,6 +116,9 @@ class MarkerFactorySpec : StringSpec() {
 
         /** The title to be returned in marker options. */
         private const val TITLE = "formattedTimeDelta"
+
+        /** A test alpha value returned by the mock alpha calculator. */
+        private const val ALPHA = 0.75f
 
         /**
          * Creates a _MarkerData_ object with the given timestamp.
@@ -185,13 +157,15 @@ class MarkerFactorySpec : StringSpec() {
         }
 
         /**
-         * Creates a marker factory with a mock context.
+         * Creates a marker factory with mock dependencies.
          * @return the marker factory
          */
         private fun createFactory(): MarkerFactory {
             val formatter = mockk<TimeDeltaFormatter>()
+            val calculator = mockk<TimeDeltaAlphaCalculator>()
             every { formatter.formatTimeDeltaOrTime(any(), any()) } returns TITLE
-            return MarkerFactory(formatter)
+            every { calculator.calculateAlpha(any()) } returns ALPHA
+            return MarkerFactory(formatter, calculator)
         }
     }
 }

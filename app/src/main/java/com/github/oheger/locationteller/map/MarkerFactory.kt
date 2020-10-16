@@ -24,10 +24,14 @@ import com.google.android.gms.maps.model.MarkerOptions
  *
  * This class is used by [MapUpdater] to generate the markers that are to be
  * added to the map.
- *
- * @param deltaFormatter the formatter for time deltas
  */
-class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
+class MarkerFactory(
+    /** The formatter for time deltas to generate labels. */
+    val deltaFormatter: TimeDeltaFormatter,
+
+    /** The calculator for the alpha values of position markers. */
+    val alphaCalculator: TimeDeltaAlphaCalculator
+) {
     /**
      * Creates a _MarkerOptions_ object that corresponds to the given input
      * parameters.
@@ -77,28 +81,11 @@ class MarkerFactory(val deltaFormatter: TimeDeltaFormatter) {
     private fun calcAlpha(data: MarkerData, time: Long, isRecent: Boolean): Float =
         if (isRecent) 1f
         else {
-            val deltaMin = (time - data.locationData.time.currentTime) / 1000 / 60
-            if (deltaMin < 60) 1.0f - (1.0f - AlphaMinutesMin) * (deltaMin / 60f)
-            else {
-                val deltaHour = deltaMin / 60
-                if (deltaHour < 24) AlphaHoursMax - (AlphaHoursMax - AlphaHoursMin) * (deltaHour / 24f)
-                else AlphaDays
-            }
+            val delta = (time - data.locationData.time.currentTime)
+            alphaCalculator.calculateAlpha(delta)
         }
 
     companion object {
-        /** The minimum alpha value used for markers in the minute range. */
-        const val AlphaMinutesMin = 0.55f
-
-        /** The maximum alpha value used for markers in the hour range. */
-        const val AlphaHoursMax = 0.5f
-
-        /** The minimum alpha value used for markers in the hour range. */
-        const val AlphaHoursMin = 0.2f
-
-        /** The alpha value used for markers in the day range. */
-        const val AlphaDays = 0.1f
-
         /**
          * Obtains a special marker icon if a color has been provided.
          * @param color the optional color of the marker

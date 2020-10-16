@@ -27,6 +27,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapMarkerState
 import com.github.oheger.locationteller.map.MapUpdater
@@ -112,7 +113,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         setHasOptionsMenu(true)
         handler = createHandler()
         deltaFormatter = TimeDeltaFormatter.create(requireContext())
-        markerFactory = MarkerFactory(deltaFormatter)
+        markerFactory = MarkerFactory(deltaFormatter, ConstantTimeDeltaAlphaCalculator(1f))
         preferencesHandler = createPreferencesHandler()
         timeService = createTimeService()
         val serverConfig = preferencesHandler.createServerConfig()
