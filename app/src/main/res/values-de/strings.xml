@@ -64,4 +64,10 @@
     <string name="map_no_own_location">Die aktuelle Position konnte nicht ermittelt werden</string>
     <string name="pref_max_speed_increase">Maximale Geschwindigkeitszunahme (Faktor)</string>
     <string name="pref_walking_speed">Normale Lauf-Geschwindigkeit (Km/h)</string>
+    <string name="item_fading_mode">Ausblenden</string>
+    <string name="item_fading_mode_fast">Schnell</string>
+    <string name="item_fading_mode_slow">Langsam</string>
+    <string name="item_fading_mode_fast_and_strong">Schnell und stark</string>
+    <string name="item_fading_mode_slow_and_strong">Langsam und stark</string>
+    <string name="item_fading_mode_none">Nicht ausblenden</string>
 </resources>

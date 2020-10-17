@@ -68,4 +68,10 @@
     <string name="map_no_own_location">Failed to retrieve the current location</string>
     <string name="pref_max_speed_increase">Maximum speed increase factor</string>
     <string name="pref_walking_speed">Average walking speed (km/h)</string>
+    <string name="item_fading_mode">Fading mode</string>
+    <string name="item_fading_mode_fast">Fast</string>
+    <string name="item_fading_mode_slow">Slow</string>
+    <string name="item_fading_mode_fast_and_strong">Fast and strong</string>
+    <string name="item_fading_mode_slow_and_strong">Slow and strong</string>
+    <string name="item_fading_mode_none">None</string>
 </resources>
