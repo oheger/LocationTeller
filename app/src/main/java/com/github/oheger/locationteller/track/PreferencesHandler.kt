@@ -146,6 +146,24 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     fun isAutoResetStats(): Boolean = preferences.getBoolean(PROP_AUTO_RESET_STATS, false)
 
     /**
+     * Returns an identifier that corresponds to the fading mode the user has
+     * selected. (This is actually the menu identifier associated with this
+     * mode.)
+     * @return an identifier for the fading mode
+     */
+    fun getFadingMode(): Int = preferences.getInt(PROP_FADING_MODE, 0)
+
+    /**
+     * Updates the fading mode to the identifier specified.
+     * @param mode the new fading mode
+     */
+    fun setFadingMode(mode: Int) {
+        preferences.edit()
+            .putInt(PROP_FADING_MODE, mode)
+            .apply()
+    }
+
+    /**
      * Sets the preferences property for the last error to the given timestamp
      * and also updates the total error counter.
      * @param at the time when the error happened
@@ -438,6 +456,9 @@ class PreferencesHandler(val preferences: SharedPreferences) {
 
         /** Shared preferences property to trigger the auto-reset of stats. */
         const val PROP_AUTO_RESET_STATS = "autoResetStats"
+
+        /** Shared preferences property to store the fading mode. */
+        const val PROP_FADING_MODE = "fadingMode"
 
         /** A default value for the minimum track interval (in seconds). */
         const val DEFAULT_MIN_TRACK_INTERVAL = 180

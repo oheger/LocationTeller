@@ -22,6 +22,7 @@ import com.github.oheger.locationteller.server.ServerConfig
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
+import io.mockk.Ordering
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -105,6 +106,31 @@ class PreferencesHandlerSpec : StringSpec() {
                 editor.apply()
             }
             assertCurrentTime(slotEndTime.captured)
+        }
+
+        "PreferencesHandler should return the correct fading mode" {
+            val pref = mockk<SharedPreferences>()
+            every { pref.getInt(PreferencesHandler.PROP_FADING_MODE, 0) } returnsMany listOf(1, 2)
+            val handler = PreferencesHandler(pref)
+
+            handler.getFadingMode() shouldBe 1
+            handler.getFadingMode() shouldBe 2
+        }
+
+        "PreferencesHandler should allow updating the fading mode" {
+            val newMode = 42
+            val pref = mockk<SharedPreferences>()
+            val editor = mockk<SharedPreferences.Editor>()
+            every { pref.edit() } returns editor
+            every { editor.putInt(PreferencesHandler.PROP_FADING_MODE, newMode) } returns editor
+            every { editor.apply() } just runs
+            val handler = PreferencesHandler(pref)
+
+            handler.setFadingMode(newMode)
+            verify(ordering = Ordering.ORDERED) {
+                editor.putInt(PreferencesHandler.PROP_FADING_MODE, newMode)
+                editor.apply()
+            }
         }
 
         "PreferencesHandler should identify configuration properties" {
@@ -535,11 +561,19 @@ class PreferencesHandlerSpec : StringSpec() {
             initNumProperty(pref, PreferencesHandler.PROP_MAX_TRACK_INTERVAL, trackConfig.maxTrackInterval / 60)
             initNumProperty(pref, PreferencesHandler.PROP_IDLE_INCREMENT, trackConfig.intervalIncrementOnIdle / 60)
             initNumProperty(pref, PreferencesHandler.PROP_LOCATION_VALIDITY, trackConfig.locationValidity / 60)
-            initNumProperty(pref, PreferencesHandler.PROP_LOCATION_UPDATE_THRESHOLD, trackConfig.locationUpdateThreshold)
+            initNumProperty(
+                pref,
+                PreferencesHandler.PROP_LOCATION_UPDATE_THRESHOLD,
+                trackConfig.locationUpdateThreshold
+            )
             initNumProperty(pref, PreferencesHandler.PROP_RETRY_ON_ERROR_TIME, trackConfig.retryOnErrorTime)
             initNumProperty(pref, PreferencesHandler.PROP_GPS_TIMEOUT, trackConfig.gpsTimeout)
             initNumProperty(pref, PreferencesHandler.PROP_OFFLINE_STORAGE_SIZE, trackConfig.offlineStorageSize)
-            initNumProperty(pref, PreferencesHandler.PROP_OFFLINE_STORAGE_SYNC_TIME, trackConfig.maxOfflineStorageSyncTime)
+            initNumProperty(
+                pref,
+                PreferencesHandler.PROP_OFFLINE_STORAGE_SYNC_TIME,
+                trackConfig.maxOfflineStorageSyncTime
+            )
             initNumProperty(pref, PreferencesHandler.PROP_MULTI_UPLOAD_CHUNK_SIZE, trackConfig.multiUploadChunkSize)
             initNumProperty(pref, PreferencesHandler.PROP_MAX_SPEED_INCREASE, trackConfig.maxSpeedIncrease)
             initNumProperty(pref, PreferencesHandler.PROP_WALKING_SPEED, trackConfig.walkingSpeed * 3.6)
