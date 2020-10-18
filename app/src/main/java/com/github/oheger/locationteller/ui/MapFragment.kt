@@ -27,12 +27,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.map.AlphaRange
 import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapMarkerState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.map.MarkerFactory
+import com.github.oheger.locationteller.map.RangeTimeDeltaAlphaCalculator
+import com.github.oheger.locationteller.map.TimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.TimeDeltaFormatter
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.LocationData
@@ -109,18 +112,18 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Log.i(logTag, "onCreate()")
+        Log.i(LOG_TAG, "onCreate()")
         setHasOptionsMenu(true)
         handler = createHandler()
         deltaFormatter = TimeDeltaFormatter.create(requireContext())
-        markerFactory = MarkerFactory(deltaFormatter, ConstantTimeDeltaAlphaCalculator(1f))
+        markerFactory = createMarkerFactory(deltaFormatter, calculatorNone)
         preferencesHandler = createPreferencesHandler()
         timeService = createTimeService()
         val serverConfig = preferencesHandler.createServerConfig()
         mapUpdater = serverConfig?.let(::createMapUpdater)
         val trackConfig = preferencesHandler.createTrackConfig()
         updateInterval = trackConfig.minTrackInterval * 1000L
-        Log.i(logTag, "Set update interval to $updateInterval ms.")
+        Log.i(LOG_TAG, "Set update interval to $updateInterval ms.")
 
         val retrieverFactory = createLocationRetrieverFactory()
         locationRetriever = retrieverFactory.createRetriever(requireContext(), trackConfig, false)
@@ -170,6 +173,14 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
                 centerToOwnLocation()
                 true
             }
+            R.id.item_fade_none,
+            R.id.item_fade_slow,
+            R.id.item_fade_fast,
+            R.id.item_fade_slow_strong,
+            R.id.item_fade_fast_strong -> {
+                changeFadingMode(item)
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -189,14 +200,14 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     }
 
     override fun onPause() {
-        Log.i(logTag, "onPause()")
+        Log.i(LOG_TAG, "onPause()")
         cancelPendingUpdates()
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
-        Log.i(logTag, "onResume()")
+        Log.i(LOG_TAG, "onResume()")
         updateState(false)
     }
 
@@ -205,10 +216,10 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * update operation is started.
      */
     override fun onMapReady(map: GoogleMap?) {
-        Log.i(logTag, "Map is ready")
+        Log.i(LOG_TAG, "Map is ready")
         this.map = map
         canUpdate = mapUpdater != null && map != null
-        Log.i(logTag, "Location updates possible: $canUpdate.")
+        Log.i(LOG_TAG, "Location updates possible: $canUpdate.")
         updateState(true)
     }
 
@@ -246,20 +257,40 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         LocationRetrieverFactory()
 
     /**
+     * Creates the [MarkerFactory] for populating the map view.
+     * @param deltaFormatter the formatter for time deltas
+     * @param calculator the calculator for alpha values
+     * @return the [MarkerFactory]
+     */
+    protected open fun createMarkerFactory(deltaFormatter: TimeDeltaFormatter, calculator: TimeDeltaAlphaCalculator):
+            MarkerFactory = MarkerFactory(deltaFormatter, calculator)
+
+    /**
+     * Returns the [TimeDeltaAlphaCalculator] to be used for the menu item
+     * specified.
+     * @param itemId the ID of the menu item determining the calculator
+     * @return the [TimeDeltaAlphaCalculator] for this menu item
+     */
+    internal fun alphaCalculatorFor(itemId: Int): TimeDeltaAlphaCalculator =
+        alphaCalculators[itemId] ?: calculatorNone
+
+    /**
      * Updates the location state by fetching new location data from the server
      * and updating the map view if necessary. The boolean parameter indicates
      * whether the view should be initialized, i.e. a meaningful zoom level
      * and position should be set.
      * @param initView flag whether the view should be initialized
+     * @param forceUpdate flag whether an update should always be done
      */
-    private fun updateState(initView: Boolean) {
+    private fun updateState(initView: Boolean, forceUpdate: Boolean = false) {
         val currentMap = map
         if (canUpdate && currentMap != null) {
-            Log.i(logTag, "Triggering update operation.")
+            Log.i(LOG_TAG, "Triggering update operation.")
             updateInProgress()
             launch {
+                val stateToPass = if(forceUpdate) emptyState else state
                 val currentState = mapUpdater?.updateMap(
-                    currentMap, state, ownMarker, markerFactory, timeService.currentTime().currentTime
+                    currentMap, stateToPass, ownMarker, markerFactory, timeService.currentTime().currentTime
                 ) ?: emptyState
                 if (initView) {
                     mapUpdater?.zoomToAllMarkers(currentMap, currentState.locations)
@@ -270,7 +301,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
                 newStateArrived(currentState)
 
                 handler.postAtTime(
-                    { updateState(false) }, updateToken,
+                    { updateState(false) }, UPDATE_TOKEN,
                     SystemClock.uptimeMillis() + updateInterval
                 )
             }
@@ -290,7 +321,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * @param newState the new state
      */
     private fun newStateArrived(newState: MapMarkerState) {
-        Log.i(logTag, "Got new state.")
+        Log.i(LOG_TAG, "Got new state.")
         state = newState
         mapProgressBar.visibility = View.INVISIBLE
         val statusText = if (newState.locations.files.isEmpty()) getString(R.string.map_status_empty)
@@ -377,7 +408,17 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * this fragment's handler.
      */
     private fun cancelPendingUpdates() {
-        handler.removeCallbacksAndMessages(updateToken)
+        handler.removeCallbacksAndMessages(UPDATE_TOKEN)
+    }
+
+    /**
+     * A menu item setting the fading mode has been selected.
+     * @param item the menu item
+     */
+    private fun changeFadingMode(item: MenuItem) {
+        item.isChecked = true
+        markerFactory = createMarkerFactory(deltaFormatter, alphaCalculatorFor(item.itemId))
+        updateState(initView = false, forceUpdate = true)
     }
 
     companion object {
@@ -386,15 +427,63 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
          * fragment's handler. With this token tasks can be removed again when
          * the fragment becomes inactive or an update is requested manually.
          */
-        const val updateToken = "MAP_UPDATES"
+        const val UPDATE_TOKEN = "MAP_UPDATES"
 
         /** Tag for log operations.*/
-        private const val logTag = "MapFragment"
+        private const val LOG_TAG = "MapFragment"
+
+        private const val HOUR_MILLIS = 60 * 60 * 1000L
+
+        /** Milliseconds in one day. */
+        private const val DAY_MILLIS = 24 * HOUR_MILLIS
 
         /**
          * Constant for a special, empty _MapMarkerState. This state is
          * used as initial state and if no updater can be created.
          */
         private val emptyState = MapMarkerState(LocationFileState(emptyList(), emptyMap()), null)
+
+        /** The alpha calculator for fast and strong fading. */
+        private val calculatorFastStrong = RangeTimeDeltaAlphaCalculator(
+            listOf(
+                AlphaRange(1f, 0.55f, HOUR_MILLIS),
+                AlphaRange(0.5f, 0.2f, DAY_MILLIS)
+            ), 0.1f
+        )
+
+        /** The alpha calculator for slow and strong fading. */
+        private val calculatorSlowStrong = RangeTimeDeltaAlphaCalculator(
+            listOf(
+                AlphaRange(1f, 0.55f, DAY_MILLIS),
+                AlphaRange(0.5f, 0.2f, 7 * DAY_MILLIS)
+            ), 0.1f
+        )
+
+        /** The alpha calculator for fast normal fading. */
+        private val calculatorFast = RangeTimeDeltaAlphaCalculator(
+            listOf(
+                AlphaRange(1f, 0.75f, HOUR_MILLIS),
+                AlphaRange(0.7f, 0.5f, DAY_MILLIS)
+            ), 0.4f
+        )
+
+        /** The alpha calculator for slow normal fading. */
+        private val calculatorSlow = RangeTimeDeltaAlphaCalculator(
+            listOf(
+                AlphaRange(1f, 0.75f, DAY_MILLIS),
+                AlphaRange(0.7f, 0.5f, 7 * DAY_MILLIS)
+            ), 0.4f
+        )
+
+        /** The alpha calculator for disabled fading. */
+        private val calculatorNone = ConstantTimeDeltaAlphaCalculator(1f)
+
+        /** A map assigning calculators to menu items. */
+        private val alphaCalculators = mapOf<Int, TimeDeltaAlphaCalculator>(
+            R.id.item_fade_fast to calculatorFast,
+            R.id.item_fade_fast_strong to calculatorFastStrong,
+            R.id.item_fade_slow to calculatorSlow,
+            R.id.item_fade_slow_strong to calculatorSlowStrong
+        )
     }
 }

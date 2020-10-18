@@ -24,10 +24,14 @@ import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapMarkerState
 import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerData
+import com.github.oheger.locationteller.map.MarkerFactory
+import com.github.oheger.locationteller.map.TimeDeltaAlphaCalculator
+import com.github.oheger.locationteller.map.TimeDeltaFormatter
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.ServerConfig
@@ -39,7 +43,9 @@ import com.github.oheger.locationteller.track.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -98,7 +104,7 @@ class MapFragmentSpec {
             fragment.expectMapUpdate(nextState)
             fragment.initMap()
             verify {
-                fragment.handler.postAtTime(any(), MapFragment.updateToken, any())
+                fragment.handler.postAtTime(any(), MapFragment.UPDATE_TOKEN, any())
             }
         }
     }
@@ -182,7 +188,7 @@ class MapFragmentSpec {
                 fragment.mockMapUpdater.zoomToAllMarkers(fragment.mockMap, nextStates[0].locations)
             }
             verify {
-                fragment.handler.removeCallbacksAndMessages(MapFragment.updateToken)
+                fragment.handler.removeCallbacksAndMessages(MapFragment.UPDATE_TOKEN)
             }
         }
     }
@@ -285,7 +291,7 @@ class MapFragmentSpec {
         scenario.onFragment { fragment ->
             scenario.moveToState(Lifecycle.State.DESTROYED)
             verify {
-                fragment.handler.removeCallbacksAndMessages(MapFragment.updateToken)
+                fragment.handler.removeCallbacksAndMessages(MapFragment.UPDATE_TOKEN)
             }
         }
     }
@@ -323,21 +329,25 @@ class MapFragmentSpec {
                     any(), any()
                 )
             } returns nextState2
-            coEvery { fragment.mockMapUpdater.updateMap(fragment.mockMap,nextState2, ownMarker, any(),
-                any()) } returns markerState("loc3", "loc4")
+            coEvery {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, nextState2, ownMarker, any(),
+                    any()
+                )
+            } returns markerState("loc3", "loc4")
             coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
             fragment.initMap()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
             fragment.onPrepareOptionsMenu(mockMenu.menu)
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
             verify {
-                fragment.handler.removeCallbacksAndMessages(MapFragment.updateToken)
+                fragment.handler.removeCallbacksAndMessages(MapFragment.UPDATE_TOKEN)
                 fragment.mockMapUpdater.centerMarker(fragment.mockMap, ownMarker)
                 mockMenu[R.id.item_center_own_location].isEnabled = true
             }
             coVerify {
                 fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
-                fragment.mockMapUpdater.updateMap(fragment.mockMap,nextState2, ownMarker, any(), any())
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState2, ownMarker, any(), any())
             }
         }
     }
@@ -434,6 +444,60 @@ class MapFragmentSpec {
         }
     }
 
+    /**
+     * Helper function to check the execution of a menu item related to the
+     * fading mode.
+     * @param itemId the ID of the menu item to be simulated
+     */
+    private fun checkFadingMode(itemId: Int) {
+        val mockMenu = createMockMenu()
+        val fadingItem = mockMenu[itemId]
+        every { fadingItem.setChecked(true) } returns fadingItem
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+        val expMarkerState = MapMarkerState(LocationFileState(emptyList(), emptyMap()), null)
+
+        scenario.onFragment { fragment ->
+            fragment.initMap()
+            fragment.onOptionsItemSelected(fadingItem)
+            fragment.calculators shouldHaveSize 2
+            val initCalc = fragment.calculators[0]
+            initCalc.shouldBeInstanceOf<ConstantTimeDeltaAlphaCalculator>()
+            initCalc.alpha shouldBe 1.0f
+            fragment.calculators[1] shouldBe fragment.alphaCalculatorFor(itemId)
+            verify { fadingItem.isChecked = true }
+            coVerify {
+                fragment.mockMapUpdater.updateMap(
+                    fragment.mockMap, expMarkerState, null, any(), referenceTime.currentTime
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `fading mode 'none' can be selected`() {
+        checkFadingMode(R.id.item_fade_none)
+    }
+
+    @Test
+    fun `fading mode 'slow' can be selected`() {
+        checkFadingMode(R.id.item_fade_slow)
+    }
+
+    @Test
+    fun `fading mode 'fast' can be selected`() {
+        checkFadingMode(R.id.item_fade_fast)
+    }
+
+    @Test
+    fun `fading mode 'fast and strong' can be selected`() {
+        checkFadingMode(R.id.item_fade_fast_strong)
+    }
+
+    @Test
+    fun `fading mode 'slow and strong' can be selected`() {
+        checkFadingMode(R.id.item_fade_slow_strong)
+    }
+
     companion object {
         /** A reference time to be returned by the time service per default. */
         val referenceTime = TimeData(20200228182652L)
@@ -471,7 +535,9 @@ class MapFragmentSpec {
         private fun createMockMenu(): MockMenu {
             val itemIds = listOf(
                 R.id.item_updateMap, R.id.item_zoomArea, R.id.item_center,
-                R.id.item_autoCenter, R.id.item_own_location, R.id.item_center_own_location
+                R.id.item_autoCenter, R.id.item_own_location, R.id.item_center_own_location,
+                R.id.item_fade_none, R.id.item_fade_fast, R.id.item_fade_slow,
+                R.id.item_fade_fast_strong, R.id.item_fade_slow_strong
             )
             val itemMocks = itemIds.map { id ->
                 val item = mockk<MenuItem>(relaxed = true)
@@ -527,6 +593,9 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
     /** The mock location retriever. */
     val mockLocationRetriever = mockk<LocationRetriever>()
 
+    /** Records the calculators used to create a marker factory. */
+    val calculators = mutableListOf<TimeDeltaAlphaCalculator>()
+
     /** A spy for the handler used by the fragment. */
     lateinit var handler: Handler
 
@@ -564,6 +633,14 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
             )
         } returns mockLocationRetriever
         return factory
+    }
+
+    override fun createMarkerFactory(
+        deltaFormatter: TimeDeltaFormatter,
+        calculator: TimeDeltaAlphaCalculator
+    ): MarkerFactory {
+        calculators.add(calculator)
+        return super.createMarkerFactory(deltaFormatter, calculator)
     }
 
     /**
