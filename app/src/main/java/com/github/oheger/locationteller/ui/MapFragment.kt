@@ -66,8 +66,14 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     /** The handler for scheduling delayed tasks.*/
     private lateinit var handler: Handler
 
-    /** The handler for accessing preferences.*/
-    private lateinit var preferencesHandler: PreferencesHandler
+    /**
+     * The handler for accessing preferences. This is lazy because the handler
+     * is accessed by multiple methods during initialization whose order should
+     * not be relevant.
+     */
+    private val preferencesHandler: PreferencesHandler by lazy(LazyThreadSafetyMode.NONE) {
+        createPreferencesHandler()
+    }
 
     /** The formatter for time delta values.*/
     private lateinit var deltaFormatter: TimeDeltaFormatter
@@ -116,8 +122,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         setHasOptionsMenu(true)
         handler = createHandler()
         deltaFormatter = TimeDeltaFormatter.create(requireContext())
-        markerFactory = createMarkerFactory(deltaFormatter, calculatorNone)
-        preferencesHandler = createPreferencesHandler()
+        markerFactory = createMarkerFactoryForCalculatorId(preferencesHandler.getFadingMode())
         timeService = createTimeService()
         val serverConfig = preferencesHandler.createServerConfig()
         mapUpdater = serverConfig?.let(::createMapUpdater)
@@ -142,6 +147,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_map, menu)
         super.onCreateOptionsMenu(menu, inflater)
+        selectFadingModeItem(menu)
     }
 
     @ObsoleteCoroutinesApi
@@ -288,7 +294,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
             Log.i(LOG_TAG, "Triggering update operation.")
             updateInProgress()
             launch {
-                val stateToPass = if(forceUpdate) emptyState else state
+                val stateToPass = if (forceUpdate) emptyState else state
                 val currentState = mapUpdater?.updateMap(
                     currentMap, stateToPass, ownMarker, markerFactory, timeService.currentTime().currentTime
                 ) ?: emptyState
@@ -417,8 +423,30 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      */
     private fun changeFadingMode(item: MenuItem) {
         item.isChecked = true
-        markerFactory = createMarkerFactory(deltaFormatter, alphaCalculatorFor(item.itemId))
+        markerFactory = createMarkerFactoryForCalculatorId(item.itemId)
         updateState(initView = false, forceUpdate = true)
+        preferencesHandler.setFadingMode(item.itemId)
+    }
+
+    /**
+     * Creates a [MarkerFactory] with the alpha calculator referenced by the ID
+     * provided.
+     * @param id the ID of the alpha calculator
+     * @return the resulting [MarkerFactory]
+     */
+    private fun createMarkerFactoryForCalculatorId(id: Int): MarkerFactory =
+        createMarkerFactory(deltaFormatter, alphaCalculatorFor(id))
+
+    /**
+     * Selects the fading mode item of the option menu that corresponds to the
+     * mode stored in the preferences.
+     * @param menu the option menu
+     */
+    private fun selectFadingModeItem(menu: Menu) {
+        val fadingMode = preferencesHandler.getFadingMode()
+        val actualMode = if(alphaCalculators.containsKey(fadingMode)) fadingMode
+        else R.id.item_fade_none
+        menu.findItem(actualMode).isChecked = true
     }
 
     companion object {

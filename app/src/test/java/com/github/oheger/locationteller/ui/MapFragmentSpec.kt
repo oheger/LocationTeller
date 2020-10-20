@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.ui
 import android.location.Location
 import android.os.Handler
 import android.view.Menu
+import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.fragment.app.testing.launchFragmentInContainer
@@ -450,21 +451,25 @@ class MapFragmentSpec {
      * @param itemId the ID of the menu item to be simulated
      */
     private fun checkFadingMode(itemId: Int) {
-        val mockMenu = createMockMenu()
-        val fadingItem = mockMenu[itemId]
-        every { fadingItem.setChecked(true) } returns fadingItem
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
         val expMarkerState = MapMarkerState(LocationFileState(emptyList(), emptyMap()), null)
 
         scenario.onFragment { fragment ->
+            every { fragment.mockPrefHandler.setFadingMode(itemId) } just runs
             fragment.initMap()
+            val noneItem = fragment.menu.findItem(R.id.item_fade_none)
+            noneItem.isChecked shouldBe true
+            val fadingItem = fragment.menu.findItem(itemId)
             fragment.onOptionsItemSelected(fadingItem)
             fragment.calculators shouldHaveSize 2
             val initCalc = fragment.calculators[0]
             initCalc.shouldBeInstanceOf<ConstantTimeDeltaAlphaCalculator>()
             initCalc.alpha shouldBe 1.0f
             fragment.calculators[1] shouldBe fragment.alphaCalculatorFor(itemId)
-            verify { fadingItem.isChecked = true }
+            fadingItem.isChecked shouldBe true
+            verify {
+                fragment.mockPrefHandler.setFadingMode(itemId)
+            }
             coVerify {
                 fragment.mockMapUpdater.updateMap(
                     fragment.mockMap, expMarkerState, null, any(), referenceTime.currentTime
@@ -498,18 +503,29 @@ class MapFragmentSpec {
         checkFadingMode(R.id.item_fade_slow_strong)
     }
 
+    @Test
+    fun `fading mode is initialized from preferences`() {
+        val selectedFadingMode = R.id.item_fade_slow_strong
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithFadingMode>()
+
+        scenario.onFragment { fragment ->
+            fragment.calculators[0] shouldBe fragment.alphaCalculatorFor(selectedFadingMode)
+            fragment.menu.findItem(selectedFadingMode).isChecked shouldBe true
+        }
+    }
+
     companion object {
         /** A reference time to be returned by the time service per default. */
         val referenceTime = TimeData(20200228182652L)
 
         /** The latitude of the own location. */
-        private const val ownLat = 33.12
+        private const val OWN_LAT = 33.12
 
         /** The longitude of the own location. */
-        private const val ownLng = 7.77
+        private const val OWN_LNG = 7.77
 
         /** A marker representing the own location. */
-        private val ownMarker = MarkerData(LocationData(ownLat, ownLng, referenceTime), LatLng(ownLat, ownLng))
+        private val ownMarker = MarkerData(LocationData(OWN_LAT, OWN_LNG, referenceTime), LatLng(OWN_LAT, OWN_LNG))
 
         /** The expected initial map marker state. */
         private val initMarkerState = MapMarkerState(LocationFileState(emptyList(), emptyMap()), null)
@@ -558,8 +574,8 @@ class MapFragmentSpec {
          */
         private fun mockOwnLocation(): Location {
             val ownLoc = mockk<Location>()
-            every { ownLoc.latitude } returns ownLat
-            every { ownLoc.longitude } returns ownLng
+            every { ownLoc.latitude } returns OWN_LAT
+            every { ownLoc.longitude } returns OWN_LNG
             return ownLoc
         }
 
@@ -582,7 +598,7 @@ class MapFragmentSpec {
 open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTestHelper.defServerConfig) :
     MapFragment() {
     /** The mock for the preferences handler. */
-    private val mockPrefHandler = createMockPrefHandler()
+    val mockPrefHandler = createMockPrefHandler()
 
     /** The mock for the map updater. */
     val mockMapUpdater = createMockMapUpdater()
@@ -604,6 +620,9 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
 
     /** Stores the original map updater that was created. */
     lateinit var orgMapUpdater: MapUpdater
+
+    /** The menu of the fragment. */
+    lateinit var menu: Menu
 
     override fun createPreferencesHandler(): PreferencesHandler = mockPrefHandler
 
@@ -643,6 +662,11 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
         return super.createMarkerFactory(deltaFormatter, calculator)
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        this.menu = menu
+    }
+
     /**
      * Initializes the map of the fragment.
      */
@@ -667,6 +691,7 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
         val handler = mockk<PreferencesHandler>()
         every { handler.createServerConfig() } returns serverConfig
         every { handler.createTrackConfig() } returns TrackTestHelper.defTrackConfig
+        every { handler.getFadingMode() } returns 0
         return handler
     }
 
@@ -695,7 +720,7 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
  * everything should be active.
  */
 @ObsoleteCoroutinesApi
-class MapFragmentTestImplWithConfig : MapFragmentTestImpl()
+open class MapFragmentTestImplWithConfig : MapFragmentTestImpl()
 
 /**
  * An implementation of _MapFragment_ that simulates the scenario that no valid
@@ -703,3 +728,17 @@ class MapFragmentTestImplWithConfig : MapFragmentTestImpl()
  */
 @ObsoleteCoroutinesApi
 class MapFragmentTestImplWithNoConfig : MapFragmentTestImpl(serverConfig = null)
+
+/**
+ * An implementation of _MapFragment_ that prepares the mock preferences
+ * handler to return a fading mode. This is used to check whether this mode is
+ * initialized correctly.
+ */
+@ObsoleteCoroutinesApi
+class MapFragmentTestImplWithFadingMode : MapFragmentTestImplWithConfig() {
+    override fun createPreferencesHandler(): PreferencesHandler {
+        val handler = super.createPreferencesHandler()
+        every { handler.getFadingMode() } returns R.id.item_fade_slow_strong
+        return handler
+    }
+}
