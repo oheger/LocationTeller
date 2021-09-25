@@ -1,0 +1,7 @@
+* text=auto
+
+# gradlew is a Unix shell script
+gradlew text eol=lf
+
+# The jar for the Gradle wrapper is a binary
+*.jar binary
