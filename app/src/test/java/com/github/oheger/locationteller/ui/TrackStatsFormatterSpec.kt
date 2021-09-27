@@ -131,11 +131,11 @@ class TrackStatsFormatterSpec : StringSpec() {
         private fun toDate(
             hour: Int, minute: Int, second: Int, year: Int = 2020,
             month: Int = Calendar.FEBRUARY, day: Int = 6
-        ): Date {
-            val cal = Calendar.getInstance()
-            cal.set(year, month, day, hour, minute, second)
-            return cal.time
-        }
+        ): Date =
+            Calendar.getInstance().run {
+                set(year, month, day, hour, minute, second)
+                time
+            }
 
         /**
          * Helper function to check whether a date is formatted correctly.
@@ -161,9 +161,9 @@ class TrackStatsFormatterSpec : StringSpec() {
          * @return the formatted date string
          */
         private fun dateString(date: Date, withDatePortion: Boolean): String {
-            val format = if (withDatePortion) DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
-            else DateFormat.getTimeInstance(DateFormat.MEDIUM)
-            return format.format(date)
+            val timeStr = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(date)
+            return timeStr.takeUnless { withDatePortion }
+                ?: "${DateFormat.getDateInstance(DateFormat.MEDIUM).format(date)} $timeStr"
         }
     }
 }
