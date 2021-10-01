@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.LayoutInflater
@@ -268,7 +269,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * Creates the loop handler to be used by this fragment.
      * @return the _Handler_
      */
-    protected open fun createHandler(): Handler = Handler()
+    protected open fun createHandler(): Handler = Handler(Looper.getMainLooper())
 
     /**
      * Creates the factory to create a _LocationRetriever_ object.
