@@ -85,10 +85,10 @@ class LocationRetrieverImpl(
         val cont: Continuation<Location?>,
         val tickerChannel: ReceiveChannel<Unit>
     ) : LocationCallback() {
-        override fun onLocationResult(result: LocationResult?) {
+        override fun onLocationResult(result: LocationResult) {
             Log.d(tag, "Got location result $result.")
             removeLocationUpdateRegistration()
-            cont.resumeWith(Result.success(result?.lastLocation))
+            cont.resumeWith(Result.success(result.lastLocation))
         }
 
         /**

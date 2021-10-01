@@ -53,7 +53,7 @@ class LocationRetrieverImplSpec : StringSpec() {
             val locClient = mockk<FusedLocationProviderClient>()
             val refCallback = AtomicReference<LocationCallback>()
             every { locResult.lastLocation } returns location
-            every { locClient.requestLocationUpdates(any(), any(), null) } answers {
+            every { locClient.requestLocationUpdates(any(), any(), any()) } answers {
                 val request = arg<LocationRequest>(0)
                 request.interval shouldBe 5000L
                 request.fastestInterval shouldBe request.interval
@@ -61,9 +61,9 @@ class LocationRetrieverImplSpec : StringSpec() {
                 val callback = arg<LocationCallback>(1)
                 callback.onLocationResult(locResult)
                 refCallback.set(callback)
-                null
+                mockk()
             }
-            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
+            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns mockk()
             val dispatcher = initDispatcher()
             val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
 
@@ -72,24 +72,10 @@ class LocationRetrieverImplSpec : StringSpec() {
             verify { locClient.removeLocationUpdates(refCallback.get()) }
         }
 
-        "LocationProcessor should handle a failure when retrieving the location" {
-            val locClient = mockk<FusedLocationProviderClient>()
-            every { locClient.requestLocationUpdates(any(), any(), null) } answers {
-                val callback = arg<LocationCallback>(1)
-                callback.onLocationResult(null)
-                null
-            }
-            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
-            initDispatcher()
-            val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
-
-            retriever.fetchLocation() shouldBe null
-        }
-
         "LocationProcessor should handle a timeout when retrieving the location" {
             val locClient = mockk<FusedLocationProviderClient>()
-            every { locClient.requestLocationUpdates(any(), any(), null) } returns null
-            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns null
+            every { locClient.requestLocationUpdates(any(), any(), any()) } returns mockk()
+            every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns mockk()
             initDispatcher()
             val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
 
