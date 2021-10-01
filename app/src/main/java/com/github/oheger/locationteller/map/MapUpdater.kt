@@ -76,9 +76,9 @@ class MapUpdater(
             newState
         } else currentState.locations
 
-        val newOwnMarker = if (ownLocation != null) {
-            showOwnLocation(map, newLocationState, ownLocation, currentState.ownMarker, markerFactory, currentTime)
-        } else null
+        val newOwnMarker = ownLocation?.let {
+            showOwnLocation(map, newLocationState, it, currentState.ownMarker, markerFactory, currentTime)
+        }
         MapMarkerState(newLocationState, newOwnMarker)
     }
 
@@ -217,7 +217,7 @@ class MapUpdater(
     private suspend fun showOwnLocation(
         map: GoogleMap, state: LocationFileState, ownLocation: MarkerData, lastOwnMarker: Marker?,
         markerFactory: MarkerFactory, time: Long
-    ): Marker = withContext(Dispatchers.Main) {
+    ): Marker? = withContext(Dispatchers.Main) {
         lastOwnMarker?.remove()
         val recentLocation = state.recentMarker()
         val distanceString = generateDistanceString(recentLocation, ownLocation)

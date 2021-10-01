@@ -216,9 +216,9 @@ class MapUpdaterSpec : StringSpec() {
                 val locData = createLocationData(iv.index)  // only position is relevant
                 MarkerData(locData, iv.value)
             }
-            val markerMap = markerData.map { data ->
-                Pair(data.locationData.stringRepresentation(), data)
-            }.toMap()
+            val markerMap = markerData.associateBy { data ->
+                data.locationData.stringRepresentation()
+            }
             val state = LocationFileState(emptyList(), markerMap)  // only map is relevant
             val expBounds = LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng))
             mockkStatic(CameraUpdateFactory::class)
@@ -263,7 +263,7 @@ class MapUpdaterSpec : StringSpec() {
                 .zoom(zoomLevel)
                 .build()
             val cameraPosition = CameraPosition.Builder()
-                .target(state.recentMarker()?.position)
+                .target(state.recentMarker()!!.position)
                 .zoom(zoomLevel)
                 .build()
             mockkStatic(CameraUpdateFactory::class)
