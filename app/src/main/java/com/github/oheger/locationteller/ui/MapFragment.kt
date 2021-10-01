@@ -27,6 +27,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.databinding.FragmentMapBinding
 import com.github.oheger.locationteller.map.AlphaRange
 import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
@@ -48,7 +49,6 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.android.synthetic.main.fragment_map.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -62,6 +62,15 @@ import kotlin.coroutines.CoroutineContext
 open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, CoroutineScope {
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main
+
+    /** Holds the binding of this fragment. */
+    private var _binding: FragmentMapBinding? = null
+
+    /**
+     * A property for the convenient access to the binding, as long as this
+     * fragment is active.
+     */
+    private val binding get() = _binding!!
 
     /** The handler for scheduling delayed tasks.*/
     private lateinit var handler: Handler
@@ -135,13 +144,19 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_map, container, false)
+        _binding = FragmentMapBinding.inflate(inflater, container, false)
         val mapFragment = childFragmentManager.findFragmentById(R.id.googleMap) as SupportMapFragment?
         mapFragment?.getMapAsync(this)
-        return view
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -318,8 +333,8 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * Updates the UI when an update operation starts.
      */
     private fun updateInProgress() {
-        mapProgressBar.visibility = View.VISIBLE
-        mapStatusLine.text = getString(R.string.map_status_updating)
+        binding.mapProgressBar.visibility = View.VISIBLE
+        binding.mapStatusLine.text = getString(R.string.map_status_updating)
     }
 
     /**
@@ -329,10 +344,10 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     private fun newStateArrived(newState: MapMarkerState) {
         Log.i(LOG_TAG, "Got new state.")
         state = newState
-        mapProgressBar.visibility = View.INVISIBLE
+        binding.mapProgressBar.visibility = View.INVISIBLE
         val statusText = if (newState.locations.files.isEmpty()) getString(R.string.map_status_empty)
         else getString(R.string.map_status, newState.locations.files.size, recentMarkerTime(newState.locations))
-        mapStatusLine.text = statusText
+        binding.mapStatusLine.text = statusText
     }
 
     /**

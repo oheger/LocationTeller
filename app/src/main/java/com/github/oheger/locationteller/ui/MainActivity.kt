@@ -28,9 +28,9 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.databinding.ActivityMainBinding
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.PreferencesHandler
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -48,18 +48,22 @@ import java.util.*
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
     private val logTag = "MainActivity"
 
+    private lateinit var binding: ActivityMainBinding
+
     private lateinit var appBarConfig: AppBarConfiguration
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        setSupportActionBar(toolbar)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setSupportActionBar(binding.toolbar)
 
         val navCtrl = findNavController(R.id.nav_host_fragment)
-        appBarConfig = AppBarConfiguration(navCtrl.graph, drawerLayout)
-        toolbar.setupWithNavController(navCtrl, appBarConfig)
-        nav_view.setupWithNavController(navCtrl)
+        appBarConfig = AppBarConfiguration(navCtrl.graph, binding.drawerLayout)
+        binding.toolbar.setupWithNavController(navCtrl, appBarConfig)
+        binding.navView.setupWithNavController(navCtrl)
 
         if (Thread.getDefaultUncaughtExceptionHandler() !is ExceptionLogger) {
             Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))

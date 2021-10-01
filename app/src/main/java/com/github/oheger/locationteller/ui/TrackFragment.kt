@@ -17,19 +17,33 @@ package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
 import android.util.Log
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.databinding.FragmentTrackBinding
 import com.github.oheger.locationteller.track.PreferencesHandler
-import kotlinx.android.synthetic.main.fragment_track.*
 import java.text.DateFormat
-import java.util.*
+import java.util.Date
 
 /**
  * A fragment that allows enabling or disabling the tracking functionality.
  */
 open class TrackFragment : androidx.fragment.app.Fragment() {
     private val logTag = "TrackFragment"
+
+    /** Holds the binding of this fragment. */
+    private var _binding: FragmentTrackBinding? = null
+
+    /**
+     * A property for the convenient access to the binding, as long as this
+     * fragment is active.
+     */
+    private val binding get() = _binding!!
 
     /** The object to access preferences. */
     private lateinit var prefHandler: PreferencesHandler
@@ -42,16 +56,21 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         Log.i(logTag, "Creating TrackFragment")
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_track, container, false)
+        _binding = FragmentTrackBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)
         prefHandler = createPreferencesHandler()
-        switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
-        switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
+        binding.switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
+        binding.switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
             Log.i(logTag, "Set track enabled state to $checked.")
             if (checked && prefHandler.isAutoResetStats()) {
                 prefHandler.resetStatistics()
@@ -59,7 +78,7 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
             prefHandler.setTrackingEnabled(checked)
         }
         statisticsAdapter = createTrackingStatsAdapter(prefHandler)
-        trackingStats.adapter = statisticsAdapter
+        binding.trackingStats.adapter = statisticsAdapter
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
