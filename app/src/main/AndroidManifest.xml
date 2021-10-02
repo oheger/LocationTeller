@@ -26,7 +26,8 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <service android:name=".track.LocationTellerService" />
+        <service android:name=".track.LocationTellerService"
+            android:foregroundServiceType="location" />
     </application>
 
     <uses-permission android:name="android.permission.INTERNET" />
