@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.oheger.locationteller.MockDispatcher
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
@@ -59,6 +60,7 @@ import io.mockk.verify
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Test class for [[MapFragment]].
@@ -597,6 +599,8 @@ class MapFragmentSpec {
 @ObsoleteCoroutinesApi
 open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTestHelper.defServerConfig) :
     MapFragment() {
+    override val coroutineContext: CoroutineContext = MockDispatcher()
+
     /** The mock for the preferences handler. */
     val mockPrefHandler = createMockPrefHandler()
 
