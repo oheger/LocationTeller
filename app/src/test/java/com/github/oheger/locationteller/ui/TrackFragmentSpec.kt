@@ -39,9 +39,13 @@ import org.hamcrest.Matcher
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
+@Config(
+    instrumentedPackages = ["androidx.loader.content"]
+)
 class TrackFragmentSpec {
     /**
      * Executes a test with the list view in a started fragment.
