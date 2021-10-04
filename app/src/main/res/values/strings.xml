@@ -74,4 +74,8 @@
     <string name="item_fading_mode_fast_and_strong">Fast and strong</string>
     <string name="item_fading_mode_slow_and_strong">Slow and strong</string>
     <string name="item_fading_mode_none">None</string>
+    <string name="perm_location_rationale">This app uses the permission to retrieve the current location for two purposes:\n\nWhen used as sender, the location needs to be retrieved, so that it can be published. Without this permission, the whole sender part is dysfunctional.\n\nWhen used as receiver, access to the current location is needed only for the functionality to show the own position in the map. If you do not use this feature, there is no need to grant this permission.</string>
+    <string name="perm_button_continue">Continue</string>
+    <string name="perm_button_cancel">Cancel</string>
+    <string name="perm_location_title">Required Location Permission</string>
 </resources>
