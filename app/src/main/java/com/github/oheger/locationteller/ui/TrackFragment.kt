@@ -51,6 +51,11 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     /** The adapter for the statistics list. */
     private lateinit var statisticsAdapter: TrackingStatsListAdapter
 
+    /**
+     * The action that handles the permission request for querying locations.
+     */
+    private lateinit var locationPermAction: LocationPermAction
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -72,13 +77,27 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
         binding.switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
         binding.switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
             Log.i(logTag, "Set track enabled state to $checked.")
-            if (checked && prefHandler.isAutoResetStats()) {
-                prefHandler.resetStatistics()
+            if (checked) {
+                locationPermAction.execute()
+            } else {
+                prefHandler.setTrackingEnabled(checked)
             }
-            prefHandler.setTrackingEnabled(checked)
         }
+
         statisticsAdapter = createTrackingStatsAdapter(prefHandler)
         binding.trackingStats.adapter = statisticsAdapter
+
+        locationPermAction = LocationPermAction.create(
+            this,
+            this::enableTracking
+        ) { binding.switchTrackEnabled.isChecked = false }
+    }
+
+    private fun enableTracking() {
+        if(prefHandler.isAutoResetStats()) {
+            prefHandler.resetStatistics()
+        }
+        prefHandler.setTrackingEnabled(true)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {

@@ -19,12 +19,12 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ListView
 import android.widget.Switch
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
-import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,11 +32,17 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.PreferencesHandler
 import io.kotest.matchers.shouldBe
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.runs
+import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
 import org.hamcrest.Matcher
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -73,6 +79,10 @@ class TrackFragmentSpec {
      */
     private fun trackingSwitch() = onView(withId(R.id.switchTrackEnabled))
 
+    /**
+     * Set the state of the checkbox that enables or disables tracking to
+     * [enabled].
+     */
     private fun setTrackingSwitch(enabled: Boolean) {
         val action = object : ViewAction {
             override fun getDescription(): String = "set switch state"
@@ -137,14 +147,56 @@ class TrackFragmentSpec {
     }
 
     @Test
-    fun testPrefHandlerIsUpdatedWhenTrackingIsStarted() {
+    fun `location action is invoked when tracking is started`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        every { LocationPermAction.create(any(), any(), any()) } returns mockPermAction
+        every { mockPermAction.execute() } just runs
         val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
 
         setTrackingSwitch(true)
         scenario.onFragment { fragment ->
             verify {
+                mockPermAction.execute()
+            }
+            verify(exactly = 0) {
                 fragment.mockPrefHandler.setTrackingEnabled(true)
             }
+        }
+    }
+
+    @Test
+    fun `callback of the location action enables tracking`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        val slotFragment = slot<Fragment>()
+        val slotAction = slot<() -> Unit>()
+        every { LocationPermAction.create(capture(slotFragment), capture(slotAction), any()) } returns mockPermAction
+        val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
+
+        scenario.onFragment { fragment ->
+            slotFragment.captured shouldBe fragment
+            slotAction.captured()
+            verify {
+                fragment.mockPrefHandler.setTrackingEnabled(true)
+            }
+        }
+    }
+
+    @Test
+    fun `reject callback of the location action resets the tracking check box`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        val slotReject = slot<() -> Unit>()
+        every { LocationPermAction.create(any(), any(), capture(slotReject)) } returns mockPermAction
+        val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingActive>()
+
+        scenario.onFragment { fragment ->
+            slotReject.captured()
+            verify(exactly = 0) {
+                fragment.mockPrefHandler.setTrackingEnabled(true)
+            }
+            trackingSwitch().check(matches(isNotChecked()))
         }
     }
 
@@ -161,11 +213,15 @@ class TrackFragmentSpec {
     }
 
     @Test
-    fun testStatisticsAreResetWhenTrackingStarts() {
+    fun `statistics are reset when tracking starts`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        val slotAction = slot<() -> Unit>()
+        every { LocationPermAction.create(any(), capture(slotAction), any()) } returns mockPermAction
         val scenario = launchFragmentInContainer<TrackFragmentTestImplWithAutoResetStats>()
 
-        trackingSwitch().perform(click())
         scenario.onFragment { fragment ->
+            slotAction.captured()
             verify {
                 fragment.mockPrefHandler.resetStatistics()
             }
@@ -173,11 +229,15 @@ class TrackFragmentSpec {
     }
 
     @Test
-    fun testStatisticsAreOnlyResetIfTheAutoResetFlagIsSet() {
+    fun `statistics are only reset if the autoReset flag is set`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        val slotAction = slot<() -> Unit>()
+        every { LocationPermAction.create(any(), capture(slotAction), any()) } returns mockPermAction
         val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
 
-        trackingSwitch().perform(click())
         scenario.onFragment { fragment ->
+            slotAction.captured()
             verify(exactly = 0) {
                 fragment.mockPrefHandler.resetStatistics()
             }
