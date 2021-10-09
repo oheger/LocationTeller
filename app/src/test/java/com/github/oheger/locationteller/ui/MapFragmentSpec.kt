@@ -21,6 +21,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -48,17 +49,19 @@ import com.google.android.gms.maps.model.LatLng
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.CapturingSlot
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.runs
+import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ObsoleteCoroutinesApi
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.coroutines.CoroutineContext
@@ -313,8 +316,35 @@ class MapFragmentSpec {
         }
     }
 
-    @Test @Ignore
-    fun `show own location command can be executed`() {
+    @Test
+    fun `show own location command is wrapped by a permission action`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        every { LocationPermAction.create(any(), any(), any()) } returns mockPermAction
+        every { mockPermAction.execute() } just runs
+
+        val mockMenu = createMockMenu()
+        val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
+
+        scenario.onFragment { fragment ->
+            fragment.initMap()
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            fragment.onPrepareOptionsMenu(mockMenu.menu)
+            fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
+            verify {
+                mockPermAction.execute()
+            }
+        }
+    }
+
+    @Test
+    fun `the location permission action is correctly configured`() {
+        mockkObject(LocationPermAction)
+        val mockPermAction = mockk<LocationPermAction>()
+        val slotFragment = slot<Fragment>()
+        val slotAction = slot<() -> Unit>()
+        every { LocationPermAction.create(capture(slotFragment), capture(slotAction), any()) } returns mockPermAction
+
         val mockMenu = createMockMenu()
         val nextState1 = markerState("location")
         val nextState2 = markerState("loc1", "loc2")
@@ -322,28 +352,22 @@ class MapFragmentSpec {
 
         scenario.onFragment { fragment ->
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, initMarkerState, null,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, initMarkerState, null, any(), any())
             } returns nextState1
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, nextState1, ownMarker,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
             } returns nextState2
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, nextState2, ownMarker, any(),
-                    any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState2, ownMarker, any(), any())
             } returns markerState("loc3", "loc4")
             coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
+
             fragment.initMap()
-            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            slotFragment.captured shouldBe fragment
+            slotAction.captured()
             fragment.onPrepareOptionsMenu(mockMenu.menu)
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
+
             verify {
                 fragment.handler.removeCallbacksAndMessages(MapFragment.UPDATE_TOKEN)
                 fragment.mockMapUpdater.centerMarker(fragment.mockMap, ownMarker)
@@ -356,36 +380,33 @@ class MapFragmentSpec {
         }
     }
 
-    @Test @Ignore
+    @Test
     fun `show own location command should handle the case that no location can be retrieved`() {
-        val mockMenu = createMockMenu()
+        val slotAction = captureActionSlot()
         val nextState = markerState("location")
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
         mockkStatic(Toast::class)
         val toast = mockk<Toast>()
+        every { toast.show() } just runs
 
         scenario.onFragment { fragment ->
             every {
-                Toast.makeText(
-                    fragment.requireContext(), R.string.map_no_own_location,
-                    Toast.LENGTH_SHORT
-                )
+                Toast.makeText(fragment.requireContext(), R.string.map_no_own_location, Toast.LENGTH_SHORT)
             } returns toast
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, any(), null,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, any(), null, any(), any())
             } returns nextState
             coEvery { fragment.mockLocationRetriever.fetchLocation() } returns null
+
             fragment.initMap()
-            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            slotAction.captured()
             verify { toast.show() }
         }
     }
 
-    @Test @Ignore
+    @Test
     fun `center to own location command can be executed`() {
+        val slotAction = captureActionSlot()
         val mockMenu = createMockMenu()
         val nextState1 = markerState("location")
         val nextState2 = markerState("loc1", "loc2")
@@ -393,20 +414,14 @@ class MapFragmentSpec {
 
         scenario.onFragment { fragment ->
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, initMarkerState, null,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, initMarkerState, null, any(), any())
             } returns nextState1
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, nextState1, ownMarker,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
             } returns nextState2
             coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
             fragment.initMap()
-            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            slotAction.captured()
 
             fragment.onOptionsItemSelected(mockMenu[R.id.item_center_own_location])
             verify(exactly = 2) {
@@ -415,8 +430,9 @@ class MapFragmentSpec {
         }
     }
 
-    @Test @Ignore
+    @Test
     fun `update map command also updates the own location marker`() {
+        val slotAction = captureActionSlot()
         val mockMenu = createMockMenu()
         val nextState1 = markerState("location")
         val nextState2 = markerState("loc1", "loc2")
@@ -424,21 +440,15 @@ class MapFragmentSpec {
 
         scenario.onFragment { fragment ->
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, initMarkerState, null,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, initMarkerState, null, any(), any())
             } returns nextState1
             coEvery {
-                fragment.mockMapUpdater.updateMap(
-                    fragment.mockMap, nextState1, ownMarker,
-                    any(), any()
-                )
+                fragment.mockMapUpdater.updateMap(fragment.mockMap, nextState1, ownMarker, any(), any())
             } returns nextState2
             coEvery { fragment.mockLocationRetriever.fetchLocation() } returns mockOwnLocation()
             every { fragment.mockMapUpdater.centerMarker(fragment.mockMap, any()) } just runs
             fragment.initMap()
-            fragment.onOptionsItemSelected(mockMenu[R.id.item_own_location])
+            slotAction.captured()
             fragment.onOptionsItemSelected(mockMenu[R.id.item_updateMap])
 
             fragment.onOptionsItemSelected(mockMenu[R.id.item_center_own_location])
@@ -590,6 +600,18 @@ class MapFragmentSpec {
          */
         private fun markerState(vararg locFiles: String): MapMarkerState =
             MapMarkerState(LocationFileState(listOf(*locFiles), emptyMap()), mockk())
+
+        /**
+         * Return a [CapturingSlot] for the action to be executed when the
+         * location permission is granted.
+         */
+        private fun captureActionSlot(): CapturingSlot<() -> Unit> {
+            mockkObject(LocationPermAction)
+            val mockPermAction = mockk<LocationPermAction>()
+            val slotAction = slot<() -> Unit>()
+            every { LocationPermAction.create(any(), capture(slotAction), any()) } returns mockPermAction
+            return slotAction
+        }
     }
 }
 

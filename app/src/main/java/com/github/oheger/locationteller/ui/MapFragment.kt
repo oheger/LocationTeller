@@ -15,9 +15,6 @@
  */
 package com.github.oheger.locationteller.ui
 
-import android.Manifest
-import android.app.AlertDialog
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -30,9 +27,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.databinding.FragmentMapBinding
 import com.github.oheger.locationteller.map.AlphaRange
@@ -82,7 +76,8 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     /** The handler for scheduling delayed tasks.*/
     private lateinit var handler: Handler
 
-    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    /** The action handling the permission to request the location. */
+    private lateinit var locationPermAction: LocationPermAction
 
     /**
      * The handler for accessing preferences. This is lazy because the handler
@@ -151,14 +146,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         val retrieverFactory = createLocationRetrieverFactory()
         locationRetriever = retrieverFactory.createRetriever(requireContext(), trackConfig, false)
 
-        requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                if (granted) {
-                    map?.let(this::showOwnLocation)
-                } else {
-                    Log.i(LOG_TAG, "No permission to query the location.")
-                }
-            }
+        locationPermAction = LocationPermAction.create(this, { map?.let(this::showOwnLocation) })
     }
 
     override fun onCreateView(
@@ -205,7 +193,9 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
                 true
             }
             R.id.item_own_location -> {
-                triggerShowOwnLocation()
+                if (map != null) {
+                    locationPermAction.execute()
+                }
                 true
             }
             R.id.item_center_own_location -> {
@@ -402,34 +392,10 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
     }
 
     /**
-     * Queries the location of the device and updates the map to display it.
+     * Query the location of this device and update [currentMap] to display it.
+     * This function is invoked only if the permission to request the location
+     * is available.
      */
-    @ObsoleteCoroutinesApi
-    private fun triggerShowOwnLocation() {
-        map?.let { currentMap ->
-            when {
-                ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) ==
-                        PackageManager.PERMISSION_GRANTED ->
-                    showOwnLocation(currentMap)
-                shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
-                    AlertDialog.Builder(requireContext()).apply {
-                        setTitle(R.string.perm_location_title)
-                        setMessage(R.string.perm_location_rationale)
-                        setPositiveButton(R.string.perm_button_continue) { _, _ ->
-                            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                        }
-                        setNegativeButton(R.string.perm_button_cancel) { _, _ ->
-                            Log.i(LOG_TAG, "Canceled")
-                        }
-                        show()
-                    }
-                }
-                else ->
-                    requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
-        }
-    }
-
     private fun showOwnLocation(currentMap: GoogleMap) = launch {
         val marker = locationRetriever.fetchLocation()?.let {
             MarkerData(
