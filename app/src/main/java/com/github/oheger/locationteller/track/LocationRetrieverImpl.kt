@@ -16,11 +16,13 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
+import android.os.Looper
 import android.util.Log
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -63,7 +65,7 @@ class LocationRetrieverImpl(
                 callback.cancelLocationUpdate()
             }
             try {
-                locationClient.requestLocationUpdates(locationRequest, callback, null)
+                locationClient.requestLocationUpdates(locationRequest, callback, Looper.myLooper()!!)
                 Log.d(tag, "Requested location update.")
             } catch (e: SecurityException) {
                 Log.e(tag, "Missing right to request location.", e)
@@ -122,7 +124,7 @@ class LocationRetrieverImpl(
         private val locationRequest = LocationRequest.create().apply {
             interval = updateInterval
             fastestInterval = updateInterval
-            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            priority = Priority.PRIORITY_HIGH_ACCURACY
         }
     }
 }

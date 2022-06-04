@@ -16,17 +16,20 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
+import android.os.Looper
 import com.github.oheger.locationteller.MockDispatcher
 import com.github.oheger.locationteller.ResetDispatcherListener
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
 import io.kotest.core.listeners.TestListener
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -52,12 +55,13 @@ class LocationRetrieverImplSpec : StringSpec() {
             val locResult = mockk<LocationResult>()
             val locClient = mockk<FusedLocationProviderClient>()
             val refCallback = AtomicReference<LocationCallback>()
+            val looper = mockLooper()
             every { locResult.lastLocation } returns location
-            every { locClient.requestLocationUpdates(any(), any(), any()) } answers {
+            every { locClient.requestLocationUpdates(any(), any(), looper) } answers {
                 val request = arg<LocationRequest>(0)
                 request.interval shouldBe 5000L
                 request.fastestInterval shouldBe request.interval
-                request.priority shouldBe LocationRequest.PRIORITY_HIGH_ACCURACY
+                request.priority shouldBe Priority.PRIORITY_HIGH_ACCURACY
                 val callback = arg<LocationCallback>(1)
                 callback.onLocationResult(locResult)
                 refCallback.set(callback)
@@ -74,7 +78,8 @@ class LocationRetrieverImplSpec : StringSpec() {
 
         "LocationProcessor should handle a timeout when retrieving the location" {
             val locClient = mockk<FusedLocationProviderClient>()
-            every { locClient.requestLocationUpdates(any(), any(), any()) } returns mockk()
+            mockLooper()
+            every { locClient.requestLocationUpdates(any(), any(), any<Looper>()) } returns mockk()
             every { locClient.removeLocationUpdates(any<LocationCallback>()) } returns mockk()
             initDispatcher()
             val retriever = LocationRetrieverImpl(locClient, gpsTimeout)
@@ -88,4 +93,14 @@ class LocationRetrieverImplSpec : StringSpec() {
         /** Constant for the GPS timeout.*/
         private const val gpsTimeout = 1000L
     }
+}
+
+/**
+ * Return a mock [Looper] and mock the _myLooper()_ function to return this mock.
+ */
+private fun mockLooper(): Looper {
+    val mockLooper = mockk<Looper>()
+    mockkStatic(Looper::class)
+    every { Looper.myLooper() } returns mockLooper
+    return mockLooper
 }
