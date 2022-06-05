@@ -80,7 +80,6 @@ class LocationTellerService(
         CurrentTimeService
     )
 
-    @ObsoleteCoroutinesApi
     override fun onCreate() {
         super.onCreate()
         Log.i(tag, "onCreate()")

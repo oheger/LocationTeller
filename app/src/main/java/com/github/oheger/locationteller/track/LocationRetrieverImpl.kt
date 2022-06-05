@@ -54,7 +54,7 @@ class LocationRetrieverImpl(
      * is *null*.
      * @return the current location or *null*
      */
-    @ObsoleteCoroutinesApi
+    @OptIn(ObsoleteCoroutinesApi::class)
     override suspend fun fetchLocation(): Location? = withContext(Dispatchers.Main) {
         val timeout = timeout
         val tickerChannel = ticker(timeout, timeout)

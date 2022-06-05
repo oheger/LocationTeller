@@ -52,7 +52,6 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
@@ -171,7 +170,6 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         selectFadingModeItem(menu)
     }
 
-    @ObsoleteCoroutinesApi
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.item_center -> {

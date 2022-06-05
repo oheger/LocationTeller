@@ -79,7 +79,7 @@ class MockDispatcher(private val directExecution: Boolean = true) : CoroutineDis
  * of co-routines on the main thread.
  */
 object ResetDispatcherListener : TestListener {
-    @ExperimentalCoroutinesApi
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         Dispatchers.resetMain()
     }
