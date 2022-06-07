@@ -55,14 +55,14 @@ class TrackingStatsListAdapter private constructor(
         StatData(R.string.stats_tracking_started, this::trackingStartStat),
         StatData(R.string.stats_tracking_stopped, this::trackingEndStat),
         StatData(R.string.stats_tracking_time, this::trackingTimeStat),
-        StatData(R.string.stats_tracking_total_distance, (TrackingStatsListAdapter)::totalDistanceStat),
+        StatData(R.string.stats_tracking_total_distance, TrackingStatsListAdapter::totalDistanceStat),
         StatData(R.string.stats_tracking_speed, this::trackingSpeedStat),
-        StatData(R.string.stats_tracking_last_distance, (TrackingStatsListAdapter)::lastDistanceStat),
-        StatData(R.string.stats_tracking_check_count, (TrackingStatsListAdapter)::checkCountStat),
+        StatData(R.string.stats_tracking_last_distance, TrackingStatsListAdapter::lastDistanceStat),
+        StatData(R.string.stats_tracking_check_count, TrackingStatsListAdapter::checkCountStat),
         StatData(R.string.stats_tracking_last_check, this::lastCheckStat),
-        StatData(R.string.stats_tracking_update_count, (TrackingStatsListAdapter)::updateCountStat),
+        StatData(R.string.stats_tracking_update_count, TrackingStatsListAdapter::updateCountStat),
         StatData(R.string.stats_tracking_last_update, this::lastUpdateStat),
-        StatData(R.string.stats_tracking_error_count, (TrackingStatsListAdapter)::errorCountStat),
+        StatData(R.string.stats_tracking_error_count, TrackingStatsListAdapter::errorCountStat),
         StatData(R.string.stats_tracking_last_error, this::lastErrorStat)
     )
 
