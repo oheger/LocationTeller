@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.server
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -279,7 +280,7 @@ class TrackServiceSpec : StringSpec() {
             val service = TrackService(davClient)
 
             val locationMap = service.readLocations(files)
-            locationMap.keys shouldContainExactly files
+            locationMap.keys shouldContainExactlyInAnyOrder files
             pairs.forEach { pair ->
                 locationMap[pair.first] shouldBe pair.second
             }
