@@ -19,27 +19,40 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.matching.UrlPattern
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import io.kotest.core.listeners.TestListener
 import io.kotest.core.spec.Spec
 import io.kotest.core.test.TestCase
 import io.kotest.core.test.TestResult
 
 /**
- * An object providing functionality to use a WireMock server in a test spec.
+ * A class providing functionality to use a WireMock server in a test spec.
  */
-object WireMockSupport : TestListener {
-    /** Test base path for server requests.*/
-    private const val basePath = "/track/base"
+class WireMockSupport : TestListener {
+    companion object {
+        /** Test base path for server requests.*/
+        private const val basePath = "/track/base"
 
-    /** Test user name.*/
-    const val user = "scott"
+        /** Test user name.*/
+        const val user = "scott"
 
-    /** Test password.*/
-    const val password = "tiger"
+        /** Test password.*/
+        const val password = "tiger"
 
-    /** Constant for a success status.*/
-    const val StatusOk = 200
+        /** Constant for a success status.*/
+        const val StatusOk = 200
+
+        /**
+         * Returns a mapping builder that is configured with the expected
+         * authorization header.
+         * @param mappingBuilder the builder to be configured
+         * @return the configured mapping builder
+         */
+        fun authorized(mappingBuilder: MappingBuilder): MappingBuilder =
+            mappingBuilder.withBasicAuth(user, password)
+    }
 
     /** The server managed by this object.*/
     private lateinit var server: WireMockServer
@@ -66,8 +79,18 @@ object WireMockSupport : TestListener {
         val serverOptions = options().dynamicPort()
         server = WireMockServer(serverOptions)
         server.start()
+    }
 
-        configureFor(server.port())
+    /**
+     * Add a stub to the wrapped server based on [builder].
+     */
+    fun stubFor(builder: MappingBuilder): StubMapping = server.stubFor(builder)
+
+    /**
+     * Run a verification based on [builder] against the wrapped server.
+     */
+    fun verify(builder: RequestPatternBuilder) {
+        server.verify(builder)
     }
 
     /**
@@ -77,15 +100,6 @@ object WireMockSupport : TestListener {
      */
     fun config(): ServerConfig =
         ServerConfig("http://localhost:${server.port()}", basePath, user, password)
-
-    /**
-     * Returns a mapping builder that is configured with the expected
-     * authorization header.
-     * @param mappingBuilder the builder to be configured
-     * @return the configured mapping builder
-     */
-    fun authorized(mappingBuilder: MappingBuilder): MappingBuilder =
-        mappingBuilder.withBasicAuth(user, password)
 
     /**
      * Returns a URL pattern that matches a path on the mock server. The
