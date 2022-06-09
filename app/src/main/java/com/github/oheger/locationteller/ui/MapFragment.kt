@@ -242,10 +242,10 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * Notifies this object that the map is now ready. If possible, the first
      * update operation is started.
      */
-    override fun onMapReady(map: GoogleMap?) {
+    override fun onMapReady(map: GoogleMap) {
         Log.i(LOG_TAG, "Map is ready")
         this.map = map
-        canUpdate = mapUpdater != null && map != null
+        canUpdate = mapUpdater != null
         Log.i(LOG_TAG, "Location updates possible: $canUpdate.")
         updateState(true)
     }
