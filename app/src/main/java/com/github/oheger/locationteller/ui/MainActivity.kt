@@ -31,6 +31,8 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.databinding.ActivityMainBinding
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.PreferencesHandler
+import com.google.android.gms.maps.MapsInitializer
+import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -45,7 +47,8 @@ import java.util.*
  * management tasks.
  */
 @ObsoleteCoroutinesApi
-class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
+class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
+    OnMapsSdkInitializedCallback {
     private val logTag = "MainActivity"
 
     private lateinit var binding: ActivityMainBinding
@@ -54,6 +57,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST, this)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -101,6 +106,15 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             if (handler.isTrackingEnabled()) {
                 handler.setTrackingEnabled(false)
             }
+        }
+    }
+
+    override fun onMapsSdkInitialized(renderer: MapsInitializer.Renderer) {
+        when (renderer) {
+            MapsInitializer.Renderer.LATEST ->
+                Log.i(logTag, "The latest version of the map renderer is used.")
+            MapsInitializer.Renderer.LEGACY ->
+                Log.i(logTag, "The legacy version of the map renderer is used.")
         }
     }
 
