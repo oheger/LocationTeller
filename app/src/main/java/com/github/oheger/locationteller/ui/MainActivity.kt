@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     class ExceptionLogger(private val context: Context) : Thread.UncaughtExceptionHandler {
-        override fun uncaughtException(t: Thread?, e: Throwable) {
+        override fun uncaughtException(t: Thread, e: Throwable) {
             val bos = ByteArrayOutputStream()
             val out = PrintStream(bos)
             e.printStackTrace(out)
