@@ -32,6 +32,37 @@ import java.util.Date
  */
 class PreferencesHandler(val preferences: SharedPreferences) {
     /**
+     * Return the value of the [Date] property with the given [key] from the managed preferences object. The actual
+     * type of the property is [Long]. If it is defined, it is converted to a [Date]. Otherwise, result is *null*.
+     */
+    fun getDate(key: String): Date? =
+        if (key in preferences) {
+            val time = preferences.getLong(key, 0)
+            time.takeIf { it >= MIN_DATE_VALUE }?.let { Date(it) }
+        } else null
+
+    /**
+     * Return the numeric value of the property with the given [key] from the managed preferences object. From the
+     * settings screen, the properties are stored as strings. Therefore, a conversion has to be done. Sometimes the
+     * config UI uses a different unit than the logic. This is handled by allowing a [factor] to be specified. A
+     * [defaultValue] can be provided to deal with undefined properties. (Note that the [factor] is not applied to the
+     * [defaultValue].
+     */
+    fun getNumeric(key: String, factor: Int = 1, defaultValue: Int = UNDEFINED_NUMBER): Int {
+        val value = preferences.getString(key, UNDEFINED_NUMBER_STR)?.toInt() ?: UNDEFINED_NUMBER
+        return if (value == UNDEFINED_NUMBER) defaultValue else value * factor
+    }
+
+    /**
+     * Return the [Double] value of the property with the given [key] from the managed preference object. This is
+     * analogous to [getNumeric], but for [Double] properties.
+     */
+    fun getDouble(key: String, factor: Double = 1.0, defaultValue: Double): Double {
+        val value = preferences.getString(key, UNDEFINED_NUMBER_STR) ?: UNDEFINED_NUMBER_STR
+        return if (value == UNDEFINED_NUMBER_STR) defaultValue else value.toDouble() * factor
+    }
+
+    /**
      * Creates a _ServerConfig_ object from the managed preferences. If
      * mandatory properties are missing, result is *null*.
      * @return the server configuration or *null*
@@ -52,44 +83,44 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * @return the track configuration
      */
     fun createTrackConfig(): TrackConfig {
-        val minTrackInterval = preferences.getNumeric(
+        val minTrackInterval = getNumeric(
             PROP_MIN_TRACK_INTERVAL, factor = MINUTE,
             defaultValue = DEFAULT_MIN_TRACK_INTERVAL
         )
-        val maxTrackInterval = preferences.getNumeric(
+        val maxTrackInterval = getNumeric(
             PROP_MAX_TRACK_INTERVAL, factor = MINUTE,
             defaultValue = DEFAULT_MAX_TRACK_INTERVAL
         )
-        val intervalIncrementOnIdle = preferences.getNumeric(
+        val intervalIncrementOnIdle = getNumeric(
             PROP_IDLE_INCREMENT, factor = MINUTE,
             defaultValue = DEFAULT_IDLE_INCREMENT
         )
-        val locationValidity = preferences.getNumeric(
+        val locationValidity = getNumeric(
             PROP_LOCATION_VALIDITY, factor = MINUTE,
             defaultValue = DEFAULT_LOCATION_VALIDITY
         )
-        val locationUpdateThreshold = preferences.getNumeric(
+        val locationUpdateThreshold = getNumeric(
             PROP_LOCATION_UPDATE_THRESHOLD,
             defaultValue = DEFAULT_LOCATION_UPDATE_THRESHOLD
         )
         val retryOnErrorTime =
-            preferences.getNumeric(PROP_RETRY_ON_ERROR_TIME, defaultValue = DEFAULT_RETRY_ON_ERROR_TIME)
-        val gpsTimeout = preferences.getNumeric(PROP_GPS_TIMEOUT, defaultValue = DEFAULT_GPS_TIMEOUT)
-        val offlineStorageSize = preferences.getNumeric(
+            getNumeric(PROP_RETRY_ON_ERROR_TIME, defaultValue = DEFAULT_RETRY_ON_ERROR_TIME)
+        val gpsTimeout = getNumeric(PROP_GPS_TIMEOUT, defaultValue = DEFAULT_GPS_TIMEOUT)
+        val offlineStorageSize = getNumeric(
             PROP_OFFLINE_STORAGE_SIZE,
             defaultValue = DEFAULT_OFFLINE_STORAGE_SIZE
         )
-        val offlineStorageSyncTime = preferences.getNumeric(
+        val offlineStorageSyncTime = getNumeric(
             PROP_OFFLINE_STORAGE_SYNC_TIME,
             defaultValue = DEFAULT_OFFLINE_STORAGE_SYNC_TIME
         )
-        val multiUploadChunkSize = preferences.getNumeric(
+        val multiUploadChunkSize = getNumeric(
             PROP_MULTI_UPLOAD_CHUNK_SIZE,
             defaultValue = DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
         )
-        val maxSpeedIncrease = preferences.getDouble(PROP_MAX_SPEED_INCREASE, defaultValue = DEFAULT_MAX_SPEED_INCREASE)
+        val maxSpeedIncrease = getDouble(PROP_MAX_SPEED_INCREASE, defaultValue = DEFAULT_MAX_SPEED_INCREASE)
         val walkingSpeed =
-            preferences.getDouble(PROP_WALKING_SPEED, factor = METER_PER_SECOND, defaultValue = DEFAULT_WALKING_SPEED)
+            getDouble(PROP_WALKING_SPEED, factor = METER_PER_SECOND, defaultValue = DEFAULT_WALKING_SPEED)
         return TrackConfig(
             minTrackInterval = minTrackInterval, maxTrackInterval = maxTrackInterval,
             intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
@@ -211,7 +242,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * the last update was successful.
      * @return the date of the last error
      */
-    fun lastError(): Date? = preferences.getDate(PROP_LAST_ERROR)
+    fun lastError(): Date? = getDate(PROP_LAST_ERROR)
 
     /**
      * Returns the number of errors that have been encountered since the
@@ -239,7 +270,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * no update has been recorded so far.
      * @return the date of the last update
      */
-    fun lastUpdate(): Date? = preferences.getDate(PROP_LAST_UPDATE)
+    fun lastUpdate(): Date? = getDate(PROP_LAST_UPDATE)
 
     /**
      * Returns a _Date_ when the last check for a location update took place.
@@ -248,7 +279,7 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * has been recorded so far.
      * @return the date of the last check
      */
-    fun lastCheck(): Date? = preferences.getDate(PROP_LAST_CHECK)
+    fun lastCheck(): Date? = getDate(PROP_LAST_CHECK)
 
     /**
      * Returns the distance of the last location update in meters.
@@ -268,14 +299,14 @@ class PreferencesHandler(val preferences: SharedPreferences) {
      * Result is *null* if tracking has never been started.
      * @return the start date of the current tracking process
      */
-    fun trackingStartDate(): Date? = preferences.getDate(PROP_TRACKING_START)
+    fun trackingStartDate(): Date? = getDate(PROP_TRACKING_START)
 
     /**
      * Returns the recorded end date of the current tracking process. Result
      * is *null* if tracking is currently active.
      * @return the time tracking was stopped or *null*
      */
-    fun trackingEndDate(): Date? = preferences.getDate(PROP_TRACKING_END)
+    fun trackingEndDate(): Date? = getDate(PROP_TRACKING_END)
 
     /**
      * Registers the given change listener at the managed preferences.
@@ -318,50 +349,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             RESET_PROPS.forEach { remove(it) }
         }
     }
-
-    /**
-     * Extension function to query a numeric property from a preferences
-     * object. From the settings screen, the properties are stored as
-     * strings. Therefore, a conversion has to be done. Sometimes the config
-     * UI uses a different unit than the logic. This is handled by allowing a
-     * factor to be specified. A default value can be provided to deal with
-     * undefined properties. Note that the factor is not applied to the default
-     * value.
-     * @param key the key to be queried
-     * @param factor a factor to be applied to the value
-     * @param defaultValue the default value to be applied
-     * @return the numeric value of this key
-     */
-    private fun SharedPreferences.getNumeric(key: String, factor: Int = 1, defaultValue: Int = UNDEFINED_NUMBER): Int {
-        val value = getString(key, UNDEFINED_NUMBER_STR)?.toInt() ?: UNDEFINED_NUMBER
-        return if (value == UNDEFINED_NUMBER) defaultValue else value * factor
-    }
-
-    /**
-     * Extension function to query a double property from a preferences object.
-     * Like _getNumeric()_, but for doubles.
-     * @param key the key to be queried
-     * @param factor a factor to be applied to the value
-     * @param defaultValue the default value to be applied
-     * @return the double value of this key
-     */
-    private fun SharedPreferences.getDouble(key: String, factor: Double = 1.0, defaultValue: Double): Double {
-        val value = getString(key, UNDEFINED_NUMBER_STR) ?: UNDEFINED_NUMBER_STR
-        return if (value == UNDEFINED_NUMBER_STR) defaultValue else value.toDouble() * factor
-    }
-
-    /**
-     * Extension function to query a _Date_ property from a preferences
-     * object. The actual type of the property is _Long_. If it is defined, it
-     * is converted to a _Date_. Otherwise, result is *null*.
-     * @param key the key to be queried
-     * @return the _Date_ value of the property or *null*
-     */
-    private fun SharedPreferences.getDate(key: String): Date? =
-        if (contains(key)) {
-            val time = getLong(key, 0)
-            if (time < MIN_DATE_VALUE) null else Date(time)
-        } else null
 
     companion object {
         /** Shared preferences property for the track server URI.*/
