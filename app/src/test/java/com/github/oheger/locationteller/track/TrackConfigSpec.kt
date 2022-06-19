@@ -1,0 +1,108 @@
+/*
+ * Copyright 2019-2022 The Developers.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License")
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.github.oheger.locationteller.track
+
+import android.content.SharedPreferences
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.mockk.every
+import io.mockk.mockk
+
+/**
+ * Test class for [TrackConfig].
+ */
+class TrackConfigSpec : StringSpec({
+    "An instance can be created from shared preferences" {
+        val config = TrackConfig(
+            minTrackInterval = 120,
+            maxTrackInterval = 600,
+            intervalIncrementOnIdle = 60,
+            locationValidity = 3600,
+            locationUpdateThreshold = 88,
+            retryOnErrorTime = 111,
+            gpsTimeout = 77,
+            offlineStorageSize = 42,
+            maxOfflineStorageSyncTime = 22,
+            multiUploadChunkSize = 4,
+            autoResetStats = true,
+            maxSpeedIncrease = 3.1415,
+            walkingSpeed = 2.4
+        )
+
+        val prefs = mockk<SharedPreferences>()
+        val prefHandler = mockk<PreferencesHandler>()
+        every { prefHandler.preferences } returns prefs
+        every {
+            prefHandler.getNumeric(TrackConfig.PROP_MIN_TRACK_INTERVAL, 60, TrackConfig.DEFAULT_MIN_TRACK_INTERVAL)
+        } returns config.minTrackInterval
+        every {
+            prefHandler.getNumeric(TrackConfig.PROP_MAX_TRACK_INTERVAL, 60, TrackConfig.DEFAULT_MAX_TRACK_INTERVAL)
+        } returns config.maxTrackInterval
+        every {
+            prefHandler.getNumeric(TrackConfig.PROP_IDLE_INCREMENT, 60, TrackConfig.DEFAULT_IDLE_INCREMENT)
+        } returns config.intervalIncrementOnIdle
+        every {
+            prefHandler.getNumeric(TrackConfig.PROP_LOCATION_VALIDITY, 60, TrackConfig.DEFAULT_LOCATION_VALIDITY)
+        } returns config.locationValidity
+        every {
+            prefHandler.getNumeric(
+                TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD,
+                defaultValue = TrackConfig.DEFAULT_LOCATION_UPDATE_THRESHOLD
+            )
+        } returns config.locationUpdateThreshold
+        every {
+            prefHandler.getNumeric(
+                TrackConfig.PROP_RETRY_ON_ERROR_TIME,
+                defaultValue = TrackConfig.DEFAULT_RETRY_ON_ERROR_TIME
+            )
+        } returns config.retryOnErrorTime
+        every {
+            prefHandler.getNumeric(TrackConfig.PROP_GPS_TIMEOUT, defaultValue = TrackConfig.DEFAULT_GPS_TIMEOUT)
+        } returns config.gpsTimeout
+        every {
+            prefHandler.getNumeric(
+                TrackConfig.PROP_OFFLINE_STORAGE_SIZE,
+                defaultValue = TrackConfig.DEFAULT_OFFLINE_STORAGE_SIZE
+            )
+        } returns config.offlineStorageSize
+        every {
+            prefHandler.getNumeric(
+                TrackConfig.PROP_OFFLINE_STORAGE_SYNC_TIME,
+                defaultValue = TrackConfig.DEFAULT_OFFLINE_STORAGE_SYNC_TIME
+            )
+        } returns config.maxOfflineStorageSyncTime
+        every {
+            prefHandler.getNumeric(
+                TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE,
+                defaultValue = TrackConfig.DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
+            )
+        } returns config.multiUploadChunkSize
+        every {
+            prefHandler.getDouble(
+                TrackConfig.PROP_MAX_SPEED_INCREASE,
+                defaultValue = TrackConfig.DEFAULT_MAX_SPEED_INCREASE
+            )
+        } returns config.maxSpeedIncrease
+        every {
+            prefHandler.getDouble(TrackConfig.PROP_WALKING_SPEED, 1.0 / 3.6, TrackConfig.DEFAULT_WALKING_SPEED)
+        } returns config.walkingSpeed
+        every { prefs.getBoolean(TrackConfig.PROP_AUTO_RESET_STATS, false) } returns true
+
+        val newConfig = TrackConfig.fromPreferences(prefHandler)
+
+        newConfig shouldBe config
+    }
+})
