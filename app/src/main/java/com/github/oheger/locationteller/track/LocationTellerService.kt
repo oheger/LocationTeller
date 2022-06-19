@@ -90,7 +90,7 @@ class LocationTellerService(
         )
 
         preferencesHandler = createPreferencesHandler()
-        val trackConfig = preferencesHandler.createTrackConfig()
+        val trackConfig = TrackConfig.fromPreferences(preferencesHandler)
         val updaterActor = updaterFactory.createActor(preferencesHandler, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")

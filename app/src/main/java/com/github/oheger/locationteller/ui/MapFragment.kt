@@ -46,6 +46,7 @@ import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.LocationRetriever
 import com.github.oheger.locationteller.track.LocationRetrieverFactory
 import com.github.oheger.locationteller.track.PreferencesHandler
+import com.github.oheger.locationteller.track.TrackConfig
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -138,7 +139,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         timeService = createTimeService()
         val serverConfig = preferencesHandler.createServerConfig()
         mapUpdater = serverConfig?.let(::createMapUpdater)
-        val trackConfig = preferencesHandler.createTrackConfig()
+        val trackConfig = TrackConfig.fromPreferences(preferencesHandler)
         updateInterval = trackConfig.minTrackInterval * 1000L
         Log.i(LOG_TAG, "Set update interval to $updateInterval ms.")
 

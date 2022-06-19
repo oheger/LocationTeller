@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.track
 import com.github.oheger.locationteller.server.ServerConfig
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 
 /**
  * A module defining some helper functionality for several tests in the
@@ -43,6 +44,15 @@ object TrackTestHelper {
     )
 
     /**
+     * Prepare the creation of a [TrackConfig] from the given [mockHandler]. This means that the factory function
+     * from [TrackConfig]'s companion object has to be mocked to return [trackConf].
+     */
+    fun prepareTrackConfigFromPreferences(mockHandler: PreferencesHandler, trackConf: TrackConfig = defTrackConfig) {
+        mockkObject(TrackConfig)
+        every { TrackConfig.fromPreferences(mockHandler) } returns trackConf
+    }
+
+    /**
      * Installs a mock preferences manager that returns shared preferences
      * initialized with the test configurations.
      * @param svrConf the server config to initialize preferences
@@ -56,13 +66,15 @@ object TrackTestHelper {
         trackingEnabled: Boolean = true
     ): PreferencesHandler {
         val handler = mockk<PreferencesHandler>()
-        every { handler.createTrackConfig() } returns trackConf
         every { handler.createServerConfig() } returns svrConf
         every { handler.isTrackingEnabled() } returns trackingEnabled
         every { handler.checkCount() } returns 42
         every { handler.updateCount() } returns 11
         every { handler.errorCount() } returns 1
         every { handler.totalDistance() } returns 100
+
+        prepareTrackConfigFromPreferences(handler, trackConf)
+
         return handler
     }
 }

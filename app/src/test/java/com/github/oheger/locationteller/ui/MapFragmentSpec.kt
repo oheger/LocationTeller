@@ -717,8 +717,8 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
     private fun createMockPrefHandler(): PreferencesHandler {
         val handler = mockk<PreferencesHandler>()
         every { handler.createServerConfig() } returns serverConfig
-        every { handler.createTrackConfig() } returns TrackTestHelper.defTrackConfig
         every { handler.getFadingMode() } returns 0
+        TrackTestHelper.prepareTrackConfigFromPreferences(handler)
         return handler
     }
 
