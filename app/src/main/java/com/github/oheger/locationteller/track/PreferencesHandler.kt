@@ -78,60 +78,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
-     * Creates a _TrackConfig_ object from the managed preferences. For missing
-     * properties in the underlying shared preferences default values are set.
-     * @return the track configuration
-     */
-    fun createTrackConfig(): TrackConfig {
-        val minTrackInterval = getNumeric(
-            PROP_MIN_TRACK_INTERVAL, factor = MINUTE,
-            defaultValue = DEFAULT_MIN_TRACK_INTERVAL
-        )
-        val maxTrackInterval = getNumeric(
-            PROP_MAX_TRACK_INTERVAL, factor = MINUTE,
-            defaultValue = DEFAULT_MAX_TRACK_INTERVAL
-        )
-        val intervalIncrementOnIdle = getNumeric(
-            PROP_IDLE_INCREMENT, factor = MINUTE,
-            defaultValue = DEFAULT_IDLE_INCREMENT
-        )
-        val locationValidity = getNumeric(
-            PROP_LOCATION_VALIDITY, factor = MINUTE,
-            defaultValue = DEFAULT_LOCATION_VALIDITY
-        )
-        val locationUpdateThreshold = getNumeric(
-            PROP_LOCATION_UPDATE_THRESHOLD,
-            defaultValue = DEFAULT_LOCATION_UPDATE_THRESHOLD
-        )
-        val retryOnErrorTime =
-            getNumeric(PROP_RETRY_ON_ERROR_TIME, defaultValue = DEFAULT_RETRY_ON_ERROR_TIME)
-        val gpsTimeout = getNumeric(PROP_GPS_TIMEOUT, defaultValue = DEFAULT_GPS_TIMEOUT)
-        val offlineStorageSize = getNumeric(
-            PROP_OFFLINE_STORAGE_SIZE,
-            defaultValue = DEFAULT_OFFLINE_STORAGE_SIZE
-        )
-        val offlineStorageSyncTime = getNumeric(
-            PROP_OFFLINE_STORAGE_SYNC_TIME,
-            defaultValue = DEFAULT_OFFLINE_STORAGE_SYNC_TIME
-        )
-        val multiUploadChunkSize = getNumeric(
-            PROP_MULTI_UPLOAD_CHUNK_SIZE,
-            defaultValue = DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
-        )
-        val maxSpeedIncrease = getDouble(PROP_MAX_SPEED_INCREASE, defaultValue = DEFAULT_MAX_SPEED_INCREASE)
-        val walkingSpeed =
-            getDouble(PROP_WALKING_SPEED, factor = METER_PER_SECOND, defaultValue = DEFAULT_WALKING_SPEED)
-        return TrackConfig(
-            minTrackInterval = minTrackInterval, maxTrackInterval = maxTrackInterval,
-            intervalIncrementOnIdle = intervalIncrementOnIdle, locationValidity = locationValidity,
-            locationUpdateThreshold = locationUpdateThreshold, retryOnErrorTime = retryOnErrorTime,
-            gpsTimeout = gpsTimeout, autoResetStats = isAutoResetStats(), offlineStorageSize = offlineStorageSize,
-            maxOfflineStorageSyncTime = offlineStorageSyncTime, multiUploadChunkSize = multiUploadChunkSize,
-            maxSpeedIncrease = maxSpeedIncrease, walkingSpeed = walkingSpeed
-        )
-    }
-
-    /**
      * Updates a _SharedPreferences_ object. This function obtains an editor
      * from the preferences, invokes the block on it and finally applies the
      * changes.
@@ -468,21 +414,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** A default value for the location update threshold property. */
         const val DEFAULT_LOCATION_UPDATE_THRESHOLD = 10
 
-        /** A default value for the size of the offline storage. */
-        const val DEFAULT_OFFLINE_STORAGE_SIZE = 32
-
-        /** A default value for the offline storage sync time (in sec). */
-        const val DEFAULT_OFFLINE_STORAGE_SYNC_TIME = 30
-
-        /** A default value for the multi-upload chunk size. */
-        const val DEFAULT_MULTI_UPLOAD_CHUNK_SIZE = 4
-
-        /** A default value for the maximum speed increase. */
-        const val DEFAULT_MAX_SPEED_INCREASE = 2.0
-
-        /** A default value for the average walking speed. */
-        const val DEFAULT_WALKING_SPEED = 4.0 / 3.6 // 4 km/h in m/s
-
         /**
          * Constant for the minimum value accepted for a date (in millis).
          * This value should prevent that an undefined date property (set to 0)
@@ -533,12 +464,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             PROP_CHECK_COUNT,
             PROP_UPDATE_COUNT
         )
-
-        /** Factor to convert minutes to seconds. */
-        private const val MINUTE = 60
-
-        /** Factor to convert Km/h to m/s. */
-        private const val METER_PER_SECOND = 1.0 / 3.6
 
         /**
          * Creates a _PreferencesHandler_ object based on the given context.

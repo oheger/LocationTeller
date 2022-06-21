@@ -508,48 +508,6 @@ class PreferencesHandlerSpec : WordSpec() {
                 verify { pref.unregisterOnSharedPreferenceChangeListener(listener) }
             }
 
-            "create a track configuration" {
-                val trackConfig = TrackConfig(
-                    60, 600, 120, 3600, 15, 27, 11,
-                    16, 30, 2, true, 2.5, 1.111
-                )
-                val pref = preferencesFromTrackConfig(trackConfig)
-                val handler = PreferencesHandler(pref)
-
-                handler.createTrackConfig() shouldBe trackConfig
-            }
-
-            "return default values for a TrackConfig if properties are undefined" {
-                val pref = mockk<SharedPreferences>()
-                listOf(
-                    PreferencesHandler.PROP_MAX_TRACK_INTERVAL, PreferencesHandler.PROP_MIN_TRACK_INTERVAL,
-                    PreferencesHandler.PROP_IDLE_INCREMENT, PreferencesHandler.PROP_LOCATION_VALIDITY,
-                    PreferencesHandler.PROP_LOCATION_UPDATE_THRESHOLD, PreferencesHandler.PROP_RETRY_ON_ERROR_TIME,
-                    PreferencesHandler.PROP_GPS_TIMEOUT, PreferencesHandler.PROP_OFFLINE_STORAGE_SIZE,
-                    PreferencesHandler.PROP_OFFLINE_STORAGE_SYNC_TIME, PreferencesHandler.PROP_MULTI_UPLOAD_CHUNK_SIZE,
-                    PreferencesHandler.PROP_MAX_SPEED_INCREASE, PreferencesHandler.PROP_WALKING_SPEED
-                ).forEach {
-                    initNumProperty(pref, it, -1)
-                }
-                every { pref.getBoolean(PreferencesHandler.PROP_AUTO_RESET_STATS, false) } returns false
-                val handler = PreferencesHandler(pref)
-
-                val config = handler.createTrackConfig()
-                config.minTrackInterval shouldBe PreferencesHandler.DEFAULT_MIN_TRACK_INTERVAL
-                config.maxTrackInterval shouldBe PreferencesHandler.DEFAULT_MAX_TRACK_INTERVAL
-                config.intervalIncrementOnIdle shouldBe PreferencesHandler.DEFAULT_IDLE_INCREMENT
-                config.locationValidity shouldBe PreferencesHandler.DEFAULT_LOCATION_VALIDITY
-                config.locationUpdateThreshold shouldBe PreferencesHandler.DEFAULT_LOCATION_UPDATE_THRESHOLD
-                config.retryOnErrorTime shouldBe PreferencesHandler.DEFAULT_RETRY_ON_ERROR_TIME
-                config.gpsTimeout shouldBe PreferencesHandler.DEFAULT_GPS_TIMEOUT
-                config.offlineStorageSize shouldBe PreferencesHandler.DEFAULT_OFFLINE_STORAGE_SIZE
-                config.maxOfflineStorageSyncTime shouldBe PreferencesHandler.DEFAULT_OFFLINE_STORAGE_SYNC_TIME
-                config.multiUploadChunkSize shouldBe PreferencesHandler.DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
-                config.maxSpeedIncrease shouldBe PreferencesHandler.DEFAULT_MAX_SPEED_INCREASE
-                config.walkingSpeed shouldBe PreferencesHandler.DEFAULT_WALKING_SPEED
-                config.autoResetStats shouldBe false
-            }
-
             "init shared preferences with track config defaults" {
                 val pref = mockk<SharedPreferences>()
                 val editor = mockk<SharedPreferences.Editor>()
@@ -637,19 +595,6 @@ class PreferencesHandlerSpec : WordSpec() {
 
         /**
          * Prepares the given mock for a _SharedPreferences_ object to return a
-         * value for a specific numeric property.
-         * @param pref the _SharedPreferences_
-         * @param property the name of the property
-         * @param value the value to be returned for this property
-         */
-        private fun initNumProperty(pref: SharedPreferences, property: String, value: Any) {
-            every {
-                pref.getString(property, "-1")
-            } returns value.toString()
-        }
-
-        /**
-         * Prepares the given mock for a _SharedPreferences_ object to return a
          * value for a specific string property. Empty strings are mapped to
          * *null* values.
          * @param pref the _SharedPreferences_
@@ -658,43 +603,6 @@ class PreferencesHandlerSpec : WordSpec() {
          */
         private fun initProperty(pref: SharedPreferences, property: String, value: String) {
             every { pref.getString(property, null) } returns value.ifEmpty { null }
-        }
-
-        /**
-         * Creates a mock for a _SharedPreferences_ object that is prepared to
-         * return the properties from the given track configuration.
-         * @param trackConfig the track configuration
-         * @return the mock _SharedPreferences_
-         */
-        private fun preferencesFromTrackConfig(trackConfig: TrackConfig): SharedPreferences {
-            val pref = mockk<SharedPreferences>()
-            initNumProperty(pref, PreferencesHandler.PROP_MIN_TRACK_INTERVAL, trackConfig.minTrackInterval / 60)
-            initNumProperty(pref, PreferencesHandler.PROP_MAX_TRACK_INTERVAL, trackConfig.maxTrackInterval / 60)
-            initNumProperty(pref, PreferencesHandler.PROP_IDLE_INCREMENT, trackConfig.intervalIncrementOnIdle / 60)
-            initNumProperty(pref, PreferencesHandler.PROP_LOCATION_VALIDITY, trackConfig.locationValidity / 60)
-            initNumProperty(
-                pref,
-                PreferencesHandler.PROP_LOCATION_UPDATE_THRESHOLD,
-                trackConfig.locationUpdateThreshold
-            )
-            initNumProperty(pref, PreferencesHandler.PROP_RETRY_ON_ERROR_TIME, trackConfig.retryOnErrorTime)
-            initNumProperty(pref, PreferencesHandler.PROP_GPS_TIMEOUT, trackConfig.gpsTimeout)
-            initNumProperty(pref, PreferencesHandler.PROP_OFFLINE_STORAGE_SIZE, trackConfig.offlineStorageSize)
-            initNumProperty(
-                pref,
-                PreferencesHandler.PROP_OFFLINE_STORAGE_SYNC_TIME,
-                trackConfig.maxOfflineStorageSyncTime
-            )
-            initNumProperty(pref, PreferencesHandler.PROP_MULTI_UPLOAD_CHUNK_SIZE, trackConfig.multiUploadChunkSize)
-            initNumProperty(pref, PreferencesHandler.PROP_MAX_SPEED_INCREASE, trackConfig.maxSpeedIncrease)
-            initNumProperty(pref, PreferencesHandler.PROP_WALKING_SPEED, trackConfig.walkingSpeed * 3.6)
-            every {
-                pref.getBoolean(
-                    PreferencesHandler.PROP_AUTO_RESET_STATS,
-                    false
-                )
-            } returns trackConfig.autoResetStats
-            return pref
         }
 
         /**
