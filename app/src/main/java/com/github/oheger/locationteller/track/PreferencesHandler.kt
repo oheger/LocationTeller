@@ -271,23 +271,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
     }
 
     /**
-     * Sets default values for the shared preferences corresponding to options
-     * of the track configuration if they are undefined. With this function it
-     * can be ensured that the shared preferences are initialized with
-     * meaningful value.
-     */
-    fun initTrackConfigDefaults() {
-        val undefinedProps = CONFIG_DEFAULTS.filterNot { preferences.contains(it.key) }
-        if (undefinedProps.isNotEmpty()) {
-            val editor = preferences.edit()
-            undefinedProps.forEach { pair ->
-                editor.putString(pair.key, pair.value.toString())
-            }
-            editor.apply()
-        }
-    }
-
-    /**
      * Resets all the stored values that are related to tracking statistics.
      */
     fun resetStatistics() {
@@ -393,27 +376,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property to store the fading mode. */
         const val PROP_FADING_MODE = "fadingMode"
 
-        /** A default value for the minimum track interval (in seconds). */
-        const val DEFAULT_MIN_TRACK_INTERVAL = 180
-
-        /** A default value for the maximum track interval (in seconds). */
-        const val DEFAULT_MAX_TRACK_INTERVAL = 900
-
-        /** A default value for the idle increment interval (in seconds). */
-        const val DEFAULT_IDLE_INCREMENT = 120
-
-        /** A default value for the location validity time (in seconds).*/
-        const val DEFAULT_LOCATION_VALIDITY = 43200 // 12 hours
-
-        /** A default value for the retry on error time (in seconds). */
-        const val DEFAULT_RETRY_ON_ERROR_TIME = 30
-
-        /** A default value for the GPS timeout (in seconds). */
-        const val DEFAULT_GPS_TIMEOUT = 45
-
-        /** A default value for the location update threshold property. */
-        const val DEFAULT_LOCATION_UPDATE_THRESHOLD = 10
-
         /**
          * Constant for the minimum value accepted for a date (in millis).
          * This value should prevent that an undefined date property (set to 0)
@@ -434,20 +396,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             PROP_LOCATION_UPDATE_THRESHOLD, PROP_RETRY_ON_ERROR_TIME, PROP_GPS_TIMEOUT,
             PROP_OFFLINE_STORAGE_SIZE, PROP_OFFLINE_STORAGE_SYNC_TIME, PROP_MULTI_UPLOAD_CHUNK_SIZE,
             PROP_MAX_SPEED_INCREASE, PROP_WALKING_SPEED
-        )
-
-        /**
-         * A map with configuration properties and their default values. This
-         * is used to initialize shared preferences.
-         */
-        private val CONFIG_DEFAULTS = mapOf(
-            PROP_MIN_TRACK_INTERVAL to (DEFAULT_MIN_TRACK_INTERVAL / 60),
-            PROP_MAX_TRACK_INTERVAL to (DEFAULT_MAX_TRACK_INTERVAL / 60),
-            PROP_IDLE_INCREMENT to (DEFAULT_IDLE_INCREMENT / 60),
-            PROP_LOCATION_VALIDITY to (DEFAULT_LOCATION_VALIDITY / 60),
-            PROP_LOCATION_UPDATE_THRESHOLD to DEFAULT_LOCATION_UPDATE_THRESHOLD,
-            PROP_RETRY_ON_ERROR_TIME to DEFAULT_RETRY_ON_ERROR_TIME,
-            PROP_GPS_TIMEOUT to DEFAULT_GPS_TIMEOUT
         )
 
         /**

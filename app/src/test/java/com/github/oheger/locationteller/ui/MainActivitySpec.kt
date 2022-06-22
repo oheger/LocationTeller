@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.launchActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.track.PreferencesHandler
+import com.github.oheger.locationteller.track.TrackConfig
 import io.mockk.*
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test
@@ -71,6 +72,19 @@ class MainActivitySpec {
             activitySpy.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_TRACK_STATE)
             verify {
                 activitySpy.startService(any())
+            }
+        }
+    }
+
+    @Test
+    fun `default track configuration settings are initialized on startup`() {
+        mockkObject(TrackConfig)
+        val scenario = launchActivity<MainActivity>()
+        scenario.moveToState(Lifecycle.State.CREATED)
+
+        scenario.onActivity {
+            verify {
+                TrackConfig.initDefaults(any())
             }
         }
     }

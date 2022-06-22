@@ -31,6 +31,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.databinding.ActivityMainBinding
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.PreferencesHandler
+import com.github.oheger.locationteller.track.TrackConfig
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -75,7 +76,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
 
         val handler = PreferencesHandler.create(this)
-        handler.initTrackConfigDefaults()
+        TrackConfig.initDefaults(handler)
         createTrackNotificationChannel()
     }
 

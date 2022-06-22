@@ -508,57 +508,6 @@ class PreferencesHandlerSpec : WordSpec() {
                 verify { pref.unregisterOnSharedPreferenceChangeListener(listener) }
             }
 
-            "init shared preferences with track config defaults" {
-                val pref = mockk<SharedPreferences>()
-                val editor = mockk<SharedPreferences.Editor>()
-                every { pref.edit() } returns editor
-                every { pref.contains(any()) } returns false
-                every { editor.putString(any(), any()) } returns editor
-                every { editor.apply() } just runs
-                val handler = PreferencesHandler(pref)
-
-                handler.initTrackConfigDefaults()
-                verify {
-                    editor.putString(
-                        PreferencesHandler.PROP_MIN_TRACK_INTERVAL,
-                        (PreferencesHandler.DEFAULT_MIN_TRACK_INTERVAL / 60).toString()
-                    )
-                    editor.putString(
-                        PreferencesHandler.PROP_MAX_TRACK_INTERVAL,
-                        (PreferencesHandler.DEFAULT_MAX_TRACK_INTERVAL / 60).toString()
-                    )
-                    editor.putString(
-                        PreferencesHandler.PROP_IDLE_INCREMENT,
-                        (PreferencesHandler.DEFAULT_IDLE_INCREMENT / 60).toString()
-                    )
-                    editor.putString(
-                        PreferencesHandler.PROP_LOCATION_VALIDITY,
-                        (PreferencesHandler.DEFAULT_LOCATION_VALIDITY / 60).toString()
-                    )
-                    editor.putString(
-                        PreferencesHandler.PROP_LOCATION_UPDATE_THRESHOLD,
-                        PreferencesHandler.DEFAULT_LOCATION_UPDATE_THRESHOLD.toString()
-                    )
-                    editor.putString(
-                        PreferencesHandler.PROP_RETRY_ON_ERROR_TIME,
-                        PreferencesHandler.DEFAULT_RETRY_ON_ERROR_TIME.toString()
-                    )
-                    editor.putString(
-                        PreferencesHandler.PROP_GPS_TIMEOUT,
-                        PreferencesHandler.DEFAULT_GPS_TIMEOUT.toString()
-                    )
-                    editor.apply()
-                }
-            }
-
-            "not override already defined properties of the track config" {
-                val pref = mockk<SharedPreferences>()
-                every { pref.contains(any()) } returns true
-                val handler = PreferencesHandler(pref)
-
-                handler.initTrackConfigDefaults()  // should be noop
-            }
-
             "create a correct server configuration" {
                 val handler = PreferencesHandler(preferencesFromServerConfig(defServerConfig))
 
