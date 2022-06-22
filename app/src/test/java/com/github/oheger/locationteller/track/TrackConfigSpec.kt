@@ -19,7 +19,11 @@ import android.content.SharedPreferences
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
+import io.mockk.slot
+import io.mockk.verify
 
 /**
  * Test class for [TrackConfig].
@@ -104,5 +108,61 @@ class TrackConfigSpec : StringSpec({
         val newConfig = TrackConfig.fromPreferences(prefHandler)
 
         newConfig shouldBe config
+    }
+
+    "Default values can be set in shared preferences" {
+        val handler = mockk<PreferencesHandler>()
+        val pref = mockk<SharedPreferences>()
+        val editor = mockk<SharedPreferences.Editor>()
+        val slotUpdater = slot<SharedPreferences.Editor.() -> Unit>()
+        every { handler.preferences } returns pref
+        every { handler.update(capture(slotUpdater)) } just runs
+        every { pref.contains(any()) } returns false
+        every { editor.putString(any(), any()) } returns editor
+
+        TrackConfig.initDefaults(handler)
+        slotUpdater.captured(editor)
+
+        verify {
+            editor.putString(
+                TrackConfig.PROP_MIN_TRACK_INTERVAL,
+                (TrackConfig.DEFAULT_MIN_TRACK_INTERVAL / 60).toString()
+            )
+            editor.putString(
+                TrackConfig.PROP_MAX_TRACK_INTERVAL,
+                (TrackConfig.DEFAULT_MAX_TRACK_INTERVAL / 60).toString()
+            )
+            editor.putString(
+                TrackConfig.PROP_IDLE_INCREMENT,
+                (TrackConfig.DEFAULT_IDLE_INCREMENT / 60).toString()
+            )
+            editor.putString(
+                TrackConfig.PROP_LOCATION_VALIDITY,
+                (TrackConfig.DEFAULT_LOCATION_VALIDITY / 60).toString()
+            )
+            editor.putString(
+                TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD,
+                TrackConfig.DEFAULT_LOCATION_UPDATE_THRESHOLD.toString()
+            )
+            editor.putString(
+                TrackConfig.PROP_RETRY_ON_ERROR_TIME,
+                TrackConfig.DEFAULT_RETRY_ON_ERROR_TIME.toString()
+            )
+            editor.putString(
+                TrackConfig.PROP_GPS_TIMEOUT,
+                TrackConfig.DEFAULT_GPS_TIMEOUT.toString()
+            )
+        }
+    }
+
+    "Setting default values does not override existing properties" {
+        val handler = mockk<PreferencesHandler>()
+        val pref = mockk<SharedPreferences>()
+        every { handler.preferences } returns pref
+        every { pref.contains(any()) } returns true
+
+        TrackConfig.initDefaults(handler)
+
+        verify(exactly = 0) { handler.update(any()) }
     }
 })

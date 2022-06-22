@@ -158,6 +158,20 @@ data class TrackConfig(
         private const val METER_PER_SECOND = 1.0 / 3.6
 
         /**
+         * A map with configuration properties and their default values. This
+         * is used to initialize shared preferences.
+         */
+        private val CONFIG_DEFAULTS = mapOf(
+            PROP_MIN_TRACK_INTERVAL to (DEFAULT_MIN_TRACK_INTERVAL / 60),
+            PROP_MAX_TRACK_INTERVAL to (DEFAULT_MAX_TRACK_INTERVAL / 60),
+            PROP_IDLE_INCREMENT to (DEFAULT_IDLE_INCREMENT / 60),
+            PROP_LOCATION_VALIDITY to (DEFAULT_LOCATION_VALIDITY / 60),
+            PROP_LOCATION_UPDATE_THRESHOLD to DEFAULT_LOCATION_UPDATE_THRESHOLD,
+            PROP_RETRY_ON_ERROR_TIME to DEFAULT_RETRY_ON_ERROR_TIME,
+            PROP_GPS_TIMEOUT to DEFAULT_GPS_TIMEOUT
+        )
+
+        /**
          * Return a new instance of [TrackConfig] that is initialized from the preferences managed by the given
          * [preferencesHandler].
          */
@@ -232,6 +246,23 @@ data class TrackConfig(
                 maxSpeedIncrease = maxSpeedIncrease,
                 walkingSpeed = walkingSpeed
             )
+        }
+
+        /**
+         * Initialize the preferences managed by [handler] with default values for the tracking configuration, as
+         * long as they are not yet defined. While this initialization is unnecessary for reading a [TrackConfig] from
+         * preferences (here defaults are applied automatically for undefined properties), it is useful for the
+         * configuration screen (which is directly backed by preferences).
+         */
+        fun initDefaults(handler: PreferencesHandler) {
+            CONFIG_DEFAULTS.filterNot { handler.preferences.contains(it.key) }
+                .takeUnless { it.isEmpty() }?.let { undefinedProps ->
+                    handler.update {
+                        undefinedProps.forEach { pair ->
+                            putString(pair.key, pair.value.toString())
+                        }
+                    }
+                }
         }
     }
 }
