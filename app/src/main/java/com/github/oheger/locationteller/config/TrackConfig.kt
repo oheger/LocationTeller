@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.oheger.locationteller.track
+package com.github.oheger.locationteller.config
 
 /**
  * A data class representing the configuration for location tracking.

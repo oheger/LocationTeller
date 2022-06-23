@@ -45,8 +45,8 @@ import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.LocationRetriever
 import com.github.oheger.locationteller.track.LocationRetrieverFactory
-import com.github.oheger.locationteller.track.PreferencesHandler
-import com.github.oheger.locationteller.track.TrackConfig
+import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment

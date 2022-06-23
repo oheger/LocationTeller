@@ -42,7 +42,7 @@ import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.LocationRetriever
 import com.github.oheger.locationteller.track.LocationRetrieverFactory
-import com.github.oheger.locationteller.track.PreferencesHandler
+import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng

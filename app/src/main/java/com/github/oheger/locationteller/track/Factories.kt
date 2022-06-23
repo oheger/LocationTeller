@@ -16,6 +16,8 @@
 package com.github.oheger.locationteller.track
 
 import android.content.Context
+import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.location.LocationServices

@@ -29,7 +29,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.track.PreferencesHandler
+import com.github.oheger.locationteller.config.PreferencesHandler
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.just

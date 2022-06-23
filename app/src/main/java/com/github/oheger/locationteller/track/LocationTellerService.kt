@@ -24,6 +24,8 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
 import kotlinx.coroutines.CoroutineScope

@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.oheger.locationteller.track
+package com.github.oheger.locationteller.config
 
 import android.content.SharedPreferences
+
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
+
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk

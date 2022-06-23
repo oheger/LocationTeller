@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.track
 
+import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.ServerConfig
 import io.mockk.every
 import io.mockk.mockk

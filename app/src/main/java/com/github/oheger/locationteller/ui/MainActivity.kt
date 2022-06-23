@@ -30,8 +30,8 @@ import androidx.navigation.ui.setupWithNavController
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.databinding.ActivityMainBinding
 import com.github.oheger.locationteller.track.LocationTellerService
-import com.github.oheger.locationteller.track.PreferencesHandler
-import com.github.oheger.locationteller.track.TrackConfig
+import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 import kotlinx.coroutines.ObsoleteCoroutinesApi

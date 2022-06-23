@@ -19,8 +19,8 @@ import android.content.SharedPreferences
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.launchActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.github.oheger.locationteller.track.PreferencesHandler
-import com.github.oheger.locationteller.track.TrackConfig
+import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import io.mockk.*
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test

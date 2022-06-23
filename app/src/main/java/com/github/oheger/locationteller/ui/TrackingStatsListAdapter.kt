@@ -23,7 +23,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.track.PreferencesHandler
+import com.github.oheger.locationteller.config.PreferencesHandler
 import java.util.*
 
 /**
