@@ -292,51 +292,6 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** Shared preferences property for the password.*/
         const val PROP_PASSWORD = "password"
 
-        /** Shared preferences property for the minimum track interval.*/
-        const val PROP_MIN_TRACK_INTERVAL = "minTrackInterval"
-
-        /** Shared preferences property for the maximum track interval.*/
-        const val PROP_MAX_TRACK_INTERVAL = "maxTrackInterval"
-
-        /** Shared preferences property for the increment interval.*/
-        const val PROP_IDLE_INCREMENT = "intervalIncrementOnIdle"
-
-        /** Shared preferences property for the increment interval.*/
-        const val PROP_LOCATION_VALIDITY = "locationValidity"
-
-        /** Shared preferences property for the location update threshold.*/
-        const val PROP_LOCATION_UPDATE_THRESHOLD = "locationUpdateThreshold"
-
-        /** Shared preferences property for the retry on error time. */
-        const val PROP_RETRY_ON_ERROR_TIME = "retryOnErrorTime"
-
-        /** Shared preferences property for the GPS timeout. */
-        const val PROP_GPS_TIMEOUT = "gpsTimeout"
-
-        /** Shared preferences property for the offline storage size. */
-        const val PROP_OFFLINE_STORAGE_SIZE = "offlineStorageSize"
-
-        /**
-         * Shared preferences property for the sync time of the offline
-         * storage.
-         */
-        const val PROP_OFFLINE_STORAGE_SYNC_TIME = "offlineStorageSyncTime"
-
-        /**
-         * Shared preferences property for the chunk size of a multi upload
-         * operation to sync the offline storage.
-         */
-        const val PROP_MULTI_UPLOAD_CHUNK_SIZE = "multiUploadChunkSize"
-
-        /**
-         * Shared preferences property for the maximum speed increase, used to
-         * detect suspicious GPS locations.
-         */
-        const val PROP_MAX_SPEED_INCREASE = "maxSpeedIncrease"
-
-        /** Shared preferences property for the normal walking speed. */
-        const val PROP_WALKING_SPEED = "walkingSpeed"
-
         /** Shared preferences property for the tracking state.*/
         const val PROP_TRACK_STATE = "trackEnabled"
 
@@ -389,14 +344,8 @@ class PreferencesHandler(val preferences: SharedPreferences) {
         /** String value of an undefined numeric property.*/
         private const val UNDEFINED_NUMBER_STR = UNDEFINED_NUMBER.toString()
 
-        /** A set with all properties related to configuration.*/
-        private val CONFIG_PROPS = setOf(
-            PROP_SERVER_URI, PROP_BASE_PATH, PROP_USER, PROP_PASSWORD,
-            PROP_MIN_TRACK_INTERVAL, PROP_MAX_TRACK_INTERVAL, PROP_IDLE_INCREMENT, PROP_LOCATION_VALIDITY,
-            PROP_LOCATION_UPDATE_THRESHOLD, PROP_RETRY_ON_ERROR_TIME, PROP_GPS_TIMEOUT,
-            PROP_OFFLINE_STORAGE_SIZE, PROP_OFFLINE_STORAGE_SYNC_TIME, PROP_MULTI_UPLOAD_CHUNK_SIZE,
-            PROP_MAX_SPEED_INCREASE, PROP_WALKING_SPEED
-        )
+        /** A set with all properties related to configuration (not managed by other classes). */
+        private val CONFIG_PROPS = setOf(PROP_SERVER_URI, PROP_BASE_PATH, PROP_USER, PROP_PASSWORD)
 
         /**
          * A set with the names of all the properties that need to be cleared

@@ -242,14 +242,10 @@ class PreferencesHandlerSpec : WordSpec() {
 
             "identify configuration properties" {
                 val configProps = listOf(
-                    PreferencesHandler.PROP_BASE_PATH, PreferencesHandler.PROP_IDLE_INCREMENT,
-                    PreferencesHandler.PROP_LOCATION_VALIDITY, PreferencesHandler.PROP_MAX_TRACK_INTERVAL,
-                    PreferencesHandler.PROP_MIN_TRACK_INTERVAL, PreferencesHandler.PROP_PASSWORD,
-                    PreferencesHandler.PROP_USER, PreferencesHandler.PROP_SERVER_URI,
-                    PreferencesHandler.PROP_LOCATION_UPDATE_THRESHOLD, PreferencesHandler.PROP_RETRY_ON_ERROR_TIME,
-                    PreferencesHandler.PROP_GPS_TIMEOUT, PreferencesHandler.PROP_OFFLINE_STORAGE_SIZE,
-                    PreferencesHandler.PROP_OFFLINE_STORAGE_SYNC_TIME, PreferencesHandler.PROP_MULTI_UPLOAD_CHUNK_SIZE,
-                    PreferencesHandler.PROP_MAX_SPEED_INCREASE, PreferencesHandler.PROP_WALKING_SPEED
+                    PreferencesHandler.PROP_BASE_PATH,
+                    PreferencesHandler.PROP_PASSWORD,
+                    PreferencesHandler.PROP_USER,
+                    PreferencesHandler.PROP_SERVER_URI,
                 )
 
                 configProps.forEach { prop -> PreferencesHandler.isConfigProperty(prop) shouldBe true }

@@ -44,9 +44,10 @@ class MainActivitySpec {
         val activity = MainActivity()
 
         activity.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_SERVER_URI)
-        verifyOrder {
+        activity.onSharedPreferenceChanged(pref, TrackConfig.PROP_WALKING_SPEED)
+
+        verify(exactly = 2) {
             editor.putBoolean(PreferencesHandler.PROP_TRACK_STATE, false)
-            editor.apply()
         }
     }
 
