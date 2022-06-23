@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.track
 
 import android.content.SharedPreferences
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.just
@@ -164,5 +165,30 @@ class TrackConfigSpec : StringSpec({
         TrackConfig.initDefaults(handler)
 
         verify(exactly = 0) { handler.update(any()) }
+    }
+
+    "Configuration properties can be identified" {
+        val configProps = listOf(
+            TrackConfig.PROP_IDLE_INCREMENT,
+            TrackConfig.PROP_LOCATION_VALIDITY,
+            TrackConfig.PROP_MAX_TRACK_INTERVAL,
+            TrackConfig.PROP_MIN_TRACK_INTERVAL,
+            TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD,
+            TrackConfig.PROP_RETRY_ON_ERROR_TIME,
+            TrackConfig.PROP_GPS_TIMEOUT,
+            TrackConfig.PROP_OFFLINE_STORAGE_SIZE,
+            TrackConfig.PROP_OFFLINE_STORAGE_SYNC_TIME,
+            TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE,
+            TrackConfig.PROP_MAX_SPEED_INCREASE,
+            TrackConfig.PROP_WALKING_SPEED
+        )
+
+        configProps.forAll { prop -> TrackConfig.isProperty(prop) shouldBe true }
+    }
+
+    "Non-configuration properties can be identified" {
+        val nonConfigProps = listOf("foo", "bar", "baz")
+
+        nonConfigProps.forAll { prop -> TrackConfig.isProperty(prop) shouldBe false }
     }
 })

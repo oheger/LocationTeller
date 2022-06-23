@@ -157,6 +157,22 @@ data class TrackConfig(
         /** Factor to convert Km/h to m/s. */
         private const val METER_PER_SECOND = 1.0 / 3.6
 
+        /** A set with all properties related to configuration.*/
+        private val CONFIG_PROPS = setOf(
+            PROP_MIN_TRACK_INTERVAL,
+            PROP_MAX_TRACK_INTERVAL,
+            PROP_IDLE_INCREMENT,
+            PROP_LOCATION_VALIDITY,
+            PROP_LOCATION_UPDATE_THRESHOLD,
+            PROP_RETRY_ON_ERROR_TIME,
+            PROP_GPS_TIMEOUT,
+            PROP_OFFLINE_STORAGE_SIZE,
+            PROP_OFFLINE_STORAGE_SYNC_TIME,
+            PROP_MULTI_UPLOAD_CHUNK_SIZE,
+            PROP_MAX_SPEED_INCREASE,
+            PROP_WALKING_SPEED
+        )
+
         /**
          * A map with configuration properties and their default values. This
          * is used to initialize shared preferences.
@@ -264,5 +280,11 @@ data class TrackConfig(
                     }
                 }
         }
+
+        /**
+         * Check whether [prop] is a property that belongs to this configuration class. This can be used for instance
+         * by a listener on shared preferences to react on property change events.
+         */
+        fun isProperty(prop: String): Boolean = prop in CONFIG_PROPS
     }
 }
