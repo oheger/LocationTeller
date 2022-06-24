@@ -48,6 +48,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        compose true
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -56,6 +57,9 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.1.1'
+    }
 }
 
 dependencies {
@@ -63,10 +67,15 @@ dependencies {
     implementation 'android.arch.navigation:navigation-fragment-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-runtime-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0'
+    implementation 'androidx.activity:activity-compose:1.4.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation 'androidx.compose.animation:animation:1.1.1'
+    implementation 'androidx.compose.material:material:1.1.1'
+    implementation 'androidx.compose.ui:ui-tooling:1.1.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation "androidx.fragment:fragment-ktx:$versionFragment"
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'com.google.android.gms:play-services-location:20.0.0'
@@ -78,6 +87,7 @@ dependencies {
     implementation project(":server-access")
 
     debugImplementation "androidx.fragment:fragment-testing:$versionFragment"
+    testImplementation 'androidx.compose.ui:ui-test-junit4:1.1.1'
     testImplementation 'androidx.test:core-ktx:1.4.0'
     testImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     testImplementation 'androidx.test.ext:junit:1.1.3'
