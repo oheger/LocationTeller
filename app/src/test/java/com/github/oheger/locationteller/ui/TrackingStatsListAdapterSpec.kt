@@ -24,6 +24,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe

@@ -24,6 +24,7 @@ import android.widget.BaseAdapter
 import android.widget.TextView
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import java.util.*
 
 /**
@@ -252,7 +253,7 @@ class TrackingStatsListAdapter private constructor(
             val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
             return TrackingStatsListAdapter(
                 inflater, prefHandler,
-                formatter ?: TrackStatsFormatter.create(null)
+                formatter ?: TrackStatsFormatter.create()
             )
         }
 

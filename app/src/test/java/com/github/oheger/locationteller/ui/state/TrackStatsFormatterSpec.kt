@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.oheger.locationteller.ui
+package com.github.oheger.locationteller.ui.state
 
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
@@ -38,43 +38,43 @@ class TrackStatsFormatterSpec : StringSpec() {
             format.minimumFractionDigits = 2
             format.maximumFractionDigits = 2
             val expectedResult = format.format(value)
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatNumber(value) shouldBe expectedResult
         }
 
         "TrackStatsFormatter should format a duration in seconds" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatDuration(9000L) shouldBe "0:09"
         }
 
         "TrackStatsFormatter should format a duration in minutes" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatDuration(612000L) shouldBe "10:12"
         }
 
         "TrackStatsFormatter should format a duration in hours" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatDuration(7800000L) shouldBe "2:10:00"
         }
 
         "TrackStatsFormatter should format a duration in days" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatDuration(1036802000L) shouldBe "12:00:00:02"
         }
 
         "TrackingStatsFormatter should a zero duration" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatDuration(0L) shouldBe "0:00"
         }
 
         "TrackingStatsFormatter should create a correct time service" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             val currentTime = formatter.timeService.currentTime().currentTime
             val deltaT = abs(System.currentTimeMillis() - currentTime)
@@ -110,7 +110,7 @@ class TrackStatsFormatterSpec : StringSpec() {
         }
 
         "TrackingStatsFormatter should format a null date" {
-            val formatter = TrackStatsFormatter.create(null)
+            val formatter = TrackStatsFormatter.create()
 
             formatter.formatDate(null) shouldBe ""
         }

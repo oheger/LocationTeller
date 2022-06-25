@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.oheger.locationteller.ui
+package com.github.oheger.locationteller.ui.state
 
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
@@ -105,11 +105,11 @@ class TrackStatsFormatter private constructor(val timeService: TimeService) {
         /**
          * Creates a new instance of _TrackStatsFormatter_. Optionally, a
          * _TimeService_ to be used can be passed in; otherwise, a default
-         * service is created.
-         * @param timeService optional reference to a _TimeService_
+         * service is used.
+         * @param timeService reference to a [TimeService]
          */
-        fun create(timeService: TimeService?): TrackStatsFormatter =
-            TrackStatsFormatter(timeService ?: CurrentTimeService)
+        fun create(timeService: TimeService = CurrentTimeService): TrackStatsFormatter =
+            TrackStatsFormatter(timeService)
 
         /**
          * Creates an object to be used for formatting fractional numbers.
