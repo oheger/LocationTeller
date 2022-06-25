@@ -15,26 +15,16 @@
  */
 package com.github.oheger.locationteller.config
 
-import android.content.Context
 import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
 import com.github.oheger.locationteller.server.ServerConfig
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
-import io.mockk.Ordering
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.runs
-import io.mockk.slot
-import io.mockk.verify
-import io.mockk.verifyOrder
+import io.mockk.*
 import java.time.Instant
-import java.util.Date
+import java.util.*
 import kotlin.math.abs
 
 /**
@@ -481,26 +471,22 @@ class PreferencesHandlerSpec : WordSpec() {
             }
 
             "support the registration of change listeners" {
-                mockkStatic(PreferenceManager::class)
                 val pref = mockk<SharedPreferences>()
-                val context = mockk<Context>()
                 val listener = mockk<SharedPreferences.OnSharedPreferenceChangeListener>()
-                every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
                 every { pref.registerOnSharedPreferenceChangeListener(listener) } just runs
+                val handler = PreferencesHandler(pref)
 
-                PreferencesHandler.registerListener(context, listener)
+                handler.registerListener(listener)
                 verify { pref.registerOnSharedPreferenceChangeListener(listener) }
             }
 
             "support removing of change listeners" {
-                mockkStatic(PreferenceManager::class)
                 val pref = mockk<SharedPreferences>()
-                val context = mockk<Context>()
                 val listener = mockk<SharedPreferences.OnSharedPreferenceChangeListener>()
-                every { PreferenceManager.getDefaultSharedPreferences(context) } returns pref
                 every { pref.unregisterOnSharedPreferenceChangeListener(listener) } just runs
+                val handler = PreferencesHandler(pref)
 
-                PreferencesHandler.unregisterListener(context, listener)
+                handler.unregisterListener(listener)
                 verify { pref.unregisterOnSharedPreferenceChangeListener(listener) }
             }
 

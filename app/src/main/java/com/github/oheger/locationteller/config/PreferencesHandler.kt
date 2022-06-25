@@ -380,23 +380,5 @@ class PreferencesHandler(val preferences: SharedPreferences) {
          * @return *true* for a configuration property; *false* otherwise
          */
         fun isConfigProperty(prop: String): Boolean = CONFIG_PROPS.contains(prop)
-
-        /**
-         * Registers a preferences change listener at the default preferences.
-         * @param context the current context
-         * @param listener the listener
-         */
-        fun registerListener(context: Context, listener: SharedPreferences.OnSharedPreferenceChangeListener) {
-            create(context).registerListener(listener)
-        }
-
-        /**
-         * Removes the given change listener from the default preferences.
-         * @param context the current context
-         * @param listener the listener
-         */
-        fun unregisterListener(context: Context, listener: SharedPreferences.OnSharedPreferenceChangeListener) {
-            create(context).unregisterListener(listener)
-        }
     }
 }

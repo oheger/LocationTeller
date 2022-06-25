@@ -56,6 +56,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     private lateinit var appBarConfig: AppBarConfiguration
 
+    private lateinit var preferencesHandler: PreferencesHandler
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -75,18 +77,18 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))
         }
 
-        val handler = PreferencesHandler.create(this)
-        TrackConfig.initDefaults(handler)
+        preferencesHandler = PreferencesHandler.create(this)
+        TrackConfig.initDefaults(preferencesHandler)
         createTrackNotificationChannel()
     }
 
     override fun onResume() {
         super.onResume()
-        PreferencesHandler.registerListener(this, this)
+        preferencesHandler.registerListener(this)
     }
 
     override fun onPause() {
-        PreferencesHandler.unregisterListener(this, this)
+        preferencesHandler.unregisterListener(this)
         super.onPause()
     }
 
