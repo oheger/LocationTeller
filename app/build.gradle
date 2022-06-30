@@ -69,9 +69,9 @@ dependencies {
     implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0'
     implementation 'androidx.activity:activity-compose:1.4.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
-    implementation 'androidx.compose.animation:animation:1.1.1'
-    implementation 'androidx.compose.material:material:1.1.1'
-    implementation 'androidx.compose.ui:ui-tooling:1.1.1'
+    implementation "androidx.compose.animation:animation:$versionCompose"
+    implementation "androidx.compose.material:material:$versionCompose"
+    implementation "androidx.compose.ui:ui-tooling:$versionCompose"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation "androidx.fragment:fragment-ktx:$versionFragment"
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
@@ -87,7 +87,8 @@ dependencies {
     implementation project(":server-access")
 
     debugImplementation "androidx.fragment:fragment-testing:$versionFragment"
-    testImplementation 'androidx.compose.ui:ui-test-junit4:1.1.1'
+    debugImplementation "androidx.compose.ui:ui-test-manifest:$versionCompose"
+    testImplementation "androidx.compose.ui:ui-test-junit4:$versionCompose"
     testImplementation 'androidx.test:core-ktx:1.4.0'
     testImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     testImplementation 'androidx.test.ext:junit:1.1.3'
