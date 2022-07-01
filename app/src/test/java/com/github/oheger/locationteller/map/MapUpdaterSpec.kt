@@ -36,12 +36,10 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.mockk.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * Test class for [MapUpdater].
  */
-@ExperimentalCoroutinesApi
 class MapUpdaterSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 

@@ -23,14 +23,12 @@ import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.runBlocking
 
 /**
  * Test class for the actor that executes location updates.
  */
-@ObsoleteCoroutinesApi
 class LocationUpdaterSpec : StringSpec() {
     init {
         "LocationUpdaterActor should correctly invoke the upload controller" {

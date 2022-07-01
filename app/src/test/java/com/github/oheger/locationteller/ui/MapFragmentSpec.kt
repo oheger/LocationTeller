@@ -61,7 +61,6 @@ import io.mockk.runs
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.coroutines.CoroutineContext
@@ -69,7 +68,6 @@ import kotlin.coroutines.CoroutineContext
 /**
  * Test class for [[MapFragment]].
  */
-@ObsoleteCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class MapFragmentSpec {
     @Test
@@ -619,7 +617,6 @@ class MapFragmentSpec {
  * A test implementation base class of _MapFragment_ that injects mock objects
  * for important dependencies.
  */
-@ObsoleteCoroutinesApi
 open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTestHelper.defServerConfig) :
     MapFragment() {
     override val coroutineContext: CoroutineContext = MockDispatcher()
@@ -734,7 +731,6 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
      * Creates the mock time service and prepares it to return a standard
      * reference time.
      */
-    @ObsoleteCoroutinesApi
     private fun createMockTimeService(): TimeService {
         val service = mockk<TimeService>()
         every { service.currentTime() } returns MapFragmentSpec.referenceTime
@@ -746,14 +742,12 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
  * An implementation of _MapFragment_ with a valid server configuration. Here
  * everything should be active.
  */
-@ObsoleteCoroutinesApi
 open class MapFragmentTestImplWithConfig : MapFragmentTestImpl()
 
 /**
  * An implementation of _MapFragment_ that simulates the scenario that no valid
  * server configuration is available. Here most actions should be disabled.
  */
-@ObsoleteCoroutinesApi
 class MapFragmentTestImplWithNoConfig : MapFragmentTestImpl(serverConfig = null)
 
 /**
@@ -761,7 +755,6 @@ class MapFragmentTestImplWithNoConfig : MapFragmentTestImpl(serverConfig = null)
  * handler to return a fading mode. This is used to check whether this mode is
  * initialized correctly.
  */
-@ObsoleteCoroutinesApi
 class MapFragmentTestImplWithFadingMode : MapFragmentTestImplWithConfig() {
     override fun createPreferencesHandler(): PreferencesHandler {
         val handler = super.createPreferencesHandler()

@@ -20,7 +20,6 @@ import android.util.Log
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeService
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 
 /**
@@ -46,7 +45,6 @@ class LocationProcessor(
      * be scheduled.
      * @return the time period to the next location update
      */
-    @ObsoleteCoroutinesApi
     suspend fun retrieveAndUpdateLocation(): Int {
         Log.i(tag, "Triggering location update.")
         val lastLocation = fetchLocation()
@@ -60,7 +58,6 @@ class LocationProcessor(
      * this object.
      * @return the last known location
      */
-    @ObsoleteCoroutinesApi
     private suspend fun fetchLocation(): Location? = locationRetriever.fetchLocation()
 
     /**

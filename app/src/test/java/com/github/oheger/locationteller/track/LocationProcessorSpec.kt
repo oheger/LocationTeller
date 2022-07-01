@@ -28,15 +28,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 
 /**
  * Test class for [LocationProcessor].
  */
-@ObsoleteCoroutinesApi
-@ExperimentalCoroutinesApi
 class LocationProcessorSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 

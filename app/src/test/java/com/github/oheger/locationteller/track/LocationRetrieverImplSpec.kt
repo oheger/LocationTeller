@@ -31,15 +31,11 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Test class for [[LocationRetrieverImpl]].
  */
-@ObsoleteCoroutinesApi
-@ExperimentalCoroutinesApi
 class LocationRetrieverImplSpec : StringSpec() {
     override fun listeners(): List<TestListener> = listOf(ResetDispatcherListener)
 

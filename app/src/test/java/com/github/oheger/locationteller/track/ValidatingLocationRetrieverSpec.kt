@@ -27,13 +27,11 @@ import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.concurrent.TimeUnit
 
 /**
  * Test class for [ValidatingLocationRetriever].
  */
-@ExperimentalCoroutinesApi
 class ValidatingLocationRetrieverSpec : StringSpec({
     "ValidatingLocationRetriever should delegate to the wrapped retriever" {
         val initLoc = mockk<Location>()
@@ -146,7 +144,6 @@ val TICK = TimeUnit.MINUTES.toMillis(1)
  * retriever
  * @param mockTimeService optional mock for the timer service
  */
-@ExperimentalCoroutinesApi
 private fun createValidatingRetriever(
     wrappedLocations: List<Location?>,
     mockTimeService: TimeService? = null

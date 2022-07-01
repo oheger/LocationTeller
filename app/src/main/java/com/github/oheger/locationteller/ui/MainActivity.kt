@@ -34,7 +34,6 @@ import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.text.SimpleDateFormat
@@ -47,7 +46,6 @@ import java.util.*
  * UI is provided by different fragments. This class implements some common
  * management tasks.
  */
-@ObsoleteCoroutinesApi
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
     OnMapsSdkInitializedCallback {
     private val logTag = "MainActivity"

@@ -26,13 +26,11 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 
 /**
  * Test class for the several factory classes.
  */
-@ObsoleteCoroutinesApi
 class FactoriesSpec : StringSpec() {
     init {
         "UpdaterActorFactory should create a correct actor" {

@@ -24,7 +24,6 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.launch
@@ -54,7 +53,6 @@ class LocationRetrieverImpl(
      * is *null*.
      * @return the current location or *null*
      */
-    @OptIn(ObsoleteCoroutinesApi::class)
     override suspend fun fetchLocation(): Location? = withContext(Dispatchers.Main) {
         val timeout = timeout
         val tickerChannel = ticker(timeout, timeout)

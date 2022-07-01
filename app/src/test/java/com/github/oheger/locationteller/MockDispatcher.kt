@@ -20,7 +20,6 @@ import io.kotest.core.test.TestCase
 import io.kotest.core.test.TestResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlin.coroutines.CoroutineContext
@@ -64,7 +63,6 @@ class MockDispatcher(private val directExecution: Boolean = true) : CoroutineDis
          * dispatcher.
          * @return the mock dispatcher
          */
-        @ExperimentalCoroutinesApi
         fun installAsMain(directExecution: Boolean = true): MockDispatcher {
             val mockDispatcher = MockDispatcher(directExecution)
             Dispatchers.setMain(mockDispatcher)
@@ -79,7 +77,6 @@ class MockDispatcher(private val directExecution: Boolean = true) : CoroutineDis
  * of co-routines on the main thread.
  */
 object ResetDispatcherListener : TestListener {
-    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         Dispatchers.resetMain()
     }

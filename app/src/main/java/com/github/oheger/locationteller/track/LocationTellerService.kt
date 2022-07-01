@@ -30,7 +30,6 @@ import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
@@ -49,7 +48,6 @@ import kotlin.coroutines.CoroutineContext
  * @param processorFactory the factory for creating a _LocationProcessor_
  * @param timeService the time service
  */
-@ObsoleteCoroutinesApi
 class LocationTellerService(
     val updaterFactory: UpdaterActorFactory,
     val retrieverFactory: LocationRetrieverFactory,

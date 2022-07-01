@@ -100,6 +100,13 @@ dependencies {
     testImplementation "org.junit.vintage:junit-vintage-engine:$versionJUnit5"
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += "-opt-in=kotlinx.coroutines.ObsoleteCoroutinesApi"
+        freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    }
+}
+
 // Disable release test execution for now because some dependencies cannot be resolved.
 tasks.whenTaskAdded { task ->
     if (task.name.contains("compileReleaseUnitTest")) {

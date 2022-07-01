@@ -22,7 +22,6 @@ import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 
 
@@ -41,7 +40,6 @@ class UpdaterActorFactory {
      * @param crScope the co-routine scope
      * @return the new actor
      */
-    @ObsoleteCoroutinesApi
     fun createActor(
         preferencesHandler: PreferencesHandler, trackConfig: TrackConfig,
         crScope: CoroutineScope

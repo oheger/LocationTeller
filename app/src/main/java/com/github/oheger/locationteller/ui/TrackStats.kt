@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,7 +54,7 @@ fun TrackStats(stats: TrackStatsState, modifier: Modifier = Modifier) {
  * [label][labelRes] and an optional [value].
  */
 @Composable
-fun StatsLine(labelRes: Int, value: String?, modifier: Modifier = Modifier) {
+fun StatsLine(labelRes: Int, value: String?, tag: String = "", modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.padding(all = 2.dp)
             .fillMaxWidth()
@@ -64,6 +65,7 @@ fun StatsLine(labelRes: Int, value: String?, modifier: Modifier = Modifier) {
             text = value.orEmpty(),
             textAlign = TextAlign.Right,
             modifier = modifier.fillMaxWidth()
+                .testTag(tag)
         )
     }
 }

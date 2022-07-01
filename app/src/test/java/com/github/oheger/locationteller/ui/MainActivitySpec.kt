@@ -22,14 +22,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import io.mockk.*
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
  * Test class for [MainActivity].
  */
-@ObsoleteCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class MainActivitySpec {
     @Test

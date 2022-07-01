@@ -27,13 +27,11 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.*
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 
 /**
  * Test class for [LocationTellerService].
  */
-@ObsoleteCoroutinesApi
 class LocationTellerServiceSpec : StringSpec() {
     init {
         "LocationTellerService should create default dependencies" {
