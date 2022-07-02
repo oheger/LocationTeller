@@ -15,7 +15,7 @@
         android:layout_weight="1"
         android:text="@string/lab_track_enabled" />
 
-    <ListView
+    <androidx.compose.ui.platform.ComposeView
         android:id="@+id/trackingStats"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

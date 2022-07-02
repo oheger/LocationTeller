@@ -85,7 +85,9 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
         }
 
         statisticsAdapter = createTrackingStatsAdapter(prefHandler)
-        binding.trackingStats.adapter = statisticsAdapter
+        binding.trackingStats.setContent {
+            TrackUi()
+        }
 
         locationPermAction = LocationPermAction.create(
             this,

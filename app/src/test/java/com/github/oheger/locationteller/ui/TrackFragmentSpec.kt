@@ -17,7 +17,6 @@ package com.github.oheger.locationteller.ui
 
 import android.view.MenuItem
 import android.view.View
-import android.widget.ListView
 import android.widget.Switch
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.testing.launchFragmentInContainer
@@ -42,7 +41,6 @@ import io.mockk.verify
 import org.hamcrest.Matcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -53,25 +51,6 @@ import java.util.concurrent.atomic.AtomicReference
     instrumentedPackages = ["androidx.loader.content"]
 )
 class TrackFragmentSpec {
-    /**
-     * Executes a test with the list view in a started fragment.
-     * @param block the action that does something with the list view
-     */
-    private fun doWithListView(block: (ListView) -> Unit) {
-        val action = object : ViewAction {
-            override fun getDescription(): String = "testAction"
-
-            override fun getConstraints(): Matcher<View> = isEnabled()
-
-            override fun perform(uiController: UiController?, view: View?) {
-                val listView = view as ListView
-                block(listView)
-            }
-
-        }
-        onView(withId(R.id.trackingStats)).perform(action)
-    }
-
     /**
      * Convenience function to fetch the tracking enabled switch control to
      * interact with it in an espresso test.
@@ -97,15 +76,6 @@ class TrackFragmentSpec {
 
         }
         trackingSwitch().perform(action)
-    }
-
-    @Test
-    fun testAdapterIsInitialized() {
-        launchFragmentInContainer<TrackFragment>()
-
-        doWithListView {
-            assertTrue("Wrong adapter", it.adapter is TrackingStatsListAdapter)
-        }
     }
 
     @Test
