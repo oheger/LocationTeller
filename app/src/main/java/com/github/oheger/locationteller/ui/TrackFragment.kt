@@ -48,9 +48,6 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     /** The object to access preferences. */
     private lateinit var prefHandler: PreferencesHandler
 
-    /** The adapter for the statistics list. */
-    private lateinit var statisticsAdapter: TrackingStatsListAdapter
-
     /**
      * The action that handles the permission request for querying locations.
      */
@@ -84,7 +81,6 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
             }
         }
 
-        statisticsAdapter = createTrackingStatsAdapter(prefHandler)
         binding.trackingStats.setContent {
             TrackUi()
         }
@@ -117,16 +113,6 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        statisticsAdapter.activate()
-    }
-
-    override fun onPause() {
-        statisticsAdapter.deactivate()
-        super.onPause()
-    }
-
     /**
      * Creates the _PreferencesHandler_ used by this fragment. (Protected to be
      * overridden in tests.)
@@ -134,15 +120,6 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
      */
     protected open fun createPreferencesHandler(): PreferencesHandler =
         PreferencesHandler.getInstance(requireContext())
-
-    /**
-     * Creates the adapter for the list view with tracking statistics.
-     * (Protected to be overridden in tests.)
-     * @param prefHandler the preferences handler
-     * @return the adapter for the tracking statistics list view
-     */
-    protected open fun createTrackingStatsAdapter(prefHandler: PreferencesHandler): TrackingStatsListAdapter =
-        TrackingStatsListAdapter.create(requireContext(), prefHandler)
 
     /**
      * Initializes a time component with a nullable time. If the time is

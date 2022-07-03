@@ -20,7 +20,6 @@ import android.view.View
 import android.widget.Switch
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.testing.launchFragmentInContainer
-import androidx.lifecycle.Lifecycle
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
@@ -36,15 +35,11 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.runs
 import io.mockk.slot
-import io.mockk.spyk
 import io.mockk.verify
 import org.hamcrest.Matcher
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
 @Config(
@@ -90,30 +85,6 @@ class TrackFragmentSpec {
         launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
 
         trackingSwitch().check(matches(isNotChecked()))
-    }
-
-    @Test
-    fun testStepsOnActivation() {
-        val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
-
-        scenario.onFragment { fragment ->
-            verify {
-                fragment.mockAdapter.activate()
-            }
-        }
-    }
-
-    @Test
-    fun testStepsOnDeactivation() {
-        val refFrame = AtomicReference<TrackFragmentTestImpl>()
-        val scenario = launchFragmentInContainer<TrackFragmentTestImplWithTrackingInactive>()
-        scenario.onFragment { refFrame.set(it) }
-
-        scenario.moveToState(Lifecycle.State.DESTROYED)
-        assertNotNull("No frame reference", refFrame.get())
-        verify {
-            refFrame.get().mockAdapter.deactivate()
-        }
     }
 
     @Test
@@ -258,16 +229,7 @@ open class TrackFragmentTestImpl(trackingEnabled: Boolean, resetStats: Boolean =
     /** Initialized mock for the preference handler. */
     val mockPrefHandler = createPrefHandler(trackingEnabled, resetStats)
 
-    /** A spy allowing to check interactions with the list adapter. */
-    lateinit var mockAdapter: TrackingStatsListAdapter
-
     override fun createPreferencesHandler(): PreferencesHandler = mockPrefHandler
-
-    override fun createTrackingStatsAdapter(prefHandler: PreferencesHandler): TrackingStatsListAdapter {
-        assertEquals("Wrong preferences handler", mockPrefHandler, prefHandler)
-        mockAdapter = spyk(super.createTrackingStatsAdapter(prefHandler))
-        return mockAdapter
-    }
 
     /**
      * Creates a mock for the preferences handler and prepares it to return
