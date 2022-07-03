@@ -212,7 +212,9 @@ class LocationTellerServiceSpec : StringSpec() {
                 val retriever = mockk<LocationRetrieverImpl>()
                 val service = LocationTellerService(updaterFactory, retrieverFactory, processorFactory, timeService)
                 mockkStatic(PendingIntent::class)
-                every { PendingIntent.getService(any(), 0, any(), 0) } returns pendingIntent
+                every {
+                    PendingIntent.getService(any(), 0, any(), PendingIntent.FLAG_IMMUTABLE)
+                } returns pendingIntent
                 val prefs = preparePreferences(trackingEnabled = trackingEnabled)
 
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null

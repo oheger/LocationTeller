@@ -85,8 +85,10 @@ class LocationTellerService(
         Log.i(tag, "onCreate()")
 
         pendingIntent = PendingIntent.getService(
-            this, 0,
-            Intent(this, LocationTellerService::class.java), 0
+            this,
+            0,
+            Intent(this, LocationTellerService::class.java),
+            PendingIntent.FLAG_IMMUTABLE
         )
 
         preferencesHandler = createPreferencesHandler()
