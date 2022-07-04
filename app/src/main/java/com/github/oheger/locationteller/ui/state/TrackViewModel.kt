@@ -17,11 +17,14 @@ package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
 import android.content.SharedPreferences
+import android.util.Log
 
 import androidx.lifecycle.AndroidViewModel
 
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackStorage
+
+private const val TAG = "TrackViewModel"
 
 /**
  * A class serving as view model for the tracking UI.
@@ -42,7 +45,9 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
 
     init {
         preferencesHandler = PreferencesHandler.getInstance(application)
-        preferencesHandler.registerListener { _, property -> propertyChanged(property) }
+        preferencesHandler.registerListener(this)
+
+        initializeFromSharedPreferences()
     }
 
     /**
@@ -57,6 +62,8 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
      * React on a change of a shared preferences [property].
      */
     private fun propertyChanged(property: String) {
+        Log.d(TAG, "Property change event for '$property'.")
+
         when(property) {
             TrackStorage.PROP_TRACKING_START ->
                 trackStatistics.startTime = formatter.formatDate(preferencesHandler.getDate(property))
@@ -79,5 +86,24 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
             TrackStorage.PROP_TOTAL_DISTANCE ->
                 trackStatistics.totalDistance = preferencesHandler.preferences.getLong(property, 0).toString()
         }
+    }
+
+    /**
+     * Initialize the properties managed by this class from the shared preferences.
+     */
+    private fun initializeFromSharedPreferences() {
+        listOf(
+            TrackStorage.PROP_CHECK_COUNT,
+            TrackStorage.PROP_ERROR_COUNT,
+            TrackStorage.PROP_LAST_CHECK,
+            TrackStorage.PROP_LAST_DISTANCE,
+            TrackStorage.PROP_LAST_ERROR,
+            TrackStorage.PROP_LAST_UPDATE,
+            TrackStorage.PROP_TOTAL_DISTANCE,
+            TrackStorage.PROP_TRACKING_START,
+            TrackStorage.PROP_TRACKING_END,
+            TrackStorage.PROP_UPDATE_COUNT,
+            ).filter { it in preferencesHandler.preferences }
+            .forEach(this::propertyChanged)
     }
 }

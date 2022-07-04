@@ -42,11 +42,14 @@ class TrackViewModelSpec : WordSpec() {
     /** A mock for the preferences handler that can be used by test instances. */
     private lateinit var preferencesHandler: PreferencesHandler
 
+    private lateinit var preferences: SharedPreferences
+
     /** A mock formatter that is used by test instances. */
     private lateinit var formatter: TrackStatsFormatter
 
     override suspend fun beforeAny(testCase: TestCase) {
         preferencesHandler = mockPreferencesHandler()
+        preferences = preferencesHandler.preferences
         formatter = mockFormatter()
     }
 
@@ -114,7 +117,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the check count property" {
                 val checkCount = 128
-                every { preferencesHandler.preferences.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns checkCount
+                every { preferences.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns checkCount
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_CHECK_COUNT)
@@ -124,7 +127,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the update count property" {
                 val updateCount = 77
-                every { preferencesHandler.preferences.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns updateCount
+                every { preferences.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns updateCount
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_UPDATE_COUNT)
@@ -134,7 +137,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the error count property" {
                 val errorCount = 42
-                every { preferencesHandler.preferences.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns errorCount
+                every { preferences.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns errorCount
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_ERROR_COUNT)
@@ -145,7 +148,7 @@ class TrackViewModelSpec : WordSpec() {
             "watch the last distance property" {
                 val lastDistance = 333
                 every {
-                    preferencesHandler.preferences.getInt(TrackStorage.PROP_LAST_DISTANCE, 0)
+                    preferences.getInt(TrackStorage.PROP_LAST_DISTANCE, 0)
                 } returns lastDistance
 
                 val model = createModel()
@@ -157,7 +160,7 @@ class TrackViewModelSpec : WordSpec() {
             "watch the total distance property" {
                 val totalDistance = 10256L
                 every {
-                    preferencesHandler.preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0)
+                    preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0)
                 } returns totalDistance
 
                 val model = createModel()
@@ -171,11 +174,65 @@ class TrackViewModelSpec : WordSpec() {
 
                 fetchAndTriggerPreferencesListener("someOtherProperty")
 
-                val prefs = preferencesHandler.preferences
                 verify(exactly = 0) {
-                    prefs.getInt(any(), any())
+                    preferences.getInt(any(), any())
                     preferencesHandler.getDate(any())
                 }
+            }
+        }
+
+        "A newly created instance" should {
+            "initialize itself from shared preferences" {
+                val properties = listOf(
+                    TrackStorage.PROP_CHECK_COUNT,
+                    TrackStorage.PROP_ERROR_COUNT,
+                    TrackStorage.PROP_LAST_CHECK,
+                    TrackStorage.PROP_LAST_DISTANCE,
+                    TrackStorage.PROP_LAST_ERROR,
+                    TrackStorage.PROP_LAST_UPDATE,
+                    TrackStorage.PROP_TOTAL_DISTANCE,
+                    TrackStorage.PROP_TRACKING_START,
+                    TrackStorage.PROP_TRACKING_END,
+                    TrackStorage.PROP_UPDATE_COUNT,
+                )
+                val startTime = Date(20220703215011L)
+                val endTime = Date(20220703215031L)
+                val lastCheck = Date(20220703215048L)
+                val lastUpdate = Date(20220703215101L)
+                val lastError = Date(20220703215116L)
+
+                val prefs = preferencesHandler.preferences
+                properties.forEach {
+                    every { prefs.contains(it) } returns true
+                }
+                every { prefs.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns 28
+                every { prefs.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns 4
+                every { prefs.getInt(TrackStorage.PROP_LAST_DISTANCE, 0) } returns 111
+                every { prefs.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns 10789L
+                every { prefs.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns 20
+                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_CHECK) } returns lastCheck
+                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_ERROR) } returns lastError
+                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_UPDATE) } returns lastUpdate
+                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns startTime
+                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns endTime
+                every { formatter.formatDate(startTime) } returns "startTime"
+                every { formatter.formatDate(endTime) } returns "endTime"
+                every { formatter.formatDate(lastCheck) } returns "lastCheck"
+                every { formatter.formatDate(lastError) } returns "lastError"
+                every { formatter.formatDate(lastUpdate) } returns "lastUpdate"
+
+                val model = createModel()
+
+                model.trackStatistics.numberOfChecks shouldBe "28"
+                model.trackStatistics.numberOfErrors shouldBe "4"
+                model.trackStatistics.numberOfUpdates shouldBe "20"
+                model.trackStatistics.lastDistance shouldBe "111"
+                model.trackStatistics.totalDistance shouldBe "10789"
+                model.trackStatistics.startTime shouldBe "startTime"
+                model.trackStatistics.endTime shouldBe "endTime"
+                model.trackStatistics.lastCheckTime shouldBe "lastCheck"
+                model.trackStatistics.lastErrorTime shouldBe "lastError"
+                model.trackStatistics.lastUpdateTime shouldBe "lastUpdate"
             }
         }
     }
