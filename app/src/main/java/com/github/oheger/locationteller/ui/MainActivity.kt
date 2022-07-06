@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))
         }
 
-        preferencesHandler = PreferencesHandler.create(this)
+        preferencesHandler = PreferencesHandler.getInstance(this)
         TrackConfig.initDefaults(preferencesHandler)
         createTrackNotificationChannel()
     }

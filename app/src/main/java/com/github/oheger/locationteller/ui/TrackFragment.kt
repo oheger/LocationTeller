@@ -131,7 +131,7 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
      * @return the _PreferencesHandler_
      */
     protected open fun createPreferencesHandler(): PreferencesHandler =
-        PreferencesHandler.create(requireContext())
+        PreferencesHandler.getInstance(requireContext())
 
     /**
      * Creates the adapter for the list view with tracking statistics.

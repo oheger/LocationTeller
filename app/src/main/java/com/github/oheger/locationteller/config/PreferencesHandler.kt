@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.config
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.preference.PreferenceManager
 import com.github.oheger.locationteller.server.ServerConfig
 import java.util.Date
@@ -28,9 +29,14 @@ import java.util.Date
  * This class defines constants for all the properties supported and offers
  * some helper functions for accessing specific settings.
  *
- * @param preferences the managed _SharedPreferences_ instance
+ * Clients obtain an instance via the [getInstance] function of the companion object. Here a single, shared instance is
+ * managed. This yields the optimum performance, but also ensures that change listeners registered at the instance
+ * are notified for changes made application-wide.
  */
-class PreferencesHandler(val preferences: SharedPreferences) {
+class PreferencesHandler internal constructor(
+    /** The managed [SharedPreferences] instance. */
+    val preferences: SharedPreferences
+) {
     /**
      * Return the value of the [Date] property with the given [key] from the managed preferences object. The actual
      * type of the property is [Long]. If it is defined, it is converted to a [Date]. Otherwise, result is *null*.
@@ -362,15 +368,18 @@ class PreferencesHandler(val preferences: SharedPreferences) {
             PROP_UPDATE_COUNT
         )
 
+        /** Holds the shared instance of this class. */
+        private var instance: PreferencesHandler? = null
+
         /**
-         * Creates a _PreferencesHandler_ object based on the given context.
-         * @param context the current context
-         * @return the _PreferencesHandler_
+         * Return the shared [PreferencesHandler] instance. Create it on initial access using [context]. Note that
+         * this function must be called from the main thread.
          */
-        fun create(context: Context): PreferencesHandler {
-            val pref = PreferenceManager.getDefaultSharedPreferences(context)
-            return PreferencesHandler(pref)
-        }
+        fun getInstance(context: Context): PreferencesHandler =
+            instance ?: PreferencesHandler(PreferenceManager.getDefaultSharedPreferences(context)).also {
+                instance = it
+                Log.i("PreferencesHandler", "Created shared instance of PreferencesHandler.")
+            }
 
         /**
          * Checks whether the given property is related to the configuration

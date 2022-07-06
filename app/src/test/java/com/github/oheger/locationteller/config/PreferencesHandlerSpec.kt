@@ -15,13 +15,16 @@
  */
 package com.github.oheger.locationteller.config
 
+import android.content.Context
 import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 import com.github.oheger.locationteller.server.ServerConfig
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.beTheSameInstanceAs
 import io.mockk.*
 import java.time.Instant
 import java.util.*
@@ -32,6 +35,31 @@ import kotlin.math.abs
  */
 class PreferencesHandlerSpec : WordSpec() {
     init {
+        "create" should {
+            "obtain an instance from PreferenceManager" {
+                val context = mockk<Context>()
+                val sharedPreferences = mockk<SharedPreferences>()
+                mockkStatic(PreferenceManager::class)
+                every { PreferenceManager.getDefaultSharedPreferences(context) } returns sharedPreferences
+
+                val handler = PreferencesHandler.getInstance(context)
+
+                handler.preferences shouldBe sharedPreferences
+            }
+
+            "return a singleton instance of PreferencesHandler" {
+                val context = mockk<Context>()
+                val sharedPreferences = mockk<SharedPreferences>()
+                mockkStatic(PreferenceManager::class)
+                every { PreferenceManager.getDefaultSharedPreferences(context) } returns sharedPreferences
+
+                val handler1 = PreferencesHandler.getInstance(context)
+                val handler2 = PreferencesHandler.getInstance(mockk())
+
+                handler2 should beTheSameInstanceAs(handler1)
+            }
+        }
+
         "getDate" should {
             "return an existing date property" {
                 val dateValue = Date.from(Instant.parse("2022-06-20T20:13:42.12Z"))

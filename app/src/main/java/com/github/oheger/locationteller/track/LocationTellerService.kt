@@ -135,7 +135,7 @@ class LocationTellerService(
      * @return the _PreferencesHandler_
      */
     internal fun createPreferencesHandler(): PreferencesHandler =
-        PreferencesHandler.create(this)
+        PreferencesHandler.getInstance(this)
 
     /**
      * The main function of this service. Checks whether a location update is

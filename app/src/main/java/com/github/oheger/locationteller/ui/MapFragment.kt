@@ -256,7 +256,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * @return the _PreferencesHandler_ instance
      */
     protected open fun createPreferencesHandler(): PreferencesHandler =
-        PreferencesHandler.create(requireContext())
+        PreferencesHandler.getInstance(requireContext())
 
     /**
      * Creates the _MapUpdater_ to be used by this fragment.
