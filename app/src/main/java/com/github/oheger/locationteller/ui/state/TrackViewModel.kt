@@ -26,6 +26,9 @@ import com.github.oheger.locationteller.track.TrackStorage
 
 private const val TAG = "TrackViewModel"
 
+/** The number of seconds per hour.*/
+private const val SECS_PER_HOUR = 60 * 60
+
 /**
  * A class serving as view model for the tracking UI.
  *
@@ -64,11 +67,17 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
     private fun propertyChanged(property: String) {
         Log.d(TAG, "Property change event for '$property'.")
 
-        when(property) {
-            TrackStorage.PROP_TRACKING_START ->
+        when (property) {
+            TrackStorage.PROP_TRACKING_START -> {
                 trackStatistics.startTime = formatter.formatDate(preferencesHandler.getDate(property))
-            TrackStorage.PROP_TRACKING_END ->
+                updateElapsedTime()
+                updateAverageSpeed()
+            }
+            TrackStorage.PROP_TRACKING_END -> {
                 trackStatistics.endTime = formatter.formatDate(preferencesHandler.getDate(property))
+                updateElapsedTime()
+                updateAverageSpeed()
+            }
             TrackStorage.PROP_LAST_CHECK ->
                 trackStatistics.lastCheckTime = formatter.formatDate(preferencesHandler.getDate(property))
             TrackStorage.PROP_LAST_UPDATE ->
@@ -83,8 +92,10 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
                 trackStatistics.numberOfErrors = preferencesHandler.preferences.getInt(property, 0).toString()
             TrackStorage.PROP_LAST_DISTANCE ->
                 trackStatistics.lastDistance = preferencesHandler.preferences.getInt(property, 0).toString()
-            TrackStorage.PROP_TOTAL_DISTANCE ->
+            TrackStorage.PROP_TOTAL_DISTANCE -> {
                 trackStatistics.totalDistance = preferencesHandler.preferences.getLong(property, 0).toString()
+                updateAverageSpeed()
+            }
         }
     }
 
@@ -103,7 +114,36 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
             TrackStorage.PROP_TRACKING_START,
             TrackStorage.PROP_TRACKING_END,
             TrackStorage.PROP_UPDATE_COUNT,
-            ).filter { it in preferencesHandler.preferences }
+        ).filter { it in preferencesHandler.preferences }
             .forEach(this::propertyChanged)
     }
+
+    /**
+     * Update the elapsed time property if there was a change in the track start or end time.
+     */
+    private fun updateElapsedTime() {
+        trackStatistics.elapsedTime = trackTimeInMillis()?.let { formatter.formatDuration(it) }
+    }
+
+    /**
+     * Update the average tracking speed property if there was a change in a property that affects this value.
+     */
+    private fun updateAverageSpeed() {
+        trackStatistics.averageSpeed = trackTimeInMillis()?.let { trackTime ->
+            val distance = preferencesHandler.preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0L).toDouble()
+            val speed = distance / trackTime * SECS_PER_HOUR
+            formatter.formatNumber(speed)
+        }
+    }
+
+    /**
+     * Compute the tracking time in milliseconds. The return value is defined if tracking is ongoing or has been
+     * stopped. It is *null* if no start time is recorded.
+     */
+    private fun trackTimeInMillis(): Long? =
+        preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START)?.let { startTime ->
+            val endTime = preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END)?.time
+                ?: formatter.timeService.currentTime().currentTime
+            endTime - startTime.time
+        }?.takeIf { it > 0 }
 }
