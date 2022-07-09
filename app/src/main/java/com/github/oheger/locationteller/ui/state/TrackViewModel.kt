@@ -62,6 +62,14 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
     }
 
     /**
+     * Remove the change listener at the application's [SharedPreferences] if this model is no longer used.
+     */
+    override fun onCleared() {
+        Log.i(TAG, "TrackViewModel is cleared.")
+        preferencesHandler.preferences.unregisterOnSharedPreferenceChangeListener(this)
+    }
+
+    /**
      * React on a change of a shared preferences [property].
      */
     private fun propertyChanged(property: String) {
