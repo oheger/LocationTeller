@@ -15,15 +15,14 @@
  */
 package com.github.oheger.locationteller.ui
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.core.content.edit
-import androidx.preference.PreferenceManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
+import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackStorage
 
 import io.kotest.inspectors.forAll
@@ -56,23 +55,28 @@ class TrackUiSpec {
             TAG_TRACK_SPEED,
             TAG_TRACK_DIST,
             TAG_TRACK_CHECKS,
-            TAG_TRACK_LAST_CHECK
+            TAG_TRACK_LAST_CHECK,
+            TAG_TRACK_ERRORS
         )
 
         statisticTags.forAll {
-            composeTestRule.onNodeWithTag(it).assertIsDisplayed()
+            composeTestRule.onNodeWithTag(labelTag(it)).assertExists()
         }
     }
 
     @Test
     fun `Changes on preferences update values in the statistics`() {
-        composeTestRule.activityRule.scenario.onActivity {
-            val preferences = PreferenceManager.getDefaultSharedPreferences(it.applicationContext)
-            preferences.edit(commit = true) {
+        composeTestRule.activityRule.scenario.onActivity { activity ->
+            val preferencesHandler = PreferencesHandler.getInstance(activity.applicationContext)
+            preferencesHandler.update {
                 putLong(TrackStorage.PROP_TRACKING_START, createDate(2022, Calendar.JULY, 1).time)
                 putInt(TrackStorage.PROP_CHECK_COUNT, 42)
                 putInt(TrackStorage.PROP_LAST_DISTANCE, 77)
             }
+        }
+
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodesWithTag(TAG_TRACK_START).fetchSemanticsNodes().isNotEmpty()
         }
 
         composeTestRule.onNodeWithTag(TAG_TRACK_CHECKS).assertTextEquals("42")

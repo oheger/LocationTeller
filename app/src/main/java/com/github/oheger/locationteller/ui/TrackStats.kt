@@ -44,6 +44,11 @@ internal const val TAG_TRACK_ERRORS = "tag_track_errors"
 internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
 
 /**
+ * Generate the test tag of for the label element associated with the value defined by [tag].
+ */
+internal fun labelTag(tag: String): String = "${tag}_label"
+
+/**
  * Generate the while tracking UI based on [model].
  */
 @Composable
@@ -143,15 +148,17 @@ fun StatsLine(labelRes: Int, value: String?, tag: String, modifier: Modifier = M
             .padding(all = 2.dp)
             .fillMaxWidth()
     ) {
-        Text(text = stringResource(id = labelRes))
-        Spacer(modifier = modifier.width(width = 4.dp))
-        Text(
-            text = value.orEmpty(),
-            textAlign = TextAlign.Right,
-            modifier = modifier
-                .fillMaxWidth()
-                .testTag(tag)
-        )
+        Text(text = stringResource(id = labelRes), modifier = modifier.testTag(labelTag(tag)))
+        if (value != null) {
+            Spacer(modifier = modifier.width(width = 4.dp))
+            Text(
+                text = value,
+                textAlign = TextAlign.Right,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .testTag(tag)
+            )
+        }
     }
 }
 
