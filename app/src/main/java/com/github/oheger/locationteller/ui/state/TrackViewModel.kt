@@ -35,20 +35,26 @@ private const val SECS_PER_HOUR = 60 * 60
  * This class manages a [TrackStatsState] instance and keeps it up-to-date by listening on changes on the shared
  * preferences that impact the tracking statistics.
  */
-class TrackViewModel(application: Application) : AndroidViewModel(application),
-    SharedPreferences.OnSharedPreferenceChangeListener {
+class TrackViewModel(
+    /** The storage for accessing tracking-related properties. */
+    val trackStorage: TrackStorage,
+
+    /** The central [Application]. */
+    application: Application
+) : AndroidViewModel(application), SharedPreferences.OnSharedPreferenceChangeListener {
+    /**
+     * Create an instance from the given [application]. Use [application] to construct a [TrackStorage].
+     */
+    constructor(application: Application) : this(createTrackStorage(application), application)
+
     /** Holds the statistics of the current tracking operation. */
     val trackStatistics = TrackStatsState()
-
-    /** The handler for accessing shared properties. */
-    private val preferencesHandler: PreferencesHandler
 
     /** The formatter for statistics data. */
     private val formatter = TrackStatsFormatter.create()
 
     init {
-        preferencesHandler = PreferencesHandler.getInstance(application)
-        preferencesHandler.registerListener(this)
+        trackStorage.preferencesHandler.registerListener(this)
 
         initializeFromSharedPreferences()
     }
@@ -66,7 +72,7 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
      */
     override fun onCleared() {
         Log.i(TAG, "TrackViewModel is cleared.")
-        preferencesHandler.preferences.unregisterOnSharedPreferenceChangeListener(this)
+        trackStorage.preferencesHandler.preferences.unregisterOnSharedPreferenceChangeListener(this)
     }
 
     /**
@@ -77,31 +83,31 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
 
         when (property) {
             TrackStorage.PROP_TRACKING_START -> {
-                trackStatistics.startTime = formatter.formatDate(preferencesHandler.getDate(property))
+                trackStatistics.startTime = formatter.formatDate(trackStorage.trackingStartDate())
                 updateElapsedTime()
                 updateAverageSpeed()
             }
             TrackStorage.PROP_TRACKING_END -> {
-                trackStatistics.endTime = formatter.formatDate(preferencesHandler.getDate(property))
+                trackStatistics.endTime = formatter.formatDate(trackStorage.trackingEndDate())
                 updateElapsedTime()
                 updateAverageSpeed()
             }
             TrackStorage.PROP_LAST_CHECK ->
-                trackStatistics.lastCheckTime = formatter.formatDate(preferencesHandler.getDate(property))
+                trackStatistics.lastCheckTime = formatter.formatDate(trackStorage.lastCheck())
             TrackStorage.PROP_LAST_UPDATE ->
-                trackStatistics.lastUpdateTime = formatter.formatDate(preferencesHandler.getDate(property))
+                trackStatistics.lastUpdateTime = formatter.formatDate(trackStorage.lastUpdate())
             TrackStorage.PROP_LAST_ERROR ->
-                trackStatistics.lastErrorTime = formatter.formatDate(preferencesHandler.getDate(property))
+                trackStatistics.lastErrorTime = formatter.formatDate(trackStorage.lastError())
             TrackStorage.PROP_CHECK_COUNT ->
-                trackStatistics.numberOfChecks = preferencesHandler.preferences.getInt(property, 0).toString()
+                trackStatistics.numberOfChecks = trackStorage.checkCount().toString()
             TrackStorage.PROP_UPDATE_COUNT ->
-                trackStatistics.numberOfUpdates = preferencesHandler.preferences.getInt(property, 0).toString()
+                trackStatistics.numberOfUpdates = trackStorage.updateCount().toString()
             TrackStorage.PROP_ERROR_COUNT ->
-                trackStatistics.numberOfErrors = preferencesHandler.preferences.getInt(property, 0).toString()
+                trackStatistics.numberOfErrors = trackStorage.errorCount().toString()
             TrackStorage.PROP_LAST_DISTANCE ->
-                trackStatistics.lastDistance = preferencesHandler.preferences.getInt(property, 0).toString()
+                trackStatistics.lastDistance = trackStorage.lastDistance().toString()
             TrackStorage.PROP_TOTAL_DISTANCE -> {
-                trackStatistics.totalDistance = preferencesHandler.preferences.getLong(property, 0).toString()
+                trackStatistics.totalDistance = trackStorage.totalDistance().toString()
                 updateAverageSpeed()
             }
         }
@@ -122,7 +128,7 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
             TrackStorage.PROP_TRACKING_START,
             TrackStorage.PROP_TRACKING_END,
             TrackStorage.PROP_UPDATE_COUNT,
-        ).filter { it in preferencesHandler.preferences }
+        ).filter { it in trackStorage.preferencesHandler.preferences }
             .forEach(this::propertyChanged)
     }
 
@@ -138,7 +144,7 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
      */
     private fun updateAverageSpeed() {
         trackStatistics.averageSpeed = trackTimeInMillis()?.let { trackTime ->
-            val distance = preferencesHandler.preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0L).toDouble()
+            val distance = trackStorage.totalDistance().toDouble()
             val speed = distance / trackTime * SECS_PER_HOUR
             formatter.formatNumber(speed)
         }
@@ -149,9 +155,17 @@ class TrackViewModel(application: Application) : AndroidViewModel(application),
      * stopped. It is *null* if no start time is recorded.
      */
     private fun trackTimeInMillis(): Long? =
-        preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START)?.let { startTime ->
-            val endTime = preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END)?.time
+        trackStorage.trackingStartDate()?.let { startTime ->
+            val endTime = trackStorage.trackingEndDate()?.time
                 ?: formatter.timeService.currentTime().currentTime
             endTime - startTime.time
         }?.takeIf { it > 0 }
+}
+
+/**
+ * Create the [TrackStorage] for accessing tracking-related properties from the given [application].
+ */
+private fun createTrackStorage(application: Application): TrackStorage {
+    val preferencesHandler = PreferencesHandler.getInstance(application)
+    return TrackStorage(preferencesHandler)
 }

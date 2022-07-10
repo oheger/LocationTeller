@@ -43,27 +43,44 @@ import java.util.Date
  * Test class for [TrackViewModel].
  */
 class TrackViewModelSpec : WordSpec() {
-    /** A mock for the preferences handler that can be used by test instances. */
-    private lateinit var preferencesHandler: PreferencesHandler
-
-    private lateinit var preferences: SharedPreferences
+    /** A mock for the storage of tracking-related properties. */
+    private lateinit var storage: TrackStorage
 
     /** A mock formatter that is used by test instances. */
     private lateinit var formatter: TrackStatsFormatter
 
     override suspend fun beforeAny(testCase: TestCase) {
-        preferencesHandler = mockPreferencesHandler()
-        preferences = preferencesHandler.preferences
+        val preferencesHandler = mockk<PreferencesHandler>()
+        val prefs = mockk<SharedPreferences>()
+        storage = mockk()
+        every { storage.preferencesHandler } returns preferencesHandler
+        every { preferencesHandler.preferences } returns prefs
+        every { preferencesHandler.registerListener(any()) } just runs
+        every { prefs.contains(any()) } returns false
+
         formatter = mockFormatter()
     }
 
     init {
+        "The secondary constructor" should {
+            "create a correct TrackStorage instance" {
+                val application = mockk<Application>()
+                val preferencesHandler = storage.preferencesHandler
+                mockkObject(PreferencesHandler)
+                every { PreferencesHandler.getInstance(application) } returns preferencesHandler
+
+                val model = TrackViewModel(application)
+
+                model.trackStorage.preferencesHandler shouldBe preferencesHandler
+            }
+        }
+
         "The property change listener" should {
             "watch the tracking start property" {
                 val startTime = Date(20220628215901L)
                 val formattedTime = "2022-06-28 21:59:01"
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns startTime
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns null
+                every { storage.trackingStartDate() } returns startTime
+                every { storage.trackingEndDate() } returns null
                 every { formatter.formatDate(startTime) } returns formattedTime
 
                 val model = createModel()
@@ -75,8 +92,8 @@ class TrackViewModelSpec : WordSpec() {
             "watch the tracking end property" {
                 val endTime = Date(20220628221642L)
                 val formattedTime = "2022-06-28 22:16:42"
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns endTime
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns null
+                every { storage.trackingEndDate() } returns endTime
+                every { storage.trackingStartDate() } returns null
                 every { formatter.formatDate(endTime) } returns formattedTime
 
                 val model = createModel()
@@ -88,7 +105,7 @@ class TrackViewModelSpec : WordSpec() {
             "watch the last check time property" {
                 val lastCheckTime = Date(20220629213616L)
                 val formattedTime = "2022-06-29 21:36:16"
-                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_CHECK) } returns lastCheckTime
+                every { storage.lastCheck() } returns lastCheckTime
                 every { formatter.formatDate(lastCheckTime) } returns formattedTime
 
                 val model = createModel()
@@ -100,7 +117,7 @@ class TrackViewModelSpec : WordSpec() {
             "watch the last update time property" {
                 val lastUpdateTime = Date(20220629214143L)
                 val formattedTime = "2022-06-29 21:41:43"
-                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_UPDATE) } returns lastUpdateTime
+                every { storage.lastUpdate() } returns lastUpdateTime
                 every { formatter.formatDate(lastUpdateTime) } returns formattedTime
 
                 val model = createModel()
@@ -112,7 +129,7 @@ class TrackViewModelSpec : WordSpec() {
             "watch the last error time property" {
                 val lastErrorTime = Date(20220629214550L)
                 val formattedTime = "2022-06-29 21:42:50"
-                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_ERROR) } returns lastErrorTime
+                every { storage.lastError() } returns lastErrorTime
                 every { formatter.formatDate(lastErrorTime) } returns formattedTime
 
                 val model = createModel()
@@ -123,7 +140,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the check count property" {
                 val checkCount = 128
-                every { preferences.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns checkCount
+                every { storage.checkCount() } returns checkCount
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_CHECK_COUNT)
@@ -133,7 +150,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the update count property" {
                 val updateCount = 77
-                every { preferences.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns updateCount
+                every { storage.updateCount() } returns updateCount
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_UPDATE_COUNT)
@@ -143,7 +160,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the error count property" {
                 val errorCount = 42
-                every { preferences.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns errorCount
+                every { storage.errorCount() } returns errorCount
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_ERROR_COUNT)
@@ -153,9 +170,7 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the last distance property" {
                 val lastDistance = 333
-                every {
-                    preferences.getInt(TrackStorage.PROP_LAST_DISTANCE, 0)
-                } returns lastDistance
+                every { storage.lastDistance() } returns lastDistance
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_LAST_DISTANCE)
@@ -165,10 +180,9 @@ class TrackViewModelSpec : WordSpec() {
 
             "watch the total distance property" {
                 val totalDistance = 10256L
-                every {
-                    preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0)
-                } returns totalDistance
-                every { preferencesHandler.getDate(any()) } returns null
+                every { storage.totalDistance() } returns totalDistance
+                every { storage.trackingStartDate() } returns null
+                every { storage.trackingEndDate() } returns null
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_TOTAL_DISTANCE)
@@ -182,15 +196,15 @@ class TrackViewModelSpec : WordSpec() {
                 fetchAndTriggerPreferencesListener("someOtherProperty")
 
                 verify(exactly = 0) {
-                    preferences.getInt(any(), any())
-                    preferencesHandler.getDate(any())
+                    storage.trackingStartDate()
                 }
             }
 
             "update the tracking time" {
                 val formattedDuration = "0:09"
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns Date(1657225007000L)
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns Date(1657225016000L)
+                every { storage.trackingStartDate() } returns Date(1657225007000L)
+                every { storage.trackingEndDate() } returns Date(1657225016000L)
+                every { storage.totalDistance() } returns 0
                 every { formatter.formatDuration(9000L) } returns formattedDuration
 
                 val model = createModel()
@@ -204,8 +218,9 @@ class TrackViewModelSpec : WordSpec() {
             "update the tracking time if tracking is still in progress" {
                 val startTime = CURRENT_TIME.currentTime - 60_000
                 val formattedDuration = "1:00"
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns Date(startTime)
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns null
+                every { storage.trackingStartDate() } returns Date(startTime)
+                every { storage.trackingEndDate() } returns null
+                every { storage.totalDistance() } returns 0
                 every { formatter.formatDuration(60_000L) } returns formattedDuration
 
                 val model = createModel()
@@ -217,15 +232,16 @@ class TrackViewModelSpec : WordSpec() {
             }
 
             "reset the tracking time if the start date property is undefined" {
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns Date(1657225007000L)
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns Date(1657225016000L)
+                every { storage.trackingStartDate() } returns Date(1657225007000L)
+                every { storage.trackingEndDate() } returns Date(1657225016000L)
+                every { storage.totalDistance() } returns 0
 
                 val model = createModel()
                 val listener = fetchPreferencesListener()
                 triggerPreferenceChangedEvent(listener, TrackStorage.PROP_TRACKING_END)
                 triggerPreferenceChangedEvent(listener, TrackStorage.PROP_TRACKING_START)
 
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns null
+                every { storage.trackingStartDate() } returns null
                 triggerPreferenceChangedEvent(listener, TrackStorage.PROP_TRACKING_START)
 
                 model.trackStatistics.elapsedTime should beNull()
@@ -236,9 +252,9 @@ class TrackViewModelSpec : WordSpec() {
                 val startTime = Date(CURRENT_TIME.currentTime - 1_000_000)
                 val formattedSpeed = "4.5"
                 every { formatter.formatNumber(4.5) } returns formattedSpeed
-                every { preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns distance
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns startTime
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns null
+                every { storage.totalDistance() } returns distance
+                every { storage.trackingStartDate() } returns startTime
+                every { storage.trackingEndDate() } returns null
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_TOTAL_DISTANCE)
@@ -252,9 +268,9 @@ class TrackViewModelSpec : WordSpec() {
                 val endTime = Date(1657311400000L)
                 val formattedSpeed = "4.5"
                 every { formatter.formatNumber(4.5) } returns formattedSpeed
-                every { preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns distance
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns startTime
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns endTime
+                every { storage.totalDistance() } returns distance
+                every { storage.trackingStartDate() } returns startTime
+                every { storage.trackingEndDate() } returns endTime
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_TRACKING_END)
@@ -263,27 +279,26 @@ class TrackViewModelSpec : WordSpec() {
             }
 
             "reset the tracking average speed if the start time is cleared" {
-                every { preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns 1111
+                every { storage.totalDistance() } returns 1111
                 every {
-                    preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START)
+                    storage.trackingStartDate()
                 } returns Date(CURRENT_TIME.currentTime - 300_000)
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns null
+                every { storage.trackingEndDate() } returns null
 
                 val model = createModel()
                 val listener = fetchPreferencesListener()
                 triggerPreferenceChangedEvent(listener, TrackStorage.PROP_TOTAL_DISTANCE)
 
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns null
+                every { storage.trackingStartDate() } returns null
                 triggerPreferenceChangedEvent(listener, TrackStorage.PROP_TRACKING_START)
 
                 model.trackStatistics.averageSpeed should beNull()
             }
 
-            "reset the tracking average speed if the tracking is 0" {
-                every {
-                    preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START)
-                } returns Date(CURRENT_TIME.currentTime)
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns null
+            "reset the tracking average speed if the tracking time is 0" {
+                every { storage.trackingStartDate() } returns Date(CURRENT_TIME.currentTime)
+                every { storage.trackingEndDate() } returns null
+                every { storage.totalDistance() } returns 0
 
                 val model = createModel()
                 fetchAndTriggerPreferencesListener(TrackStorage.PROP_TOTAL_DISTANCE)
@@ -312,20 +327,23 @@ class TrackViewModelSpec : WordSpec() {
                 val lastUpdate = Date(20220703215101L)
                 val lastError = Date(20220703215116L)
 
+                val preferencesHandler = storage.preferencesHandler
                 val prefs = preferencesHandler.preferences
+                every { preferencesHandler.preferences } returns prefs
                 properties.forEach {
                     every { prefs.contains(it) } returns true
                 }
-                every { prefs.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns 28
-                every { prefs.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns 4
-                every { prefs.getInt(TrackStorage.PROP_LAST_DISTANCE, 0) } returns 111
-                every { prefs.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns 10789L
-                every { prefs.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns 20
-                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_CHECK) } returns lastCheck
-                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_ERROR) } returns lastError
-                every { preferencesHandler.getDate(TrackStorage.PROP_LAST_UPDATE) } returns lastUpdate
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_START) } returns startTime
-                every { preferencesHandler.getDate(TrackStorage.PROP_TRACKING_END) } returns endTime
+                every { storage.preferencesHandler } returns preferencesHandler
+                every { storage.checkCount() } returns 28
+                every { storage.errorCount() } returns 4
+                every { storage.lastDistance() } returns 111
+                every { storage.totalDistance() } returns 10789L
+                every { storage.updateCount() } returns 20
+                every { storage.lastCheck() } returns lastCheck
+                every { storage.lastError() } returns lastError
+                every { storage.lastUpdate() } returns lastUpdate
+                every { storage.trackingStartDate() } returns startTime
+                every { storage.trackingEndDate() } returns endTime
                 every { formatter.formatDate(startTime) } returns "startTime"
                 every { formatter.formatDate(endTime) } returns "endTime"
                 every { formatter.formatDate(lastCheck) } returns "lastCheck"
@@ -354,20 +372,17 @@ class TrackViewModelSpec : WordSpec() {
      * Create a test [TrackViewModel] instance that is associated with the managed mock [PreferencesHandler].
      */
     private fun createModel(): TrackViewModel {
-        val application = mockk<Application>()
-        mockkObject(PreferencesHandler)
-        every { PreferencesHandler.getInstance(application) } returns preferencesHandler
-
-        return TrackViewModel(application)
+        return TrackViewModel(storage, mockk(relaxed = true))
     }
 
     /**
      * Verify that a preferences listener has been registered at the managed [PreferencesHandler] and return it.
      */
     private fun fetchPreferencesListener(): SharedPreferences.OnSharedPreferenceChangeListener {
+        val handler = storage.preferencesHandler
         val slotListener = slot<SharedPreferences.OnSharedPreferenceChangeListener>()
         verify {
-            preferencesHandler.registerListener(capture(slotListener))
+            handler.registerListener(capture(slotListener))
         }
 
         return slotListener.captured
@@ -380,7 +395,7 @@ class TrackViewModelSpec : WordSpec() {
         listener: SharedPreferences.OnSharedPreferenceChangeListener,
         property: String
     ) {
-        listener.onSharedPreferenceChanged(preferencesHandler.preferences, property)
+        listener.onSharedPreferenceChanged(storage.preferencesHandler.preferences, property)
     }
 
     /**
@@ -394,18 +409,6 @@ class TrackViewModelSpec : WordSpec() {
 
 /** The current time returned by the time service used by mock formatter. */
 private val CURRENT_TIME = TimeData(1657306256000L)
-
-/**
- * Create a mock [PreferencesHandler] object that is equipped with mock [SharedPreferences] and set some default
- * expectations.
- */
-private fun mockPreferencesHandler(): PreferencesHandler =
-    mockk<PreferencesHandler>().apply {
-        val sp = mockk<SharedPreferences>(relaxed = true)
-        every { preferences } returns sp
-        every { sp.contains(any()) } returns false
-        every { registerListener(any()) } just runs
-    }
 
 /**
  * Create a mock [TrackStatsFormatter] that is going to be used by a test instance.
