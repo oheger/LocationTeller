@@ -208,6 +208,27 @@ class TrackStorageSpec : StringSpec({
             editor.remove(TrackStorage.PROP_UPDATE_COUNT)
         }
     }
+
+    "The tracking state can be queried" {
+        val handler = mockk<PreferencesHandler>()
+        val preferences = handler.mockPreferences()
+        every { preferences.getBoolean(TrackStorage.PROP_TRACK_STATE, false) } returnsMany listOf(true, false)
+
+        val storage = TrackStorage(handler)
+
+        storage.isTrackingEnabled() shouldBe true
+        storage.isTrackingEnabled() shouldBe false
+    }
+
+    "The tracking state can be set" {
+        val editor = checkPreferencesUpdate { handler ->
+            TrackStorage(handler).setTrackingEnabled(true)
+        }
+
+        verify {
+            editor.putBoolean(TrackStorage.PROP_TRACK_STATE, true)
+        }
+    }
 })
 
 /**

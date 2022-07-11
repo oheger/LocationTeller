@@ -63,6 +63,9 @@ class TrackStorage(
         /** Shared preferences property for the accumulated distance (in meters). */
         const val PROP_TOTAL_DISTANCE = "totalDistance"
 
+        /** Shared preferences property for the tracking state.*/
+        const val PROP_TRACK_STATE = "trackEnabled"
+
         /**
          * A set with the names of all the properties that need to be removed when statistics are reset.
          */
@@ -172,6 +175,20 @@ class TrackStorage(
     fun resetStatistics() {
         preferencesHandler.update {
             RESET_PROPS.forEach { remove(it) }
+        }
+    }
+
+    /**
+     * Check whether tracking is currently active by querying the property dedicated for this purpose.
+     */
+    fun isTrackingEnabled(): Boolean = preferencesHandler.preferences.getBoolean(PROP_TRACK_STATE, false)
+
+    /**
+     * Update and persist the tracking state according to [flag].
+     */
+    fun setTrackingEnabled(flag: Boolean) {
+        preferencesHandler.update {
+            putBoolean(PROP_TRACK_STATE, flag)
         }
     }
 }
