@@ -27,6 +27,7 @@ import android.widget.TextView
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.databinding.FragmentTrackBinding
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.track.TrackStorage
 import java.text.DateFormat
 import java.util.Date
 
@@ -45,8 +46,8 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
      */
     private val binding get() = _binding!!
 
-    /** The object to access preferences. */
-    private lateinit var prefHandler: PreferencesHandler
+    /** The object to access persistent tracking-related properties. */
+    private lateinit var trackStorage: TrackStorage
 
     /**
      * The action that handles the permission request for querying locations.
@@ -70,14 +71,14 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)
-        prefHandler = createPreferencesHandler()
-        binding.switchTrackEnabled.isChecked = prefHandler.isTrackingEnabled()
+        trackStorage = createTrackStorage()
+        binding.switchTrackEnabled.isChecked = trackStorage.isTrackingEnabled()
         binding.switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
             Log.i(logTag, "Set track enabled state to $checked.")
             if (checked) {
                 locationPermAction.execute()
             } else {
-                prefHandler.setTrackingEnabled(checked)
+                trackStorage.setTrackingEnabled(checked)
             }
         }
 
@@ -92,10 +93,10 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun enableTracking() {
-        if(prefHandler.isAutoResetStats()) {
-            prefHandler.resetStatistics()
+        if (trackStorage.preferencesHandler.isAutoResetStats()) {
+            trackStorage.resetStatistics()
         }
-        prefHandler.setTrackingEnabled(true)
+        trackStorage.setTrackingEnabled(true)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -106,7 +107,7 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when(item.itemId) {
             R.id.item_track_reset_stats -> {
-                prefHandler.resetStatistics()
+                trackStorage.resetStatistics()
                 return true
             }
             else -> super.onOptionsItemSelected(item)
@@ -114,12 +115,13 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     }
 
     /**
-     * Creates the _PreferencesHandler_ used by this fragment. (Protected to be
-     * overridden in tests.)
-     * @return the _PreferencesHandler_
+     * Create the [TrackStorage] object for accessing persistent properties related to the current tracking
+     * operation. This function is *protected*, so that it can be overridden by tests.
      */
-    protected open fun createPreferencesHandler(): PreferencesHandler =
-        PreferencesHandler.getInstance(requireContext())
+    protected open fun createTrackStorage(): TrackStorage {
+        val preferencesHandler = PreferencesHandler.getInstance(requireContext())
+        return TrackStorage(preferencesHandler)
+    }
 
     /**
      * Initializes a time component with a nullable time. If the time is

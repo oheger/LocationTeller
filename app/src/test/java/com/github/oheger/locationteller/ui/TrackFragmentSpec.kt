@@ -28,6 +28,7 @@ import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.track.TrackStorage
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.just
@@ -101,7 +102,7 @@ class TrackFragmentSpec {
                 mockPermAction.execute()
             }
             verify(exactly = 0) {
-                fragment.mockPrefHandler.setTrackingEnabled(true)
+                fragment.mockStorage.setTrackingEnabled(true)
             }
         }
     }
@@ -119,7 +120,7 @@ class TrackFragmentSpec {
             slotFragment.captured shouldBe fragment
             slotAction.captured()
             verify {
-                fragment.mockPrefHandler.setTrackingEnabled(true)
+                fragment.mockStorage.setTrackingEnabled(true)
             }
         }
     }
@@ -135,7 +136,7 @@ class TrackFragmentSpec {
         scenario.onFragment { fragment ->
             slotReject.captured()
             verify(exactly = 0) {
-                fragment.mockPrefHandler.setTrackingEnabled(true)
+                fragment.mockStorage.setTrackingEnabled(true)
             }
             trackingSwitch().check(matches(isNotChecked()))
         }
@@ -148,7 +149,7 @@ class TrackFragmentSpec {
         setTrackingSwitch(false)
         scenario.onFragment { fragment ->
             verify {
-                fragment.mockPrefHandler.setTrackingEnabled(false)
+                fragment.mockStorage.setTrackingEnabled(false)
             }
         }
     }
@@ -164,7 +165,7 @@ class TrackFragmentSpec {
         scenario.onFragment { fragment ->
             slotAction.captured()
             verify {
-                fragment.mockPrefHandler.resetStatistics()
+                fragment.mockStorage.resetStatistics()
             }
         }
     }
@@ -180,7 +181,7 @@ class TrackFragmentSpec {
         scenario.onFragment { fragment ->
             slotAction.captured()
             verify(exactly = 0) {
-                fragment.mockPrefHandler.resetStatistics()
+                fragment.mockStorage.resetStatistics()
             }
         }
     }
@@ -192,10 +193,10 @@ class TrackFragmentSpec {
         setTrackingSwitch(false)
         scenario.onFragment { fragment ->
             verify {
-                fragment.mockPrefHandler.setTrackingEnabled(false)
+                fragment.mockStorage.setTrackingEnabled(false)
             }
             verify(exactly = 0) {
-                fragment.mockPrefHandler.resetStatistics()
+                fragment.mockStorage.resetStatistics()
             }
         }
     }
@@ -210,64 +211,57 @@ class TrackFragmentSpec {
             fragment.hasOptionsMenu() shouldBe true
             fragment.onOptionsItemSelected(item) shouldBe true
             verify {
-                fragment.mockPrefHandler.resetStatistics()
+                fragment.mockStorage.resetStatistics()
             }
         }
     }
 }
 
 /**
- * A test implementation of _TrackFragment_ that uses mock objects for the
- * _PreferencesHandler_ and the _TrackingStatsListAdapter_.
- *
- * @param trackingEnabled the tracking state to be reported by the preferences
- * handler
- * @param resetStats flag whether statistics should be reset when starting
- * tracking anew
+ * A test implementation of [TrackFragment] that uses mock objects for the [PreferencesHandler] and the
+ * [TrackStorage].
  */
-open class TrackFragmentTestImpl(trackingEnabled: Boolean, resetStats: Boolean = false) : TrackFragment() {
-    /** Initialized mock for the preference handler. */
-    val mockPrefHandler = createPrefHandler(trackingEnabled, resetStats)
+open class TrackFragmentTestImpl(
+    /** The tracking state to be reported by the [TrackStorage]. */
+    trackingEnabled: Boolean,
 
-    override fun createPreferencesHandler(): PreferencesHandler = mockPrefHandler
+    /** Flag whether statistics should be reset when starting tracking anew. */
+    resetStats: Boolean = false
+) : TrackFragment() {
+    val mockStorage = createTrackStorage(trackingEnabled, resetStats)
 
-    /**
-     * Creates a mock for the preferences handler and prepares it to return
-     * the tracking state specified.
-     * @param trackingEnabled flag whether tracking should be reported as
-     * active
-     * @param resetStats the auto reset statistics flag
-     * @return the mock for the preferences handler
-     */
-    private fun createPrefHandler(trackingEnabled: Boolean, resetStats: Boolean): PreferencesHandler {
-        val handler = mockk<PreferencesHandler>(relaxed = true)
-        every { handler.isTrackingEnabled() } returns trackingEnabled
+    override fun createTrackStorage(): TrackStorage = mockStorage
+
+    private fun createTrackStorage(trackingEnabled: Boolean, resetStats: Boolean): TrackStorage {
+        val handler = mockk<PreferencesHandler>()
         every { handler.isAutoResetStats() } returns resetStats
-        return handler
+
+        val storage = mockk<TrackStorage>(relaxed = true)
+        every { storage.preferencesHandler } returns handler
+        every { storage.isTrackingEnabled() } returns trackingEnabled
+
+        return storage
     }
 }
 
 /**
- * A test implementation of _TrackFragment_ that sets the initial tracking
- * state to *true*.
+ * A test implementation of [TrackFragment] that sets the initial tracking state to *true*.
  */
 class TrackFragmentTestImplWithTrackingActive : TrackFragmentTestImpl(trackingEnabled = true)
 
 /**
- * A test implementation of _TrackFragment_ that sets the initial tracking
- * state to *false*.
+ * A test implementation of [TrackFragment] that sets the initial tracking state to *false*.
  */
 class TrackFragmentTestImplWithTrackingInactive : TrackFragmentTestImpl(trackingEnabled = false)
 
 /**
- * A test implementation of _TrackFragment_ that sets the flag to auto reset
- * tracking statistics to *true*.
+ * A test implementation of [TrackFragment] that sets the flag to auto reset tracking statistics to *true*.
  */
 class TrackFragmentTestImplWithAutoResetStats : TrackFragmentTestImpl(trackingEnabled = false, resetStats = true)
 
 /**
- * A test implementation of _TrackFragment_ that sets the initial tracking
- * state to *true* and has also the auto reset flag set.
+ * A test implementation of [TrackFragment] that sets the initial tracking state to *true* and has also the auto
+ * reset flag set.
  */
 class TrackFragmentTestImplWithTrackingActiveAndAutoResetStats : TrackFragmentTestImpl(
     trackingEnabled = true,
