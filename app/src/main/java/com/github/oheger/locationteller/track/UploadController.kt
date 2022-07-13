@@ -16,7 +16,6 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
-import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
@@ -31,31 +30,33 @@ import kotlin.math.min
  * server.
  *
  * An instance of this class is responsible for the interaction with a
- * [[TrackService]] object. It is invoked with [[LocationUpdate]] objects when
+ * [TrackService] object. It is invoked with [LocationUpdate] objects when
  * new location data becomes available. It then has to upload the new data,
  * check whether outdated data can be removed, handle possible errors, and
  * update tracking statistics. Depending on the outcome of the operation, the
  * delay until the next location check is determined.
  *
- * By making use of an [[OfflineLocationStorage]] object, a temporary loss of
+ * By making use of an [OfflineLocationStorage] object, a temporary loss of
  * the internet connection can be handled; data is buffered, and is uploaded
  * when the connection is available again.
  *
  * This class keeps a state and is therefore not thread-safe. It is used inside
  * an actor to make sure that no concurrency issues occur.
- *
- * @param prefHandler the object that manages access to preferences
- * @param trackService the _TrackService_ instance
- * @param trackConfig the current track configuration
- * @param offlineStorage the object for storing data that could not be uploaded
- * temporarily
- * @param timeService a service to obtain the current time
  */
 class UploadController(
-    val prefHandler: PreferencesHandler,
+    /** The object that manages access to persistent tracking-related properties. */
+    val trackStorage: TrackStorage,
+
+    /** The [TrackService] instance. */
     val trackService: TrackService,
+
+    /** The current track configuration. */
     val trackConfig: TrackConfig,
+
+    /** The object for storing data that could not be uploaded temporarily. */
     val offlineStorage: OfflineLocationStorage,
+
+    /** A service to obtain the current time. */
     val timeService: TimeService
 ) {
     /**
@@ -75,16 +76,16 @@ class UploadController(
     private var retryTime = trackConfig.retryOnErrorTime
 
     /** The statistic of the number of checks. */
-    private var checkCount = prefHandler.checkCount()
+    private var checkCount = trackStorage.checkCount()
 
     /** The statistic of the number of updates. */
-    private var updateCount = prefHandler.updateCount()
+    private var updateCount = trackStorage.updateCount()
 
     /** The statistic of the number of errors. */
-    private var errorCount = prefHandler.errorCount()
+    private var errorCount = trackStorage.errorCount()
 
     /** Accumulates the distance values over all location updates. */
-    private var totalDistance = prefHandler.totalDistance()
+    private var totalDistance = trackStorage.totalDistance()
 
     /**
      * Handles an upload request for the data passed in and returns a delay
@@ -96,7 +97,7 @@ class UploadController(
     suspend fun handleUpload(locationData: LocationData, orgLocation: Location?): Int {
         checkCount += 1
         val updateTime = locationData.time.currentTime
-        prefHandler.recordCheck(updateTime, checkCount)
+        trackStorage.recordCheck(updateTime, checkCount)
         val distance = locationChanged(orgLocation)
         if (distance >= 0) {
             val success = processUpload(locationData, orgLocation, distance)
@@ -129,7 +130,7 @@ class UploadController(
     ): Boolean = if (orgLocation != null) {
         updateCount += 1
         totalDistance += distance
-        prefHandler.recordUpdate(locationData.time.currentTime, updateCount, distance, totalDistance)
+        trackStorage.recordUpdate(locationData.time.currentTime, updateCount, distance, totalDistance)
         if (offlineStorage.canUploadDirectly(locationData)) {
             processSingleUpload(locationData)
         } else {
@@ -183,7 +184,7 @@ class UploadController(
     private fun calculateNextDelays(updateTime: Long, success: Boolean) {
         if (!success) {
             errorCount += 1
-            prefHandler.recordError(updateTime, errorCount)
+            trackStorage.recordError(updateTime, errorCount)
             updateInterval = retryTime
             retryTime = min(retryTime * 2, trackConfig.maxTrackInterval)
         } else {

@@ -16,7 +16,6 @@
 package com.github.oheger.locationteller.track
 
 import android.location.Location
-import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
@@ -70,7 +69,7 @@ class UploadControllerSpec : StringSpec() {
             }
             helper.verifyPrefHandler {
                 recordCheck(locUpdate2.updateTime(), initialCheckCount + 2)
-            }.doWithPrefHandler { handler ->
+            }.doWithTrackStorage { handler ->
                 verify(exactly = 0) {
                     handler.recordUpdate(locUpdate2.locationData.time.currentTime, any(), any(), any())
                     handler.recordError(any(), any())
@@ -228,7 +227,7 @@ class UploadControllerSpec : StringSpec() {
                     recordCheck(locUpdate.updateTime(), initialCheckCount + 2)
                     recordError(locUpdate.updateTime(), initialErrorCount + 1)
                 }
-                .doWithPrefHandler { handler ->
+                .doWithTrackStorage { handler ->
                     verify(exactly = 0) {
                         handler.recordUpdate(locUpdate.updateTime(), any(), any(), any())
                     }
@@ -404,8 +403,8 @@ class UploadControllerSpec : StringSpec() {
         /** Mock for the track service. */
         val trackService = mockk<TrackService>()
 
-        /** The mock for the preferences handler. */
-        val prefHandler = createPrefHandler()
+        /** The mock for the [TrackStorage]. */
+        val trackStorage = createTrackStorage()
 
         /** The mock for the offline storage. */
         val offlineStorage = createOfflineStorage()
@@ -417,34 +416,27 @@ class UploadControllerSpec : StringSpec() {
         private val controller = createUploadController(trackConfig)
 
         /**
-         * Executes the given block passing in the mock _PreferencesHandler_.
-         * This can be used for instance to do custom mock initializations or
-         * verifications.
-         * @param block the block to be executed on the handler mock
-         * @return this test helper
+         * Execute the given [block] passing in the mock [TrackStorage]. This can be used for instance to do custom
+         * mock initializations or verifications.
          */
-        fun doWithPrefHandler(block: (PreferencesHandler) -> Unit): ControllerTestHelper {
-            block(prefHandler)
+        fun doWithTrackStorage(block: (TrackStorage) -> Unit): ControllerTestHelper {
+            block(trackStorage)
             return this
         }
 
         /**
-         * Performs verification on the managed preferences handler mock.
-         * @param block the verification function
-         * @return this test helper
+         * Perform verification on the managed [TrackStorage] mock by invoking [block] inside a `verify` construct.
          */
-        fun verifyPrefHandler(block: PreferencesHandler.() -> Unit): ControllerTestHelper =
-            doWithPrefHandler {
+        fun verifyPrefHandler(block: TrackStorage.() -> Unit): ControllerTestHelper =
+            doWithTrackStorage {
                 verify {
                     it.block()
                 }
             }
 
         /**
-         * Prepares the mock for the track service to expect and answer
-         * operations to remove outdated data and upload new data.
-         * @param successUpload flag whether the upload operation is successful
-         * @return this test helper
+         * Prepare the mock for the [TrackService] to expect and answer operations to remove outdated data and upload
+         * new data. [successUpload] controls whether the upload operation is successful.
          */
         fun prepareTrackService(successUpload: Boolean = true): ControllerTestHelper {
             coEvery { trackService.removeOutdated(any()) } returns true
@@ -453,10 +445,8 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Initializes the mock time service to return a sequence of time
-         * ticks. The first tick is the reference time; then the provided delta
-         * values are interpreted as seconds relative to this reference time.
-         * @param deltas the relative times to report by the service (in sec)
+         * Initialize the mock [TimeService] to return a sequence of time ticks. The first tick is the reference
+         * time; then the provided [delta values][deltas] are interpreted as seconds relative to this reference time.
          */
         fun timeTicks(vararg deltas: Int): ControllerTestHelper {
             val nextTimes = deltas.map { TimeData(referenceTime + it * 1000) }
@@ -466,10 +456,7 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Prepares the mock for the offline storage to expect an invocation
-         * due to a failed upload.
-         * @param data the data that could not be uploaded
-         * @return this test helper
+         * Prepare the mock for the [OfflineLocationStorage] to expect an invocation due to a failed upload of [data].
          */
         fun expectStorageOfFailedUpload(data: LocationData): ControllerTestHelper {
             every { offlineStorage.storeFailedUpload(data) } just runs
@@ -477,10 +464,7 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Verifies that the mock for the offline storage has been invoked to
-         * record a failed upload
-         * @param data the data that could not be uploaded
-         * @return this test helper
+         * Verify that the mock for the [OfflineLocationStorage] has been invoked to record a failed upload of [data].
          */
         fun verifyStorageOfFailedUpload(data: LocationData): ControllerTestHelper {
             verify { offlineStorage.storeFailedUpload(data) }
@@ -488,41 +472,31 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Invokes the test upload controller with the passed in data and
-         * returns the delay for the next location check.
-         * @param locData the location data
-         * @param location the original location
-         * @return the delay returned from the test controller
+         * Invoke the test [UploadController] with the passed in [locData] and [location] and return the delay for the
+         * next location check.
          */
         suspend fun triggerUpload(locData: LocationData, location: Location?): Int =
             controller.handleUpload(locData, location)
 
         /**
-         * Invokes the test upload controller with the given data object and
-         * returns the delay for the next location check.
-         * @param locUpdate the location update data object
-         * @return the delay returned from the test controller
+         * Invoke the test [UploadController] with the given [locUpdate] and return the delay for the next location
+         * check.
          */
         suspend fun triggerUpload(locUpdate: LocationUpdate): Int =
             triggerUpload(locUpdate.locationData, locUpdate.orgLocation)
 
         /**
-         * Invokes the test upload controller with the given test data object
-         * and checks the delay that it returns.
-         * @param locUpdate the location update data object
-         * @param expDelay the expected delay
-         * @return this test helper
+         * Invoke the test [UploadController] with the given test [locUpdate] object and check whether the delay that
+         * it returns equals [expectedDelay].
          */
-        suspend fun checkUpload(locUpdate: LocationUpdate, expDelay: Int): ControllerTestHelper {
-            triggerUpload(locUpdate) shouldBe expDelay
+        suspend fun checkUpload(locUpdate: LocationUpdate, expectedDelay: Int): ControllerTestHelper {
+            triggerUpload(locUpdate) shouldBe expectedDelay
             return this
         }
 
         /**
-         * Invokes the test upload controller with the given test data object
-         * and ignores the result returned by the upload function.
-         * @param locUpdate the location update data object
-         * @return this test helper
+         * Invoke the test [UploadController] with the given [locUpdate] object and ignore the result returned by the
+         * [triggerUpload] function.
          */
         suspend fun runUpload(locUpdate: LocationUpdate): ControllerTestHelper {
             triggerUpload(locUpdate)
@@ -530,9 +504,7 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Creates a mock for the offline storage and prepares it for the most
-         * frequent interactions.
-         * @return the mock for the _OfflineLocationStorage_
+         * Create a mock for the [OfflineLocationStorage] and prepare it for the most frequent interactions.
          */
         private fun createOfflineStorage(): OfflineLocationStorage {
             val storage = mockk<OfflineLocationStorage>()
@@ -541,10 +513,8 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Creates a mock for the time service and prepares it to always return
-         * the reference time. This means that the simulated time does not
-         * flow.
-         * @return the mock time service
+         * Create a mock for the [TimeService] and prepare it to always return the reference time. This means that the
+         * simulated time does not flow.
          */
         private fun createTimeService(): TimeService {
             val timeService = mockk<TimeService>()
@@ -553,12 +523,10 @@ class UploadControllerSpec : StringSpec() {
         }
 
         /**
-         * Creates the test upload controller.
-         * @param trackConfig the tracking configuration
-         * @return the test upload controller
+         * Create the test [UploadController].
          */
         private fun createUploadController(trackConfig: TrackConfig): UploadController =
-            UploadController(prefHandler, trackService, trackConfig, offlineStorage, timeService)
+            UploadController(trackStorage, trackService, trackConfig, offlineStorage, timeService)
     }
 
     companion object {
@@ -579,11 +547,19 @@ class UploadControllerSpec : StringSpec() {
 
         /** A test configuration with default values.*/
         private val defaultConfig = TrackConfig(
-            minTrackInterval = 60, maxTrackInterval = 200,
-            intervalIncrementOnIdle = 30, locationValidity = 3600,
-            locationUpdateThreshold = 56, gpsTimeout = 10, retryOnErrorTime = 4,
-            autoResetStats = false, offlineStorageSize = 32, maxOfflineStorageSyncTime = 60,
-            multiUploadChunkSize = 4, maxSpeedIncrease = 2.0, walkingSpeed = 1.0
+            minTrackInterval = 60,
+            maxTrackInterval = 200,
+            intervalIncrementOnIdle = 30,
+            locationValidity = 3600,
+            locationUpdateThreshold = 56,
+            gpsTimeout = 10,
+            retryOnErrorTime = 4,
+            autoResetStats = false,
+            offlineStorageSize = 32,
+            maxOfflineStorageSyncTime = 60,
+            multiUploadChunkSize = 4,
+            maxSpeedIncrease = 2.0,
+            walkingSpeed = 1.0
         )
 
         /**
@@ -617,17 +593,15 @@ class UploadControllerSpec : StringSpec() {
             locationUpdate(locationData(index))
 
         /**
-         * Creates a mock for a _PreferencesHandler_. The mock is prepared to
-         * return some initial statistics values.
-         * @return the mock handler
+         * Create a mock for a [TrackStorage]. The mock is prepared to return some initial statistics values.
          */
-        private fun createPrefHandler(): PreferencesHandler {
-            val handler = mockk<PreferencesHandler>(relaxed = true)
-            every { handler.checkCount() } returns initialCheckCount
-            every { handler.updateCount() } returns initialUpdateCount
-            every { handler.errorCount() } returns initialErrorCount
-            every { handler.totalDistance() } returns initialDistance
-            return handler
+        private fun createTrackStorage(): TrackStorage {
+            val storage = mockk<TrackStorage>(relaxed = true)
+            every { storage.checkCount() } returns initialCheckCount
+            every { storage.updateCount() } returns initialUpdateCount
+            every { storage.errorCount() } returns initialErrorCount
+            every { storage.totalDistance() } returns initialDistance
+            return storage
         }
 
         /**

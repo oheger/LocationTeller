@@ -16,7 +16,6 @@
 package com.github.oheger.locationteller.track
 
 import android.content.Context
-import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TrackService
@@ -33,27 +32,26 @@ import kotlinx.coroutines.channels.SendChannel
  */
 class UpdaterActorFactory {
     /**
-     * Creates the actor for updating location data. Result may be *null* if
-     * mandatory configuration options are not set.
-     * @param preferencesHandler the preferences handler
-     * @param trackConfig the track configuration
-     * @param crScope the co-routine scope
-     * @return the new actor
+     * Create the actor for updating location data based on the provided [trackStorage], [trackConfig], and
+     * [coroutineScope]. Result may be *null* if mandatory configuration options are not set.
      */
     fun createActor(
-        preferencesHandler: PreferencesHandler, trackConfig: TrackConfig,
-        crScope: CoroutineScope
+        trackStorage: TrackStorage,
+        trackConfig: TrackConfig,
+        coroutineScope: CoroutineScope
     ): SendChannel<LocationUpdate>? {
-        val serverConfig = preferencesHandler.createServerConfig()
-        return if (serverConfig != null) {
-            val trackService = TrackService.create(serverConfig)
+        val serverConfig = trackStorage.preferencesHandler.createServerConfig()
+        return serverConfig?.let { config ->
+            val trackService = TrackService.create(config)
             val uploadController = UploadController(
-                preferencesHandler, trackService, trackConfig,
+                trackStorage,
+                trackService,
+                trackConfig,
                 OfflineLocationStorage(trackConfig.offlineStorageSize, trackConfig.minTrackInterval * 1000L),
                 CurrentTimeService
             )
-            locationUpdaterActor(uploadController, crScope)
-        } else null
+            locationUpdaterActor(uploadController, coroutineScope)
+        }
     }
 }
 

@@ -22,7 +22,7 @@ import android.app.Service
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.github.oheger.locationteller.server.*
-import com.github.oheger.locationteller.track.TrackTestHelper.preparePreferences
+import com.github.oheger.locationteller.track.TrackTestHelper.prepareTrackStorage
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -215,10 +215,10 @@ class LocationTellerServiceSpec : StringSpec() {
                 every {
                     PendingIntent.getService(any(), 0, any(), PendingIntent.FLAG_IMMUTABLE)
                 } returns pendingIntent
-                val prefs = preparePreferences(trackingEnabled = trackingEnabled)
+                val trackStorage = prepareTrackStorage(trackingEnabled = trackingEnabled)
 
                 val actor = if (actorCanBeCreated) mockk<SendChannel<LocationUpdate>>() else null
-                every { updaterFactory.createActor(prefs, TrackTestHelper.defTrackConfig, any()) } returns actor
+                every { updaterFactory.createActor(trackStorage, TrackTestHelper.defTrackConfig, any()) } returns actor
                 every {
                     retrieverFactory.createRetriever(any(), TrackTestHelper.defTrackConfig, validating = true)
                 } returns retriever
@@ -238,7 +238,7 @@ class LocationTellerServiceSpec : StringSpec() {
                 val serviceSpy = spyk(service)
                 every { serviceSpy.getSystemService(Context.ALARM_SERVICE) } returns alarmManager
                 every { serviceSpy.notificationBuilder() } returns notificationBuilder
-                every { serviceSpy.createPreferencesHandler() } returns prefs
+                every { serviceSpy.createTrackStorage() } returns trackStorage
                 serviceSpy.onCreate()
                 return serviceSpy
             }

@@ -91,9 +91,10 @@ class LocationTellerService(
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        preferencesHandler = createPreferencesHandler()
+        val trackStorage = createTrackStorage()
+        preferencesHandler = trackStorage.preferencesHandler
         val trackConfig = TrackConfig.fromPreferences(preferencesHandler)
-        val updaterActor = updaterFactory.createActor(preferencesHandler, trackConfig, this)
+        val updaterActor = updaterFactory.createActor(trackStorage, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
             val locRetriever = retrieverFactory.createRetriever(this, trackConfig, validating = true)
@@ -133,11 +134,10 @@ class LocationTellerService(
         timeService.currentTime().currentTime + 1000L * nextUpdate
 
     /**
-     * Creates the object for accessing preferences used by this instance.
-     * @return the _PreferencesHandler_
+     * Create the [TrackStorage] object for accessing preferences used by this instance.
      */
-    internal fun createPreferencesHandler(): PreferencesHandler =
-        PreferencesHandler.getInstance(this)
+    internal fun createTrackStorage(): TrackStorage =
+        TrackStorage(PreferencesHandler.getInstance(this))
 
     /**
      * The main function of this service. Checks whether a location update is

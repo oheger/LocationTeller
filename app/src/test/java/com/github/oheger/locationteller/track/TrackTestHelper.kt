@@ -55,14 +55,28 @@ object TrackTestHelper {
     }
 
     /**
-     * Installs a mock preferences manager that returns shared preferences
-     * initialized with the test configurations.
-     * @param svrConf the server config to initialize preferences
-     * @param trackConf the track config to initialize preferences
-     * @param trackingEnabled flag whether tracking should be enabled
-     * @return the mock for the preferences handler
+     * Create a [TrackStorage] configured with a [PreferencesHandler] mock obtained via [preparePreferences] passing
+     * in [svrConf], [trackConf], and [trackingEnabled].
      */
-    fun preparePreferences(
+    fun prepareTrackStorage(
+        svrConf: ServerConfig? = defServerConfig,
+        trackConf: TrackConfig = defTrackConfig,
+        trackingEnabled: Boolean = true
+    ): TrackStorage = mockk<TrackStorage>().apply {
+        val handler = preparePreferences(svrConf, trackConf, trackingEnabled)
+        every { isTrackingEnabled() } returns trackingEnabled
+        every { checkCount() } returns 42
+        every { updateCount() } returns 11
+        every { errorCount() } returns 1
+        every { totalDistance() } returns 100
+        every { preferencesHandler } returns handler
+    }
+
+    /**
+     * Create a [PreferencesHandler] mock that is prepared to expect invocations to construct the given
+     * [server configuration][svrConf] and [track configuration][trackConf].
+     */
+    private fun preparePreferences(
         svrConf: ServerConfig? = defServerConfig,
         trackConf: TrackConfig = defTrackConfig,
         trackingEnabled: Boolean = true
@@ -70,10 +84,6 @@ object TrackTestHelper {
         val handler = mockk<PreferencesHandler>()
         every { handler.createServerConfig() } returns svrConf
         every { handler.isTrackingEnabled() } returns trackingEnabled
-        every { handler.checkCount() } returns 42
-        every { handler.updateCount() } returns 11
-        every { handler.errorCount() } returns 1
-        every { handler.totalDistance() } returns 100
 
         prepareTrackConfigFromPreferences(handler, trackConf)
 

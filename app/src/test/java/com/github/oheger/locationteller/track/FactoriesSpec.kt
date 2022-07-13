@@ -36,13 +36,13 @@ class FactoriesSpec : StringSpec() {
         "UpdaterActorFactory should create a correct actor" {
             val crScope = mockk<CoroutineScope>()
             val actor = mockk<SendChannel<LocationUpdate>>()
-            val prefHandler = TrackTestHelper.preparePreferences()
+            val trackStorage = TrackTestHelper.prepareTrackStorage()
             mockkStatic("com.github.oheger.locationteller.track.LocationUpdaterKt")
             every { locationUpdaterActor(any(), crScope) } answers {
                 val uploadController = arg<UploadController>(0)
                 val service = uploadController.trackService
                 service.davClient.config shouldBe TrackTestHelper.defServerConfig
-                uploadController.prefHandler shouldBe prefHandler
+                uploadController.trackStorage shouldBe trackStorage
                 uploadController.trackConfig shouldBe TrackTestHelper.defTrackConfig
                 uploadController.offlineStorage.capacity shouldBe TrackTestHelper.defTrackConfig.offlineStorageSize
                 uploadController.offlineStorage.minTrackInterval shouldBe TrackTestHelper.defTrackConfig.minTrackInterval * 1000
@@ -51,14 +51,14 @@ class FactoriesSpec : StringSpec() {
             }
             val factory = UpdaterActorFactory()
 
-            factory.createActor(prefHandler, TrackTestHelper.defTrackConfig, crScope) shouldBe actor
+            factory.createActor(trackStorage, TrackTestHelper.defTrackConfig, crScope) shouldBe actor
         }
 
         "UpdateActorFactory should return null if no server config is defined" {
-            val prefHandler = TrackTestHelper.preparePreferences(svrConf = null)
+            val trackStorage = TrackTestHelper.prepareTrackStorage(svrConf = null)
             val factory = UpdaterActorFactory()
 
-            factory.createActor(prefHandler, TrackTestHelper.defTrackConfig, mockk()) shouldBe null
+            factory.createActor(trackStorage, TrackTestHelper.defTrackConfig, mockk()) shouldBe null
         }
 
         "LocationRetrieverFactory should create a correct retriever object" {
