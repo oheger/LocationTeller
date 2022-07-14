@@ -147,120 +147,6 @@ class PreferencesHandler internal constructor(
     }
 
     /**
-     * Sets the preferences property for the last error to the given timestamp
-     * and also updates the total error counter.
-     * @param at the time when the error happened
-     * @param count the total number of errors
-     */
-    fun recordError(at: Long, count: Int) {
-        update {
-            putLong(PROP_LAST_ERROR, at)
-            putInt(PROP_ERROR_COUNT, count)
-        }
-    }
-
-    /**
-     * Updates the preferences properties for the last successful update with
-     * regards to the passed in information.
-     * @param at the time when the update happened
-     * @param count the number of updates
-     * @param distance the distance to the last position
-     * @param totalDistance the accumulated distance
-     */
-    fun recordUpdate(at: Long, count: Int, distance: Int, totalDistance: Long) {
-        update {
-            putLong(PROP_LAST_UPDATE, at)
-            putInt(PROP_UPDATE_COUNT, count)
-            putInt(PROP_LAST_DISTANCE, distance)
-            putLong(PROP_TOTAL_DISTANCE, totalDistance)
-        }
-    }
-
-    /**
-     * Sets the preferences property for the last check time to the given
-     * timestamp and also updates the number of checks.
-     * @param at the time when the last check has happened
-     * @param count the number of checks
-     */
-    fun recordCheck(at: Long, count: Int) {
-        update {
-            putLong(PROP_LAST_CHECK, at)
-            putInt(PROP_CHECK_COUNT, count)
-        }
-    }
-
-    /**
-     * Returns a _Date_ with the last error that happened. Result is *null* if
-     * the last update was successful.
-     * @return the date of the last error
-     */
-    fun lastError(): Date? = getDate(PROP_LAST_ERROR)
-
-    /**
-     * Returns the number of errors that have been encountered since the
-     * statistics have been reset.
-     * @return the number of errors
-     */
-    fun errorCount(): Int = preferences.getInt(PROP_ERROR_COUNT, 0)
-
-    /**
-     * Returns the number of checks that have been performed since the
-     * statistics have been reset.
-     * @return the number of checks
-     */
-    fun checkCount(): Int = preferences.getInt(PROP_CHECK_COUNT, 0)
-
-    /**
-     * Returns the number of updates that have been performed since the
-     * statistics have been reset.
-     * @return the number of updates
-     */
-    fun updateCount(): Int = preferences.getInt(PROP_UPDATE_COUNT, 0)
-
-    /**
-     * Returns a _Date_ when the last updated took place. Result is *null* if
-     * no update has been recorded so far.
-     * @return the date of the last update
-     */
-    fun lastUpdate(): Date? = getDate(PROP_LAST_UPDATE)
-
-    /**
-     * Returns a _Date_ when the last check for a location update took place.
-     * This timestamp is recorded any time the service is invoked, even if
-     * there was no change in the location. Result is *null* if no check time
-     * has been recorded so far.
-     * @return the date of the last check
-     */
-    fun lastCheck(): Date? = getDate(PROP_LAST_CHECK)
-
-    /**
-     * Returns the distance of the last location update in meters.
-     * @return the distance of the last location update
-     */
-    fun lastDistance(): Int = preferences.getInt(PROP_LAST_DISTANCE, 0)
-
-    /**
-     * Returns the total distance of all checks that have been recorded (in
-     * meters).
-     * @return the total distance of all location updates
-     */
-    fun totalDistance(): Long = preferences.getLong(PROP_TOTAL_DISTANCE, 0)
-
-    /**
-     * Returns the recorded start date of the current tracking process.
-     * Result is *null* if tracking has never been started.
-     * @return the start date of the current tracking process
-     */
-    fun trackingStartDate(): Date? = getDate(PROP_TRACKING_START)
-
-    /**
-     * Returns the recorded end date of the current tracking process. Result
-     * is *null* if tracking is currently active.
-     * @return the time tracking was stopped or *null*
-     */
-    fun trackingEndDate(): Date? = getDate(PROP_TRACKING_END)
-
-    /**
      * Registers the given change listener at the managed preferences.
      * @param listener the listener to be registered
      */
@@ -274,15 +160,6 @@ class PreferencesHandler internal constructor(
      */
     fun unregisterListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         preferences.unregisterOnSharedPreferenceChangeListener(listener)
-    }
-
-    /**
-     * Resets all the stored values that are related to tracking statistics.
-     */
-    fun resetStatistics() {
-        update {
-            RESET_PROPS.forEach { remove(it) }
-        }
     }
 
     companion object {
@@ -301,35 +178,11 @@ class PreferencesHandler internal constructor(
         /** Shared preferences property for the tracking state.*/
         const val PROP_TRACK_STATE = "trackEnabled"
 
-        /** Shared preferences property for the latest update of location data. */
-        const val PROP_LAST_UPDATE = "lastUpdate"
-
-        /** Shared preferences property for the distance of the last update. */
-        const val PROP_LAST_DISTANCE = "lastDistance"
-
-        /** Shared preferences property for the latest error that occurred.*/
-        const val PROP_LAST_ERROR = "lastError"
-
-        /** Shared preferences property for the last check for an update. */
-        const val PROP_LAST_CHECK = "lastCheck"
-
         /** Shared preferences property for the last tracking start time. */
         const val PROP_TRACKING_START = "trackingStart"
 
         /** Shared preferences property for the last time tracking was stopped. */
         const val PROP_TRACKING_END = "trackingEnd"
-
-        /** Shared preferences property for the number of errors encountered.*/
-        const val PROP_ERROR_COUNT = "errorCount"
-
-        /** Shared preferences property for the number of checks. */
-        const val PROP_CHECK_COUNT = "checkCount"
-
-        /** Shared preferences property for the number of updates. */
-        const val PROP_UPDATE_COUNT = "updateCount"
-
-        /** Shared preferences property for the accumulated distance (in meters). */
-        const val PROP_TOTAL_DISTANCE = "totalDistance"
 
         /** Shared preferences property to trigger the auto-reset of stats. */
         const val PROP_AUTO_RESET_STATS = "autoResetStats"
@@ -352,21 +205,6 @@ class PreferencesHandler internal constructor(
 
         /** A set with all properties related to configuration (not managed by other classes). */
         private val CONFIG_PROPS = setOf(PROP_SERVER_URI, PROP_BASE_PATH, PROP_USER, PROP_PASSWORD)
-
-        /**
-         * A set with the names of all the properties that need to be cleared
-         * when statistics are reset.
-         */
-        private val RESET_PROPS = setOf(
-            PROP_TOTAL_DISTANCE,
-            PROP_ERROR_COUNT,
-            PROP_LAST_CHECK,
-            PROP_LAST_DISTANCE,
-            PROP_LAST_UPDATE,
-            PROP_LAST_ERROR,
-            PROP_CHECK_COUNT,
-            PROP_UPDATE_COUNT
-        )
 
         /** Holds the shared instance of this class. */
         private var instance: PreferencesHandler? = null
