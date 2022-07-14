@@ -63,7 +63,7 @@ object TrackTestHelper {
         trackConf: TrackConfig = defTrackConfig,
         trackingEnabled: Boolean = true
     ): TrackStorage = mockk<TrackStorage>().apply {
-        val handler = preparePreferences(svrConf, trackConf, trackingEnabled)
+        val handler = preparePreferences(svrConf, trackConf)
         every { isTrackingEnabled() } returns trackingEnabled
         every { checkCount() } returns 42
         every { updateCount() } returns 11
@@ -78,12 +78,10 @@ object TrackTestHelper {
      */
     private fun preparePreferences(
         svrConf: ServerConfig? = defServerConfig,
-        trackConf: TrackConfig = defTrackConfig,
-        trackingEnabled: Boolean = true
+        trackConf: TrackConfig = defTrackConfig
     ): PreferencesHandler {
         val handler = mockk<PreferencesHandler>()
         every { handler.createServerConfig() } returns svrConf
-        every { handler.isTrackingEnabled() } returns trackingEnabled
 
         prepareTrackConfigFromPreferences(handler, trackConf)
 

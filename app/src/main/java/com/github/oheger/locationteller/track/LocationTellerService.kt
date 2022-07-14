@@ -65,8 +65,8 @@ class LocationTellerService(
      */
     private lateinit var pendingIntent: PendingIntent
 
-    /** The object providing access to shared preferences. */
-    private lateinit var preferencesHandler: PreferencesHandler
+    /** The object providing access to tracking-related shared preferences. */
+    private lateinit var trackStorage: TrackStorage
 
     /** The object that retrieves the current location.*/
     private var locationProcessor: LocationProcessor? = null
@@ -91,9 +91,8 @@ class LocationTellerService(
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        val trackStorage = createTrackStorage()
-        preferencesHandler = trackStorage.preferencesHandler
-        val trackConfig = TrackConfig.fromPreferences(preferencesHandler)
+        trackStorage = createTrackStorage()
+        val trackConfig = TrackConfig.fromPreferences(trackStorage.preferencesHandler)
         val updaterActor = updaterFactory.createActor(trackStorage, trackConfig, this)
         if (updaterActor != null) {
             Log.i(tag, "Configuration complete. Updater actor could be created.")
@@ -145,7 +144,7 @@ class LocationTellerService(
      */
     private fun tellLocation() = launch {
         val retriever = locationProcessor
-        if (retriever != null && preferencesHandler.isTrackingEnabled()) {
+        if (retriever != null && trackStorage.isTrackingEnabled()) {
             Log.i(tag, "Triggering location update.")
             val nextUpdate = retriever.retrieveAndUpdateLocation()
             scheduleNextExecution(nextUpdate)
