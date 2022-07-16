@@ -16,12 +16,15 @@
 package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
+import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.TrackStorage
 
 private const val TAG = "TrackViewModel"
@@ -34,6 +37,10 @@ private const val SECS_PER_HOUR = 60 * 60
  *
  * This class manages a [TrackStatsState] instance and keeps it up-to-date by listening on changes on the shared
  * preferences that impact the tracking statistics.
+ *
+ * It further keeps track on the state whether tracking is currently enabled. The state is *false* when the application
+ * starts. When the user changes the state in the UI, this model is notified, and it then invokes the tracking service
+ * accordingly.
  */
 class TrackViewModel(
     /** The storage for accessing tracking-related properties. */
@@ -53,10 +60,38 @@ class TrackViewModel(
     /** The formatter for statistics data. */
     private val formatter = TrackStatsFormatter.create()
 
+    /** Holds the current tracking state. */
+    private val trackEnabledState = mutableStateOf(false)
+
     init {
+        trackStorage.setTrackingEnabled(false)
         trackStorage.preferencesHandler.registerListener(this)
 
         initializeFromSharedPreferences()
+    }
+
+    /**
+     * A flag whether tracking is currently enabled or not.
+     */
+    val trackingEnabled: Boolean
+        get() = trackEnabledState.value
+
+    /**
+     * Set the tracking state to [enabled]. This causes the tracking service to be updated accordingly.
+     */
+    fun updateTrackingState(enabled: Boolean) {
+        if (enabled != trackingEnabled) {
+            trackEnabledState.value = enabled
+
+            trackStorage.setTrackingEnabled(enabled)
+            if (enabled) {
+                trackStorage.recordTrackingStart(formatter.timeService.currentTime())
+            } else {
+                trackStorage.recordTrackingEnd(formatter.timeService.currentTime())
+            }
+
+            getApplication<Application>().startService(serviceIntent())
+        }
     }
 
     /**
@@ -74,6 +109,11 @@ class TrackViewModel(
         Log.i(TAG, "TrackViewModel is cleared.")
         trackStorage.preferencesHandler.preferences.unregisterOnSharedPreferenceChangeListener(this)
     }
+
+    /**
+     * Return the [Intent] to start the tracking service.
+     */
+    internal fun serviceIntent(): Intent = Intent(getApplication(), LocationTellerService::class.java)
 
     /**
      * React on a change of a shared preferences [property].

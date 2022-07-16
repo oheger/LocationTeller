@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
+import android.content.Intent
 import android.content.SharedPreferences
 
 import com.github.oheger.locationteller.config.PreferencesHandler
@@ -35,6 +36,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.runs
 import io.mockk.slot
+import io.mockk.spyk
 import io.mockk.verify
 
 import java.util.Date
@@ -50,9 +52,10 @@ class TrackViewModelSpec : WordSpec() {
     private lateinit var formatter: TrackStatsFormatter
 
     override suspend fun beforeAny(testCase: TestCase) {
-        val preferencesHandler = mockk<PreferencesHandler>()
+        val preferencesHandler = mockk<PreferencesHandler>(relaxed = true)
         val prefs = mockk<SharedPreferences>()
-        storage = mockk()
+        storage = mockk(relaxed = true)
+
         every { storage.preferencesHandler } returns preferencesHandler
         every { preferencesHandler.preferences } returns prefs
         every { preferencesHandler.registerListener(any()) } just runs
@@ -365,6 +368,82 @@ class TrackViewModelSpec : WordSpec() {
                 model.trackStatistics.lastUpdateTime shouldBe "lastUpdate"
                 model.trackStatistics.elapsedTime shouldBe "elapsedTime"
             }
+
+            "return an initial tracking state of false" {
+                val model = createModel()
+
+                model.trackingEnabled shouldBe false
+            }
+
+            "reset the tracking state to false in the storage" {
+                createModel()
+
+                verify {
+                    storage.setTrackingEnabled(false)
+                }
+            }
+        }
+
+        "updateTrackingState" should {
+            "not stop tracking if it is disabled" {
+                val model = createModel()
+
+                model.updateTrackingState(false)
+
+                verify(exactly = 0) {
+                    storage.recordTrackingEnd(any())
+                }
+            }
+
+            "start tracking" {
+                val model = createModel()
+
+                model.updateTrackingState(enabled = true)
+
+                model.trackingEnabled shouldBe true
+
+                val intent = model.serviceIntent()
+                val application = model.getApplication<Application>()
+                verify {
+                    application.startService(intent)
+                    storage.recordTrackingStart(CURRENT_TIME)
+                    storage.setTrackingEnabled(true)
+                }
+            }
+
+            "not start tracking again if it is enabled" {
+                val model = createModel()
+                model.updateTrackingState(enabled = true)
+
+                model.updateTrackingState(enabled = true)
+
+                val intent = model.serviceIntent()
+                val application = model.getApplication<Application>()
+                verify(exactly = 1) {
+                    application.startService(intent)
+                    storage.recordTrackingStart(CURRENT_TIME)
+                    storage.setTrackingEnabled(true)
+                }
+            }
+
+            "stop tracking" {
+                val model = createModel()
+                model.updateTrackingState(enabled = true)
+
+                model.updateTrackingState(enabled = false)
+
+                model.trackingEnabled shouldBe false
+
+                val intent = model.serviceIntent()
+                val application = model.getApplication<Application>()
+                verify(exactly = 2) {
+                    application.startService(intent)
+                    storage.setTrackingEnabled(false)
+                }
+                verify(exactly = 1) {
+                    storage.recordTrackingEnd(CURRENT_TIME)
+                }
+            }
         }
     }
 
@@ -372,7 +451,13 @@ class TrackViewModelSpec : WordSpec() {
      * Create a test [TrackViewModel] instance that is associated with the managed mock [PreferencesHandler].
      */
     private fun createModel(): TrackViewModel {
-        return TrackViewModel(storage, mockk(relaxed = true))
+        val intent = mockk<Intent>()
+        val model = TrackViewModel(storage, mockk(relaxed = true))
+
+        val modelSpy = spyk(model)
+        every { modelSpy.serviceIntent() } returns intent
+
+        return modelSpy
     }
 
     /**
