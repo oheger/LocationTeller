@@ -18,6 +18,7 @@ package com.github.oheger.locationteller.track
 import android.content.SharedPreferences
 
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.server.TimeData
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -227,6 +228,29 @@ class TrackStorageSpec : StringSpec({
 
         verify {
             editor.putBoolean(TrackStorage.PROP_TRACK_STATE, true)
+        }
+    }
+
+    "Tracking start can be recorded" {
+        val startTime = TimeData(20220716165510L)
+        val editor = checkPreferencesUpdate { handler ->
+            TrackStorage(handler).recordTrackingStart(startTime)
+        }
+
+        verify {
+            editor.putLong(TrackStorage.PROP_TRACKING_START, startTime.currentTime)
+            editor.remove(TrackStorage.PROP_TRACKING_END)
+        }
+    }
+
+    "Tracking end can be recorded" {
+        val endTime = TimeData(20220716165838L)
+        val editor = checkPreferencesUpdate { handler ->
+            TrackStorage(handler).recordTrackingEnd(endTime)
+        }
+
+        verify {
+            editor.putLong(TrackStorage.PROP_TRACKING_END, endTime.currentTime)
         }
     }
 })

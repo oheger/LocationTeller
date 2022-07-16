@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.track
 
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.server.TimeData
 
 import java.util.Date
 
@@ -114,6 +115,26 @@ class TrackStorage(
         preferencesHandler.update {
             putLong(PROP_LAST_CHECK, checkTime)
             putInt(PROP_CHECK_COUNT, count)
+        }
+    }
+
+    /**
+     * Record that tracking started at the given [startTime]. Also reset the tracking end property to reflect that a
+     * tracking operation is currently ongoing.
+     */
+    fun recordTrackingStart(startTime: TimeData) {
+        preferencesHandler.update {
+            putLong(PROP_TRACKING_START, startTime.currentTime)
+            remove(PROP_TRACKING_END)
+        }
+    }
+
+    /**
+     * Record that tracking ended at the given [endTime].
+     */
+    fun recordTrackingEnd(endTime: TimeData) {
+        preferencesHandler.update {
+            putLong(PROP_TRACKING_END, endTime.currentTime)
         }
     }
 
