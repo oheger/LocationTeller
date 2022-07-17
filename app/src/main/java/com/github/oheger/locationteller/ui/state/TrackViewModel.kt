@@ -33,6 +33,24 @@ private const val TAG = "TrackViewModel"
 private const val SECS_PER_HOUR = 60 * 60
 
 /**
+ * An interface defining the contract of the view model for the tracking UI.
+ *
+ * The purpose of this interface is to support alternative implementations that can be used for instance if previews.
+ */
+interface TrackViewModel {
+    /** A property with the statistics of the current tracking operation. */
+    val trackStatistics: TrackStatsState
+
+    /** A flag whether tracking is currently enabled or not. */
+    val trackingEnabled: Boolean
+
+    /**
+     * Set the tracking state to [enabled].
+     */
+    fun updateTrackingState(enabled: Boolean)
+}
+
+/**
  * A class serving as view model for the tracking UI.
  *
  * This class manages a [TrackStatsState] instance and keeps it up-to-date by listening on changes on the shared
@@ -42,20 +60,20 @@ private const val SECS_PER_HOUR = 60 * 60
  * starts. When the user changes the state in the UI, this model is notified, and it then invokes the tracking service
  * accordingly.
  */
-class TrackViewModel(
+class TrackViewModelImpl(
     /** The storage for accessing tracking-related properties. */
     val trackStorage: TrackStorage,
 
     /** The central [Application]. */
     application: Application
-) : AndroidViewModel(application), SharedPreferences.OnSharedPreferenceChangeListener {
+) : AndroidViewModel(application), SharedPreferences.OnSharedPreferenceChangeListener, TrackViewModel {
     /**
      * Create an instance from the given [application]. Use [application] to construct a [TrackStorage].
      */
     constructor(application: Application) : this(createTrackStorage(application), application)
 
     /** Holds the statistics of the current tracking operation. */
-    val trackStatistics = TrackStatsState()
+    override val trackStatistics = TrackStatsState()
 
     /** The formatter for statistics data. */
     private val formatter = TrackStatsFormatter.create()
@@ -73,13 +91,13 @@ class TrackViewModel(
     /**
      * A flag whether tracking is currently enabled or not.
      */
-    val trackingEnabled: Boolean
+    override val trackingEnabled: Boolean
         get() = trackEnabledState.value
 
     /**
      * Set the tracking state to [enabled]. This causes the tracking service to be updated accordingly.
      */
-    fun updateTrackingState(enabled: Boolean) {
+    override fun updateTrackingState(enabled: Boolean) {
         if (enabled != trackingEnabled) {
             trackEnabledState.value = enabled
 

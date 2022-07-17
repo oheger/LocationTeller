@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
+import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
 internal const val TAG_TRACK_START = "tag_track_start"
 internal const val TAG_TRACK_END = "tag_track_end"
@@ -49,10 +50,15 @@ internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
 internal fun labelTag(tag: String): String = "${tag}_label"
 
 /**
- * Generate the while tracking UI based on [model].
+ * Generate the whole tracking UI based on [model].
  */
 @Composable
-fun TrackUi(model: TrackViewModel = viewModel(), modifier: Modifier = Modifier) {
+fun TrackUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = Modifier) {
+    TrackView(model = model, modifier = modifier)
+}
+
+@Composable
+fun TrackView(model: TrackViewModel, modifier: Modifier = Modifier) {
     TrackStats(stats = model.trackStatistics, modifier = modifier)
 }
 
@@ -162,9 +168,21 @@ fun StatsLine(labelRes: Int, value: String?, tag: String, modifier: Modifier = M
     }
 }
 
+/**
+ * A dummy implementation of [TrackViewModel] that can be used in preview functions.
+ */
+data class PreviewTrackViewModel(
+    override val trackStatistics: TrackStatsState,
+    override var trackingEnabled: Boolean = false)
+: TrackViewModel {
+    override fun updateTrackingState(enabled: Boolean) {
+        trackingEnabled = enabled
+    }
+}
+
 @Preview
 @Composable
-fun TrackStatsPreview() {
+fun TrackViewPreview() {
     val state = TrackStatsState()
     state.startTime = "2022-06-25 16:45:55"
     state.elapsedTime = "16:12"
@@ -175,6 +193,7 @@ fun TrackStatsPreview() {
     state.lastCheckTime = "17:01:31"
     state.numberOfUpdates = "20"
     state.lastUpdateTime = "17:01:31"
+    val model= PreviewTrackViewModel(state)
 
-    TrackStats(stats = state)
+    TrackView(model = model)
 }

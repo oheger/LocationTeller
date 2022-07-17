@@ -42,7 +42,7 @@ import io.mockk.verify
 import java.util.Date
 
 /**
- * Test class for [TrackViewModel].
+ * Test class for [TrackViewModelImpl].
  */
 class TrackViewModelSpec : WordSpec() {
     /** A mock for the storage of tracking-related properties. */
@@ -72,7 +72,7 @@ class TrackViewModelSpec : WordSpec() {
                 mockkObject(PreferencesHandler)
                 every { PreferencesHandler.getInstance(application) } returns preferencesHandler
 
-                val model = TrackViewModel(application)
+                val model = TrackViewModelImpl(application)
 
                 model.trackStorage.preferencesHandler shouldBe preferencesHandler
             }
@@ -448,11 +448,11 @@ class TrackViewModelSpec : WordSpec() {
     }
 
     /**
-     * Create a test [TrackViewModel] instance that is associated with the managed mock [PreferencesHandler].
+     * Create a test [TrackViewModelImpl] instance that is associated with the managed mock [PreferencesHandler].
      */
-    private fun createModel(): TrackViewModel {
+    private fun createModel(): TrackViewModelImpl {
         val intent = mockk<Intent>()
-        val model = TrackViewModel(storage, mockk(relaxed = true))
+        val model = TrackViewModelImpl(storage, mockk(relaxed = true))
 
         val modelSpy = spyk(model)
         every { modelSpy.serviceIntent() } returns intent
