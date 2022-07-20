@@ -20,12 +20,20 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackStorage
 
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
+
 import io.kotest.inspectors.forAll
+
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 
 import org.junit.Rule
 import org.junit.Test
@@ -82,6 +90,45 @@ class TrackUiSpec {
         composeTestRule.onNodeWithTag(TAG_TRACK_CHECKS).assertTextEquals("42")
         composeTestRule.onNodeWithTag(TAG_TRACK_LAST_DIST).assertTextEquals("77")
         composeTestRule.onNodeWithTag(TAG_TRACK_START).assertTextContains("2022", substring = true)
+    }
+
+    @Test
+    fun `The permission request button is displayed if no location permission is granted`() {
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertDoesNotExist()
+    }
+
+    @Test
+    fun `The enabled switch is displayed if the location permission is granted`() {
+        val permissionState = mockk<PermissionState>()
+        every { permissionState.status } returns PermissionStatus.Granted
+        installTrackSwitch(permissionState)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertDoesNotExist()
+    }
+
+    @Test
+    fun `Clicking the request permissions button launches the request`() {
+        val permissionState = mockk<PermissionState>(relaxed = true)
+        every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = false)
+        installTrackSwitch(permissionState)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).performClick()
+
+        verify {
+            permissionState.launchPermissionRequest()
+        }
+    }
+
+    /**
+     * Create a [TrackEnabledSwitch] instance and set it as content for [composeTestRule]. Pass [permissionState] to
+     * the switch UI.
+     */
+    private fun installTrackSwitch(permissionState: PermissionState) {
+        composeTestRule.setContent {
+            TrackEnabledSwitch(enabled = true, onStateChange = {}, locationPermissionState = permissionState)
+        }
     }
 }
 

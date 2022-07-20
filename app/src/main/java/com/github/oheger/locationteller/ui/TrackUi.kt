@@ -15,9 +15,14 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.Manifest
+
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.Button
+import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -31,6 +36,10 @@ import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
+import com.google.accompanist.permissions.rememberPermissionState
+
 internal const val TAG_TRACK_START = "tag_track_start"
 internal const val TAG_TRACK_END = "tag_track_end"
 internal const val TAG_TRACK_TIME = "tag_track_time"
@@ -43,6 +52,8 @@ internal const val TAG_TRACK_UPDATES = "tag_track_updates"
 internal const val TAG_TRACK_LAST_UPDATE = "tag_track_last_update"
 internal const val TAG_TRACK_ERRORS = "tag_track_errors"
 internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
+internal const val TAG_TRACK_ENABLED_SWITCH = "tag_track_enabled_switch"
+internal const val TAG_TRACK_PERM_BUTTON = "tag_track_perm_button"
 
 /**
  * Generate the test tag of for the label element associated with the value defined by [tag].
@@ -50,16 +61,72 @@ internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
 internal fun labelTag(tag: String): String = "${tag}_label"
 
 /**
- * Generate the whole tracking UI based on [model].
+ * Generate the whole tracking UI. This is the entry point into this UI.
  */
 @Composable
 fun TrackUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = Modifier) {
-    TrackView(model = model, modifier = modifier)
+    val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
+
+    TrackView(model = model, locationPermissionState = locationPermissionState, modifier = modifier)
 }
 
+/**
+ * Generate the tracking UI based on the provided [model] and [locationPermissionState].
+ */
 @Composable
-fun TrackView(model: TrackViewModel, modifier: Modifier = Modifier) {
-    TrackStats(stats = model.trackStatistics, modifier = modifier)
+fun TrackView(model: TrackViewModel, locationPermissionState: PermissionState, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        TrackEnabledSwitch(
+            enabled = model.trackingEnabled,
+            onStateChange = { state -> model.updateTrackingState(state) },
+            locationPermissionState = locationPermissionState,
+            modifier = modifier
+        )
+        TrackStats(stats = model.trackStatistics, modifier = modifier)
+    }
+}
+
+/**
+ * Display the switch to enable or disable tracking using the current [enabled] state and the [onStateChange]
+ * function to report changes.
+ */
+@Composable
+fun TrackEnabledSwitch(
+    enabled: Boolean,
+    onStateChange: (Boolean) -> Unit,
+    locationPermissionState: PermissionState,
+    modifier: Modifier = Modifier
+) {
+    when (locationPermissionState.status) {
+        PermissionStatus.Granted ->
+            Row(
+                modifier = modifier
+                    .padding(all = 2.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onStateChange,
+                    modifier = modifier
+                        .testTag(TAG_TRACK_ENABLED_SWITCH)
+                )
+                Text(text = stringResource(id = R.string.lab_track_enabled), modifier = modifier)
+            }
+
+        is PermissionStatus.Denied -> {
+            Column {
+                Text(text = stringResource(id = R.string.perm_location_rationale))
+                Button(
+                    onClick = { locationPermissionState.launchPermissionRequest() },
+                    modifier = modifier.testTag(TAG_TRACK_PERM_BUTTON)
+                ) {
+                    Text(text = "Request permission")
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -173,8 +240,8 @@ fun StatsLine(labelRes: Int, value: String?, tag: String, modifier: Modifier = M
  */
 data class PreviewTrackViewModel(
     override val trackStatistics: TrackStatsState,
-    override var trackingEnabled: Boolean = false)
-: TrackViewModel {
+    override var trackingEnabled: Boolean = false
+) : TrackViewModel {
     override fun updateTrackingState(enabled: Boolean) {
         trackingEnabled = enabled
     }
@@ -183,17 +250,25 @@ data class PreviewTrackViewModel(
 @Preview
 @Composable
 fun TrackViewPreview() {
-    val state = TrackStatsState()
-    state.startTime = "2022-06-25 16:45:55"
-    state.elapsedTime = "16:12"
-    state.totalDistance = "2500"
-    state.averageSpeed = "3.5"
-    state.lastDistance = "142"
-    state.numberOfChecks = "28"
-    state.lastCheckTime = "17:01:31"
-    state.numberOfUpdates = "20"
-    state.lastUpdateTime = "17:01:31"
-    val model= PreviewTrackViewModel(state)
+    val state = TrackStatsState().apply {
+        startTime = "2022-06-25 16:45:55"
+        elapsedTime = "16:12"
+        totalDistance = "2500"
+        averageSpeed = "3.5"
+        lastDistance = "142"
+        numberOfChecks = "28"
+        lastCheckTime = "17:01:31"
+        numberOfUpdates = "20"
+        lastUpdateTime = "17:01:31"
+    }
+    val permissionState = object : PermissionState {
+        override val permission = Manifest.permission.ACCESS_FINE_LOCATION
+        override val status = PermissionStatus.Granted
 
-    TrackView(model = model)
+        override fun launchPermissionRequest() {
+        }
+    }
+    val model = PreviewTrackViewModel(state)
+
+    TrackView(model = model, locationPermissionState = permissionState)
 }
