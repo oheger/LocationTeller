@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -247,9 +249,12 @@ data class PreviewTrackViewModel(
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
-fun TrackViewPreview() {
+fun TrackViewPreview(
+    @PreviewParameter(PermissionStateProvider::class)
+    permissionState: PermissionState
+) {
     val state = TrackStatsState().apply {
         startTime = "2022-06-25 16:45:55"
         elapsedTime = "16:12"
@@ -261,14 +266,31 @@ fun TrackViewPreview() {
         numberOfUpdates = "20"
         lastUpdateTime = "17:01:31"
     }
-    val permissionState = object : PermissionState {
-        override val permission = Manifest.permission.ACCESS_FINE_LOCATION
-        override val status = PermissionStatus.Granted
-
-        override fun launchPermissionRequest() {
-        }
-    }
     val model = PreviewTrackViewModel(state)
 
     TrackView(model = model, locationPermissionState = permissionState)
+}
+
+/**
+ * A [PreviewParameterProvider] implementation that provides all possible permission states for the location
+ * permission. So the effect of the permission state on the UI can be seen.
+ */
+class PermissionStateProvider : PreviewParameterProvider<PermissionState> {
+    override val values: Sequence<PermissionState> = sequenceOf(
+        PermissionStatus.Granted,
+        PermissionStatus.Denied(shouldShowRationale = false),
+        PermissionStatus.Denied(shouldShowRationale = true)
+    ).map(this::createLocationPermissionState)
+
+    /**
+     * Create a [PermissionState] stub object that reports the given [status].
+     */
+    private fun createLocationPermissionState(status: PermissionStatus): PermissionState =
+        object : PermissionState {
+            override val permission = Manifest.permission.ACCESS_FINE_LOCATION
+
+            override val status = status
+
+            override fun launchPermissionRequest() {}
+        }
 }
