@@ -78,4 +78,5 @@
     <string name="perm_button_continue">Continue</string>
     <string name="perm_button_cancel">Cancel</string>
     <string name="perm_location_title">Required Location Permission</string>
+    <string name="perm_location_request">Request permission</string>
 </resources>

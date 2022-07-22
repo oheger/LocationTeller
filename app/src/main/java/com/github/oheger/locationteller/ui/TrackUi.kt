@@ -26,11 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
@@ -56,6 +58,8 @@ internal const val TAG_TRACK_ERRORS = "tag_track_errors"
 internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
 internal const val TAG_TRACK_ENABLED_SWITCH = "tag_track_enabled_switch"
 internal const val TAG_TRACK_PERM_BUTTON = "tag_track_perm_button"
+internal const val TAG_TRACK_PERM_MESSAGE = "tag_track_perm_message"
+internal const val TAG_TRACK_PERM_DETAILS = "tag_track_perm_details"
 
 /**
  * Generate the test tag of for the label element associated with the value defined by [tag].
@@ -99,7 +103,7 @@ fun TrackEnabledSwitch(
     locationPermissionState: PermissionState,
     modifier: Modifier = Modifier
 ) {
-    when (locationPermissionState.status) {
+    when (val status = locationPermissionState.status) {
         PermissionStatus.Granted ->
             Row(
                 modifier = modifier
@@ -118,13 +122,35 @@ fun TrackEnabledSwitch(
             }
 
         is PermissionStatus.Denied -> {
-            Column {
-                Text(text = stringResource(id = R.string.perm_location_rationale))
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(all = 10.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.perm_location_title),
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = modifier
+                        .testTag(TAG_TRACK_PERM_MESSAGE)
+                        .padding(bottom = 10.dp)
+                )
+                if (status.shouldShowRationale) {
+                    Text(
+                        text = stringResource(id = R.string.perm_location_rationale),
+                        fontSize = 12.sp,
+                        modifier = modifier
+                            .testTag(TAG_TRACK_PERM_DETAILS)
+                            .padding(bottom = 10.dp)
+                    )
+                }
                 Button(
                     onClick = { locationPermissionState.launchPermissionRequest() },
-                    modifier = modifier.testTag(TAG_TRACK_PERM_BUTTON)
+                    modifier = modifier
+                        .testTag(TAG_TRACK_PERM_BUTTON)
+                        .align(Alignment.CenterHorizontally)
                 ) {
-                    Text(text = "Request permission")
+                    Text(text = stringResource(id = R.string.perm_location_request))
                 }
             }
         }
@@ -136,7 +162,7 @@ fun TrackEnabledSwitch(
  */
 @Composable
 fun TrackStats(stats: TrackStatsState, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
+    Column(modifier = modifier.padding(all = 10.dp)) {
         StatsLine(
             labelRes = R.string.stats_tracking_started,
             value = stats.startTime,
@@ -220,7 +246,6 @@ fun TrackStats(stats: TrackStatsState, modifier: Modifier = Modifier) {
 fun StatsLine(labelRes: Int, value: String?, tag: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .padding(all = 2.dp)
             .fillMaxWidth()
     ) {
         Text(text = stringResource(id = labelRes), modifier = modifier.testTag(labelTag(tag)))

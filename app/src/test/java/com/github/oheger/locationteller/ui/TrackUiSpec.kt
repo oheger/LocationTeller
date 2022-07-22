@@ -94,7 +94,25 @@ class TrackUiSpec {
 
     @Test
     fun `The permission request button is displayed if no location permission is granted`() {
+        val permissionState = mockk<PermissionState>()
+        every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = false)
+        installTrackSwitch(permissionState)
+
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_MESSAGE).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_DETAILS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertDoesNotExist()
+    }
+
+    @Test
+    fun `The permission details text is displayed if required by the permission status`() {
+        val permissionState = mockk<PermissionState>()
+        every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = true)
+        installTrackSwitch(permissionState)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_MESSAGE).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_DETAILS).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertDoesNotExist()
     }
 
@@ -105,6 +123,8 @@ class TrackUiSpec {
         installTrackSwitch(permissionState)
 
         composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertExists()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_DETAILS).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_MESSAGE).assertDoesNotExist()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertDoesNotExist()
     }
 
