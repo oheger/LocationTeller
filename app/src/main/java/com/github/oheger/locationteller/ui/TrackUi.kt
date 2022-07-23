@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
@@ -267,11 +268,14 @@ fun StatsLine(labelRes: Int, value: String?, tag: String, modifier: Modifier = M
  */
 data class PreviewTrackViewModel(
     override val trackStatistics: TrackStatsState,
-    override var trackingEnabled: Boolean = false
+    override var trackingEnabled: Boolean = false,
+    override val trackConfig: TrackConfig = TrackConfig.DEFAULT
 ) : TrackViewModel {
     override fun updateTrackingState(enabled: Boolean) {
         trackingEnabled = enabled
     }
+
+    override fun updateTrackConfig(config: TrackConfig) {}
 }
 
 @Preview(showBackground = true)

@@ -20,6 +20,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.TrackStorage
@@ -69,8 +70,9 @@ class TrackViewModelSpec : WordSpec() {
             "create a correct TrackStorage instance" {
                 val application = mockk<Application>()
                 val preferencesHandler = storage.preferencesHandler
-                mockkObject(PreferencesHandler)
+                mockkObject(PreferencesHandler, TrackConfig)
                 every { PreferencesHandler.getInstance(application) } returns preferencesHandler
+                every { TrackConfig.fromPreferences(preferencesHandler) } returns TrackConfig.DEFAULT
 
                 val model = TrackViewModelImpl(application)
 
@@ -354,7 +356,7 @@ class TrackViewModelSpec : WordSpec() {
                 every { formatter.formatDate(lastUpdate) } returns "lastUpdate"
                 every { formatter.formatDuration(endTime.time - startTime.time) } returns "elapsedTime"
 
-                val model = createModel()
+                val model = createModel(autoReset = true)
 
                 model.trackStatistics.numberOfChecks shouldBe "28"
                 model.trackStatistics.numberOfErrors shouldBe "4"
@@ -367,6 +369,9 @@ class TrackViewModelSpec : WordSpec() {
                 model.trackStatistics.lastErrorTime shouldBe "lastError"
                 model.trackStatistics.lastUpdateTime shouldBe "lastUpdate"
                 model.trackStatistics.elapsedTime shouldBe "elapsedTime"
+
+                val expectedConfig = TrackConfig.DEFAULT.copy(autoResetStats = true)
+                model.trackConfig shouldBe expectedConfig
             }
 
             "return an initial tracking state of false" {
@@ -443,14 +448,54 @@ class TrackViewModelSpec : WordSpec() {
                 verify(exactly = 1) {
                     storage.recordTrackingEnd(CURRENT_TIME)
                 }
+                verify(exactly = 0) {
+                    storage.resetStatistics()
+                }
+            }
+
+            "reset statistics on start if this option is enabled" {
+                val model = createModel(autoReset = true)
+
+                model.updateTrackingState(enabled = true)
+
+                verify {
+                    storage.resetStatistics()
+                }
+            }
+
+            "only reset statistics on start if this option is enabled" {
+                val model = createModel()
+
+                model.updateTrackingState(enabled = true)
+
+                verify(exactly = 0) {
+                    storage.resetStatistics()
+                }
+            }
+        }
+
+        "updateTrackingConfig" should {
+            "replace the tracking configuration" {
+                val newConfig = mockk<TrackConfig>()
+                val model = createModel()
+
+                model.updateTrackConfig(newConfig)
+
+                model.trackConfig shouldBe newConfig
             }
         }
     }
 
     /**
      * Create a test [TrackViewModelImpl] instance that is associated with the managed mock [PreferencesHandler].
+     * Prepare the creation of a [TrackConfig] with the given value of [autoReset].
      */
-    private fun createModel(): TrackViewModelImpl {
+    private fun createModel(autoReset: Boolean = false): TrackViewModelImpl {
+        mockkObject(TrackConfig)
+        val config = TrackConfig.DEFAULT.copy(autoResetStats = autoReset)
+        val prefHandler = storage.preferencesHandler
+        every { TrackConfig.fromPreferences(prefHandler) } returns config
+
         val intent = mockk<Intent>()
         val model = TrackViewModelImpl(storage, mockk(relaxed = true))
 

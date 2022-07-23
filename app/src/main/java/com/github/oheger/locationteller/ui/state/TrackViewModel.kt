@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.TrackStorage
 
@@ -44,10 +45,18 @@ interface TrackViewModel {
     /** A flag whether tracking is currently enabled or not. */
     val trackingEnabled: Boolean
 
+    /** The current tracking configuration. */
+    val trackConfig: TrackConfig
+
     /**
      * Set the tracking state to [enabled].
      */
     fun updateTrackingState(enabled: Boolean)
+
+    /**
+     * Set the tracking configuration to [config]. This function is called when there is a change in the configuration.
+     */
+    fun updateTrackConfig(config: TrackConfig)
 }
 
 /**
@@ -81,9 +90,14 @@ class TrackViewModelImpl(
     /** Holds the current tracking state. */
     private val trackEnabledState = mutableStateOf(false)
 
+    /** Stores the managed [TrackConfig]. */
+    private var currentTrackConfig: TrackConfig
+
     init {
         trackStorage.setTrackingEnabled(false)
         trackStorage.preferencesHandler.registerListener(this)
+
+        currentTrackConfig = TrackConfig.fromPreferences(trackStorage.preferencesHandler)
 
         initializeFromSharedPreferences()
     }
@@ -95,6 +109,12 @@ class TrackViewModelImpl(
         get() = trackEnabledState.value
 
     /**
+     * Allows read-only access to the current track configuration.
+     */
+    override val trackConfig: TrackConfig
+        get() = currentTrackConfig
+
+    /**
      * Set the tracking state to [enabled]. This causes the tracking service to be updated accordingly.
      */
     override fun updateTrackingState(enabled: Boolean) {
@@ -103,6 +123,9 @@ class TrackViewModelImpl(
 
             trackStorage.setTrackingEnabled(enabled)
             if (enabled) {
+                if (trackConfig.autoResetStats) {
+                    trackStorage.resetStatistics()
+                }
                 trackStorage.recordTrackingStart(formatter.timeService.currentTime())
             } else {
                 trackStorage.recordTrackingEnd(formatter.timeService.currentTime())
@@ -110,6 +133,10 @@ class TrackViewModelImpl(
 
             getApplication<Application>().startService(serviceIntent())
         }
+    }
+
+    override fun updateTrackConfig(config: TrackConfig) {
+        currentTrackConfig = config
     }
 
     /**
