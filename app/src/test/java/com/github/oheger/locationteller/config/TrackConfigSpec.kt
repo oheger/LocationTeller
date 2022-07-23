@@ -53,58 +53,58 @@ class TrackConfigSpec : StringSpec({
         val prefHandler = mockk<PreferencesHandler>()
         every { prefHandler.preferences } returns prefs
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_MIN_TRACK_INTERVAL, 60, TrackConfig.DEFAULT_MIN_TRACK_INTERVAL)
+            prefHandler.getNumeric(TrackConfig.PROP_MIN_TRACK_INTERVAL, 60, TrackConfig.DEFAULT.minTrackInterval)
         } returns config.minTrackInterval
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_MAX_TRACK_INTERVAL, 60, TrackConfig.DEFAULT_MAX_TRACK_INTERVAL)
+            prefHandler.getNumeric(TrackConfig.PROP_MAX_TRACK_INTERVAL, 60, TrackConfig.DEFAULT.maxTrackInterval)
         } returns config.maxTrackInterval
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_IDLE_INCREMENT, 60, TrackConfig.DEFAULT_IDLE_INCREMENT)
+            prefHandler.getNumeric(TrackConfig.PROP_IDLE_INCREMENT, 60, TrackConfig.DEFAULT.intervalIncrementOnIdle)
         } returns config.intervalIncrementOnIdle
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_LOCATION_VALIDITY, 60, TrackConfig.DEFAULT_LOCATION_VALIDITY)
+            prefHandler.getNumeric(TrackConfig.PROP_LOCATION_VALIDITY, 60, TrackConfig.DEFAULT.locationValidity)
         } returns config.locationValidity
         every {
             prefHandler.getNumeric(
                 TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD,
-                defaultValue = TrackConfig.DEFAULT_LOCATION_UPDATE_THRESHOLD
+                defaultValue = TrackConfig.DEFAULT.locationUpdateThreshold
             )
         } returns config.locationUpdateThreshold
         every {
             prefHandler.getNumeric(
                 TrackConfig.PROP_RETRY_ON_ERROR_TIME,
-                defaultValue = TrackConfig.DEFAULT_RETRY_ON_ERROR_TIME
+                defaultValue = TrackConfig.DEFAULT.retryOnErrorTime
             )
         } returns config.retryOnErrorTime
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_GPS_TIMEOUT, defaultValue = TrackConfig.DEFAULT_GPS_TIMEOUT)
+            prefHandler.getNumeric(TrackConfig.PROP_GPS_TIMEOUT, defaultValue = TrackConfig.DEFAULT.gpsTimeout)
         } returns config.gpsTimeout
         every {
             prefHandler.getNumeric(
                 TrackConfig.PROP_OFFLINE_STORAGE_SIZE,
-                defaultValue = TrackConfig.DEFAULT_OFFLINE_STORAGE_SIZE
+                defaultValue = TrackConfig.DEFAULT.offlineStorageSize
             )
         } returns config.offlineStorageSize
         every {
             prefHandler.getNumeric(
                 TrackConfig.PROP_OFFLINE_STORAGE_SYNC_TIME,
-                defaultValue = TrackConfig.DEFAULT_OFFLINE_STORAGE_SYNC_TIME
+                defaultValue = TrackConfig.DEFAULT.maxOfflineStorageSyncTime
             )
         } returns config.maxOfflineStorageSyncTime
         every {
             prefHandler.getNumeric(
                 TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE,
-                defaultValue = TrackConfig.DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
+                defaultValue = TrackConfig.DEFAULT.multiUploadChunkSize
             )
         } returns config.multiUploadChunkSize
         every {
             prefHandler.getDouble(
                 TrackConfig.PROP_MAX_SPEED_INCREASE,
-                defaultValue = TrackConfig.DEFAULT_MAX_SPEED_INCREASE
+                defaultValue = TrackConfig.DEFAULT.maxSpeedIncrease
             )
         } returns config.maxSpeedIncrease
         every {
-            prefHandler.getDouble(TrackConfig.PROP_WALKING_SPEED, 1.0 / 3.6, TrackConfig.DEFAULT_WALKING_SPEED)
+            prefHandler.getDouble(TrackConfig.PROP_WALKING_SPEED, 1.0 / 3.6, TrackConfig.DEFAULT.walkingSpeed)
         } returns config.walkingSpeed
         every { prefs.getBoolean(TrackConfig.PROP_AUTO_RESET_STATS, false) } returns true
 
@@ -113,7 +113,7 @@ class TrackConfigSpec : StringSpec({
         newConfig shouldBe config
     }
 
-    "Default values can be set in shared preferences" {
+    "Values can be saved in shared preferences" {
         val handler = mockk<PreferencesHandler>()
         val pref = mockk<SharedPreferences>()
         val editor = mockk<SharedPreferences.Editor>()
@@ -122,49 +122,34 @@ class TrackConfigSpec : StringSpec({
         every { handler.update(capture(slotUpdater)) } just runs
         every { pref.contains(any()) } returns false
         every { editor.putString(any(), any()) } returns editor
+        val config = TrackConfig.DEFAULT.copy(minTrackInterval = 42)
 
-        TrackConfig.initDefaults(handler)
+        config.save(handler)
         slotUpdater.captured(editor)
 
         verify {
-            editor.putString(
-                TrackConfig.PROP_MIN_TRACK_INTERVAL,
-                (TrackConfig.DEFAULT_MIN_TRACK_INTERVAL / 60).toString()
-            )
-            editor.putString(
-                TrackConfig.PROP_MAX_TRACK_INTERVAL,
-                (TrackConfig.DEFAULT_MAX_TRACK_INTERVAL / 60).toString()
-            )
-            editor.putString(
-                TrackConfig.PROP_IDLE_INCREMENT,
-                (TrackConfig.DEFAULT_IDLE_INCREMENT / 60).toString()
-            )
-            editor.putString(
-                TrackConfig.PROP_LOCATION_VALIDITY,
-                (TrackConfig.DEFAULT_LOCATION_VALIDITY / 60).toString()
-            )
-            editor.putString(
-                TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD,
-                TrackConfig.DEFAULT_LOCATION_UPDATE_THRESHOLD.toString()
-            )
-            editor.putString(
-                TrackConfig.PROP_RETRY_ON_ERROR_TIME,
-                TrackConfig.DEFAULT_RETRY_ON_ERROR_TIME.toString()
-            )
-            editor.putString(
-                TrackConfig.PROP_GPS_TIMEOUT,
-                TrackConfig.DEFAULT_GPS_TIMEOUT.toString()
-            )
+            editor.putString(TrackConfig.PROP_MIN_TRACK_INTERVAL, (config.minTrackInterval / 60).toString())
+            editor.putString(TrackConfig.PROP_MAX_TRACK_INTERVAL, (config.maxTrackInterval / 60).toString())
+            editor.putString(TrackConfig.PROP_IDLE_INCREMENT, (config.intervalIncrementOnIdle / 60).toString())
+            editor.putString(TrackConfig.PROP_LOCATION_VALIDITY, (config.locationValidity / 60).toString())
+            editor.putString(TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD, config.locationUpdateThreshold.toString())
+            editor.putString(TrackConfig.PROP_RETRY_ON_ERROR_TIME, config.retryOnErrorTime.toString())
+            editor.putString(TrackConfig.PROP_GPS_TIMEOUT, config.gpsTimeout.toString())
+            editor.putString(TrackConfig.PROP_OFFLINE_STORAGE_SIZE, config.offlineStorageSize.toString())
+            editor.putString(TrackConfig.PROP_OFFLINE_STORAGE_SYNC_TIME, config.maxOfflineStorageSyncTime.toString())
+            editor.putString(TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE, config.multiUploadChunkSize.toString())
+            editor.putString(TrackConfig.PROP_MAX_SPEED_INCREASE, config.maxSpeedIncrease.toString())
+            editor.putString(TrackConfig.PROP_WALKING_SPEED, config.walkingSpeed.toString())
         }
     }
 
-    "Setting default values does not override existing properties" {
+    "Values can be saved without overriding existing properties" {
         val handler = mockk<PreferencesHandler>()
         val pref = mockk<SharedPreferences>()
         every { handler.preferences } returns pref
         every { pref.contains(any()) } returns true
 
-        TrackConfig.initDefaults(handler)
+        TrackConfig.DEFAULT.save(handler, keepExisting = true)
 
         verify(exactly = 0) { handler.update(any()) }
     }

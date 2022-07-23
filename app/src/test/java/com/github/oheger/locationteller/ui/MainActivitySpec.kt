@@ -78,12 +78,15 @@ class MainActivitySpec {
     @Test
     fun `default track configuration settings are initialized on startup`() {
         mockkObject(TrackConfig)
+        val defaultConfig = mockk<TrackConfig>(relaxed = true)
+        every { TrackConfig.DEFAULT } returns defaultConfig
+
         val scenario = launchActivity<MainActivity>()
         scenario.moveToState(Lifecycle.State.CREATED)
 
         scenario.onActivity {
             verify {
-                TrackConfig.initDefaults(any())
+                defaultConfig.save(any(), keepExisting = true)
             }
         }
     }

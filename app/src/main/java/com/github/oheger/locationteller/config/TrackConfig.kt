@@ -115,41 +115,24 @@ data class TrackConfig(
         /** Shared preferences property to trigger the auto-reset of stats. */
         const val PROP_AUTO_RESET_STATS = "autoResetStats"
 
-        /** A default value for the minimum track interval (in seconds). */
-        const val DEFAULT_MIN_TRACK_INTERVAL = 180
-
-        /** A default value for the maximum track interval (in seconds). */
-        const val DEFAULT_MAX_TRACK_INTERVAL = 900
-
-        /** A default value for the idle increment interval (in seconds). */
-        const val DEFAULT_IDLE_INCREMENT = 120
-
-        /** A default value for the location validity time (in seconds). */
-        const val DEFAULT_LOCATION_VALIDITY = 43200 // 12 hours
-
-        /** A default value for the retry on error time (in seconds). */
-        const val DEFAULT_RETRY_ON_ERROR_TIME = 30
-
-        /** A default value for the GPS timeout (in seconds). */
-        const val DEFAULT_GPS_TIMEOUT = 45
-
-        /** A default value for the location update threshold property. */
-        const val DEFAULT_LOCATION_UPDATE_THRESHOLD = 10
-
-        /** A default value for the size of the offline storage. */
-        const val DEFAULT_OFFLINE_STORAGE_SIZE = 32
-
-        /** A default value for the offline storage sync time (in sec). */
-        const val DEFAULT_OFFLINE_STORAGE_SYNC_TIME = 30
-
-        /** A default value for the multi-upload chunk size. */
-        const val DEFAULT_MULTI_UPLOAD_CHUNK_SIZE = 4
-
-        /** A default value for the maximum speed increase. */
-        const val DEFAULT_MAX_SPEED_INCREASE = 2.0
-
-        /** A default value for the average walking speed. */
-        const val DEFAULT_WALKING_SPEED = 4.0 / 3.6 // 4 km/h in m/s
+        /**
+         * An instance of [TrackConfig] with default values for all properties.
+         */
+        val DEFAULT = TrackConfig(
+            minTrackInterval = 180,
+            maxTrackInterval = 900,
+            intervalIncrementOnIdle = 120,
+            locationValidity = 43_200, // 12 hours
+            locationUpdateThreshold = 10,
+            retryOnErrorTime = 30,
+            gpsTimeout = 45,
+            offlineStorageSize = 32,
+            maxOfflineStorageSyncTime = 30,
+            multiUploadChunkSize = 4,
+            autoResetStats = false,
+            maxSpeedIncrease = 2.0,
+            walkingSpeed = 4.0 / 3.6 // 4 km/h in m/s
+        )
 
         /** Factor to convert minutes to seconds. */
         private const val MINUTE = 60
@@ -174,20 +157,6 @@ data class TrackConfig(
         )
 
         /**
-         * A map with configuration properties and their default values. This
-         * is used to initialize shared preferences.
-         */
-        private val CONFIG_DEFAULTS = mapOf(
-            PROP_MIN_TRACK_INTERVAL to (DEFAULT_MIN_TRACK_INTERVAL / 60),
-            PROP_MAX_TRACK_INTERVAL to (DEFAULT_MAX_TRACK_INTERVAL / 60),
-            PROP_IDLE_INCREMENT to (DEFAULT_IDLE_INCREMENT / 60),
-            PROP_LOCATION_VALIDITY to (DEFAULT_LOCATION_VALIDITY / 60),
-            PROP_LOCATION_UPDATE_THRESHOLD to DEFAULT_LOCATION_UPDATE_THRESHOLD,
-            PROP_RETRY_ON_ERROR_TIME to DEFAULT_RETRY_ON_ERROR_TIME,
-            PROP_GPS_TIMEOUT to DEFAULT_GPS_TIMEOUT
-        )
-
-        /**
          * Return a new instance of [TrackConfig] that is initialized from the preferences managed by the given
          * [preferencesHandler].
          */
@@ -195,55 +164,55 @@ data class TrackConfig(
             val minTrackInterval = preferencesHandler.getNumeric(
                 PROP_MIN_TRACK_INTERVAL,
                 factor = MINUTE,
-                defaultValue = DEFAULT_MIN_TRACK_INTERVAL
+                defaultValue = DEFAULT.minTrackInterval
             )
             val maxTrackInterval = preferencesHandler.getNumeric(
                 PROP_MAX_TRACK_INTERVAL,
                 factor = MINUTE,
-                defaultValue = DEFAULT_MAX_TRACK_INTERVAL
+                defaultValue = DEFAULT.maxTrackInterval
             )
             val intervalIncrementOnIdle = preferencesHandler.getNumeric(
                 PROP_IDLE_INCREMENT,
                 factor = MINUTE,
-                defaultValue = DEFAULT_IDLE_INCREMENT
+                defaultValue = DEFAULT.intervalIncrementOnIdle
             )
             val locationValidity = preferencesHandler.getNumeric(
                 PROP_LOCATION_VALIDITY,
                 factor = MINUTE,
-                defaultValue = DEFAULT_LOCATION_VALIDITY
+                defaultValue = DEFAULT.locationValidity
             )
             val locationUpdateThreshold = preferencesHandler.getNumeric(
                 PROP_LOCATION_UPDATE_THRESHOLD,
-                defaultValue = DEFAULT_LOCATION_UPDATE_THRESHOLD
+                defaultValue = DEFAULT.locationUpdateThreshold
             )
             val retryOnErrorTime = preferencesHandler.getNumeric(
                 PROP_RETRY_ON_ERROR_TIME,
-                defaultValue = DEFAULT_RETRY_ON_ERROR_TIME
+                defaultValue = DEFAULT.retryOnErrorTime
             )
             val gpsTimeout = preferencesHandler.getNumeric(
                 PROP_GPS_TIMEOUT,
-                defaultValue = DEFAULT_GPS_TIMEOUT
+                defaultValue = DEFAULT.gpsTimeout
             )
             val offlineStorageSize = preferencesHandler.getNumeric(
                 PROP_OFFLINE_STORAGE_SIZE,
-                defaultValue = DEFAULT_OFFLINE_STORAGE_SIZE
+                defaultValue = DEFAULT.offlineStorageSize
             )
             val offlineStorageSyncTime = preferencesHandler.getNumeric(
                 PROP_OFFLINE_STORAGE_SYNC_TIME,
-                defaultValue = DEFAULT_OFFLINE_STORAGE_SYNC_TIME
+                defaultValue = DEFAULT.maxOfflineStorageSyncTime
             )
             val multiUploadChunkSize = preferencesHandler.getNumeric(
                 PROP_MULTI_UPLOAD_CHUNK_SIZE,
-                defaultValue = DEFAULT_MULTI_UPLOAD_CHUNK_SIZE
+                defaultValue = DEFAULT.multiUploadChunkSize
             )
             val maxSpeedIncrease = preferencesHandler.getDouble(
                 PROP_MAX_SPEED_INCREASE,
-                defaultValue = DEFAULT_MAX_SPEED_INCREASE
+                defaultValue = DEFAULT.maxSpeedIncrease
             )
             val walkingSpeed = preferencesHandler.getDouble(
                 PROP_WALKING_SPEED,
                 factor = METER_PER_SECOND,
-                defaultValue = DEFAULT_WALKING_SPEED
+                defaultValue = DEFAULT.walkingSpeed
             )
             val autoResetStats = preferencesHandler.preferences.getBoolean(PROP_AUTO_RESET_STATS, false)
 
@@ -265,26 +234,40 @@ data class TrackConfig(
         }
 
         /**
-         * Initialize the preferences managed by [handler] with default values for the tracking configuration, as
-         * long as they are not yet defined. While this initialization is unnecessary for reading a [TrackConfig] from
-         * preferences (here defaults are applied automatically for undefined properties), it is useful for the
-         * configuration screen (which is directly backed by preferences).
-         */
-        fun initDefaults(handler: PreferencesHandler) {
-            CONFIG_DEFAULTS.filterNot { handler.preferences.contains(it.key) }
-                .takeUnless { it.isEmpty() }?.let { undefinedProps ->
-                    handler.update {
-                        undefinedProps.forEach { pair ->
-                            putString(pair.key, pair.value.toString())
-                        }
-                    }
-                }
-        }
-
-        /**
          * Check whether [prop] is a property that belongs to this configuration class. This can be used for instance
          * by a listener on shared preferences to react on property change events.
          */
         fun isProperty(prop: String): Boolean = prop in CONFIG_PROPS
+    }
+
+    /**
+     * Write the values contained in this configuration into the preferences managed by [handler]. If [keepExisting]
+     * is *true*, only properties are written that are not yet defined. This is useful for instance to initialize
+     * preferences with default values.
+     */
+    fun save(handler: PreferencesHandler, keepExisting: Boolean = false) {
+        val values = mapOf(
+            PROP_MIN_TRACK_INTERVAL to (minTrackInterval / 60),
+            PROP_MAX_TRACK_INTERVAL to (maxTrackInterval / 60),
+            PROP_IDLE_INCREMENT to (intervalIncrementOnIdle / 60),
+            PROP_LOCATION_VALIDITY to (locationValidity / 60),
+            PROP_LOCATION_UPDATE_THRESHOLD to locationUpdateThreshold,
+            PROP_RETRY_ON_ERROR_TIME to retryOnErrorTime,
+            PROP_GPS_TIMEOUT to gpsTimeout,
+            PROP_OFFLINE_STORAGE_SIZE to offlineStorageSize,
+            PROP_OFFLINE_STORAGE_SYNC_TIME to maxOfflineStorageSyncTime,
+            PROP_MULTI_UPLOAD_CHUNK_SIZE to multiUploadChunkSize,
+            PROP_MAX_SPEED_INCREASE to maxSpeedIncrease,
+            PROP_WALKING_SPEED to walkingSpeed
+        )
+
+        values.filter { !keepExisting || !handler.preferences.contains(it.key) }
+            .takeUnless { it.isEmpty() }?.let { undefinedProps ->
+                handler.update {
+                    undefinedProps.forEach { pair ->
+                        putString(pair.key, pair.value.toString())
+                    }
+                }
+            }
     }
 }

@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
 
         preferencesHandler = PreferencesHandler.getInstance(this)
-        TrackConfig.initDefaults(preferencesHandler)
+        TrackConfig.DEFAULT.save(preferencesHandler, keepExisting = true)
         createTrackNotificationChannel()
     }
 
