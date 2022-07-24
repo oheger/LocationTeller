@@ -7,17 +7,9 @@
     tools:context=".ui.TrackFragment"
     android:orientation="vertical">
 
-    <Switch
-        android:id="@+id/switchTrackEnabled"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_weight="1"
-        android:text="@string/lab_track_enabled" />
-
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/trackingStats"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="5"/>
 </LinearLayout>

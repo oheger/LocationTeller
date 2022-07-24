@@ -23,13 +23,11 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.databinding.FragmentTrackBinding
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.databinding.FragmentTrackBinding
 import com.github.oheger.locationteller.track.TrackStorage
-import java.text.DateFormat
-import java.util.Date
 
 /**
  * A fragment that allows enabling or disabling the tracking functionality.
@@ -49,11 +47,6 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     /** The object to access persistent tracking-related properties. */
     private lateinit var trackStorage: TrackStorage
 
-    /**
-     * The action that handles the permission request for querying locations.
-     */
-    private lateinit var locationPermAction: LocationPermAction
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -72,31 +65,10 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)
         trackStorage = createTrackStorage()
-        binding.switchTrackEnabled.isChecked = trackStorage.isTrackingEnabled()
-        binding.switchTrackEnabled.setOnCheckedChangeListener { _, checked ->
-            Log.i(logTag, "Set track enabled state to $checked.")
-            if (checked) {
-                locationPermAction.execute()
-            } else {
-                trackStorage.setTrackingEnabled(checked)
-            }
-        }
 
         binding.trackingStats.setContent {
             TrackUi()
         }
-
-        locationPermAction = LocationPermAction.create(
-            this,
-            this::enableTracking
-        ) { binding.switchTrackEnabled.isChecked = false }
-    }
-
-    private fun enableTracking() {
-        if (trackStorage.preferencesHandler.isAutoResetStats()) {
-            trackStorage.resetStatistics()
-        }
-        trackStorage.setTrackingEnabled(true)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -121,28 +93,5 @@ open class TrackFragment : androidx.fragment.app.Fragment() {
     protected open fun createTrackStorage(): TrackStorage {
         val preferencesHandler = PreferencesHandler.getInstance(requireContext())
         return TrackStorage(preferencesHandler)
-    }
-
-    /**
-     * Initializes a time component with a nullable time. If the time is
-     * defined, it is set for the field, and the field is made visible.
-     * Otherwise, the field is removed.
-     * @param label the label view
-     * @param field the field view
-     * @param formatter the formatter object
-     * @param date the date to be displayed
-     * @return a flag whether the field is visible
-     */
-    private fun initTimeComponent(label: View, field: TextView, formatter: DateFormat, date: Date?): Boolean {
-        return if (date != null) {
-            label.visibility = View.VISIBLE
-            field.visibility = View.VISIBLE
-            field.text = formatter.format(date)
-            true
-        } else {
-            label.visibility = View.GONE
-            field.visibility = View.GONE
-            false
-        }
     }
 }
