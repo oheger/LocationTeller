@@ -18,7 +18,6 @@ package com.github.oheger.locationteller.ui
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
@@ -100,9 +99,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
      */
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
         Log.d(logTag, "Change of shared properties. Affected key is $key.")
-        if (PreferencesHandler.PROP_TRACK_STATE == key) {
-            Intent(this, LocationTellerService::class.java).also { startService(it) }
-        } else if (PreferencesHandler.isConfigProperty(key) || TrackConfig.isProperty(key)) {
+        if (PreferencesHandler.isConfigProperty(key) || TrackConfig.isProperty(key)) {
             val handler = PreferencesHandler(sharedPreferences)
             if (handler.isTrackingEnabled()) {
                 handler.setTrackingEnabled(false)

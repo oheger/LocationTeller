@@ -59,23 +59,6 @@ class MainActivitySpec {
     }
 
     @Test
-    fun testTrackServiceIsTriggeredOnAStateChange() {
-        val pref = mockk<SharedPreferences>()
-        val scenario = launchActivity<MainActivity>()
-        scenario.moveToState(Lifecycle.State.CREATED)
-
-        scenario.onActivity { activity ->
-            val activitySpy = spyk(activity)
-            every { activitySpy.startService(any()) } returns null
-
-            activitySpy.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_TRACK_STATE)
-            verify {
-                activitySpy.startService(any())
-            }
-        }
-    }
-
-    @Test
     fun `default track configuration settings are initialized on startup`() {
         mockkObject(TrackConfig)
         val defaultConfig = mockk<TrackConfig>(relaxed = true)
