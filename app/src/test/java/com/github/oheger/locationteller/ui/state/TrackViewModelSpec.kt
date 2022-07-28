@@ -310,6 +310,34 @@ class TrackViewModelSpec : WordSpec() {
 
                 model.trackStatistics.averageSpeed should beNull()
             }
+
+            "set undefined numeric statistics to null" {
+                every { storage.trackingStartDate() } returns Date(CURRENT_TIME.currentTime)
+                every { storage.trackingEndDate() } returns null
+                every { storage.lastDistance() } returns 0
+                every { storage.totalDistance() } returns 0
+                every { storage.checkCount() } returns 0
+                every { storage.updateCount() } returns 0
+                every { storage.errorCount() } returns 0
+
+                val model = createModel()
+                val listener = fetchPreferencesListener()
+                listOf(
+                    TrackStorage.PROP_CHECK_COUNT,
+                    TrackStorage.PROP_ERROR_COUNT,
+                    TrackStorage.PROP_UPDATE_COUNT,
+                    TrackStorage.PROP_TOTAL_DISTANCE,
+                    TrackStorage.PROP_LAST_DISTANCE
+                ).forEach { triggerPreferenceChangedEvent(listener, it) }
+
+                with(model.trackStatistics) {
+                    lastDistance should beNull()
+                    totalDistance should beNull()
+                    numberOfChecks should beNull()
+                    numberOfUpdates should beNull()
+                    numberOfErrors should beNull()
+                }
+            }
         }
 
         "A newly created instance" should {

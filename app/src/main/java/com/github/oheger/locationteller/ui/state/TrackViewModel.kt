@@ -184,15 +184,15 @@ class TrackViewModelImpl(
             TrackStorage.PROP_LAST_ERROR ->
                 trackStatistics.lastErrorTime = formatter.formatDate(trackStorage.lastError())
             TrackStorage.PROP_CHECK_COUNT ->
-                trackStatistics.numberOfChecks = trackStorage.checkCount().toString()
+                trackStatistics.numberOfChecks = trackStorage.checkCount().toStatistics()
             TrackStorage.PROP_UPDATE_COUNT ->
-                trackStatistics.numberOfUpdates = trackStorage.updateCount().toString()
+                trackStatistics.numberOfUpdates = trackStorage.updateCount().toStatistics()
             TrackStorage.PROP_ERROR_COUNT ->
-                trackStatistics.numberOfErrors = trackStorage.errorCount().toString()
+                trackStatistics.numberOfErrors = trackStorage.errorCount().toStatistics()
             TrackStorage.PROP_LAST_DISTANCE ->
-                trackStatistics.lastDistance = trackStorage.lastDistance().toString()
+                trackStatistics.lastDistance = trackStorage.lastDistance().toStatistics()
             TrackStorage.PROP_TOTAL_DISTANCE -> {
-                trackStatistics.totalDistance = trackStorage.totalDistance().toString()
+                trackStatistics.totalDistance = trackStorage.totalDistance().toStatistics()
                 updateAverageSpeed()
             }
         }
@@ -254,3 +254,15 @@ private fun createTrackStorage(application: Application): TrackStorage {
     val preferencesHandler = PreferencesHandler.getInstance(application)
     return TrackStorage(preferencesHandler)
 }
+
+/**
+ * Convert this [Long] number to a string to be displayed in the statistics view. Undefined values (less or equal to
+ * zero) are ignored.
+ */
+private fun Long.toStatistics(): String? = takeIf { this > 0 }?.toString()
+
+/**
+ * Convert this [Int] number to a string to be displayed in the statistics view. Undefined values (less or equal to
+ * zero) are ignored.
+ */
+private fun Int.toStatistics(): String? = takeIf { this > 0 }?.toString()
