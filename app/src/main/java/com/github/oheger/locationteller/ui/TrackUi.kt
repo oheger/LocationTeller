@@ -89,7 +89,7 @@ fun TrackView(model: TrackViewModel, locationPermissionState: PermissionState, m
             locationPermissionState = locationPermissionState,
             modifier = modifier
         )
-        TrackStats(stats = model.trackStatistics, modifier = modifier)
+        TrackStats(stats = model.trackStatistics, model.trackingEnabled, modifier = modifier)
     }
 }
 
@@ -159,80 +159,93 @@ fun TrackEnabledSwitch(
 }
 
 /**
- * Generate the tracking statistics screen based on [stats]. Output a [StatsLine] for each statistics data item.
+ * Generate the tracking statistics screen based on [stats] and the [tracking enabled state][trackingEnabled]. Output
+ * a [StatsLine] for each statistics data item.
  */
 @Composable
-fun TrackStats(stats: TrackStatsState, modifier: Modifier = Modifier) {
+fun TrackStats(stats: TrackStatsState, trackingEnabled: Boolean, modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(all = 10.dp)) {
         StatsLine(
             labelRes = R.string.stats_tracking_started,
             value = stats.startTime,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_START,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_stopped,
             value = stats.endTime,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_END,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_time,
             value = stats.elapsedTime,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_TIME,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_total_distance,
             value = stats.totalDistance,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_DIST,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_speed,
             value = stats.averageSpeed,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_SPEED,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_last_distance,
             value = stats.lastDistance,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_LAST_DIST,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_check_count,
             value = stats.numberOfChecks,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_CHECKS,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_last_check,
             value = stats.lastCheckTime,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_LAST_CHECK,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_update_count,
             value = stats.numberOfUpdates,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_UPDATES,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_last_update,
             value = stats.lastUpdateTime,
+            showUndefined = trackingEnabled,
             tag = TAG_TRACK_LAST_UPDATE,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_error_count,
             value = stats.numberOfErrors,
+            showUndefined = false,
             tag = TAG_TRACK_ERRORS,
             modifier = modifier
         )
         StatsLine(
             labelRes = R.string.stats_tracking_last_error,
             value = stats.lastErrorTime,
+            showUndefined = false,
             tag = TAG_TRACK_LAST_ERROR,
             modifier = modifier
         )
@@ -241,24 +254,26 @@ fun TrackStats(stats: TrackStatsState, modifier: Modifier = Modifier) {
 
 /**
  * Generate one line of the tracking statistics screen, showing one statistics item. The item consists of a
- * [label][labelRes] and an optional [value].
+ * [label][labelRes] and an optional [value]. If [value] is undefined, show the line only if [showUndefined] is *true*.
  */
 @Composable
-fun StatsLine(labelRes: Int, value: String?, tag: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-    ) {
-        Text(text = stringResource(id = labelRes), modifier = modifier.testTag(labelTag(tag)))
-        if (value != null) {
-            Spacer(modifier = modifier.width(width = 4.dp))
-            Text(
-                text = value,
-                textAlign = TextAlign.Right,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .testTag(tag)
-            )
+fun StatsLine(labelRes: Int, value: String?, showUndefined: Boolean, tag: String, modifier: Modifier = Modifier) {
+    if (value != null || showUndefined) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+        ) {
+            Text(text = stringResource(id = labelRes), modifier = modifier.testTag(labelTag(tag)))
+            if (value != null) {
+                Spacer(modifier = modifier.width(width = 4.dp))
+                Text(
+                    text = value,
+                    textAlign = TextAlign.Right,
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .testTag(tag)
+                )
+            }
         }
     }
 }
