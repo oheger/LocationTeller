@@ -20,6 +20,8 @@ import com.github.oheger.locationteller.server.TimeService
 
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
+import io.kotest.matchers.nulls.beNull
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
@@ -57,6 +59,13 @@ class TrackStatsFormatterSpec : WordSpec({
 
             formatter.formatNumber(value) shouldBe expectedResult
         }
+
+        "return null for values less than or equal zero" {
+            val formatter = TrackStatsFormatter.create()
+
+            formatter.formatNumber(-0.1) should beNull()
+            formatter.formatNumber(0.0) should beNull()
+        }
     }
 
     "formatDuration" should {
@@ -84,10 +93,11 @@ class TrackStatsFormatterSpec : WordSpec({
             formatter.formatDuration(1036802000L) shouldBe "12:00:00:02"
         }
 
-        "format a zero duration" {
+        "return null for durations less than or equal to zero" {
             val formatter = TrackStatsFormatter.create()
 
-            formatter.formatDuration(0L) shouldBe "0:00"
+            formatter.formatDuration(0L) should beNull()
+            formatter.formatDuration(-1L) should beNull()
         }
     }
 
@@ -123,7 +133,7 @@ class TrackStatsFormatterSpec : WordSpec({
         "format a null date" {
             val formatter = TrackStatsFormatter.create()
 
-            formatter.formatDate(null) shouldBe ""
+            formatter.formatDate(null) should beNull()
         }
     }
 })

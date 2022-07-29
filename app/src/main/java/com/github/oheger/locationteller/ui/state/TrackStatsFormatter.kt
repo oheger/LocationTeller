@@ -17,10 +17,14 @@ package com.github.oheger.locationteller.ui.state
 
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeService
-import java.lang.StringBuilder
+
 import java.text.DateFormat
 import java.text.NumberFormat
-import java.util.*
+
+import java.util.Calendar
+import java.util.Date
+
+import kotlin.text.StringBuilder
 
 /**
  * A class providing functionality to format values (especially dates or
@@ -42,39 +46,35 @@ class TrackStatsFormatter private constructor(val timeService: TimeService) {
     private val timeFormat = DateFormat.getTimeInstance(DateFormat.MEDIUM)
 
     /**
-     * Formats the given number value.
-     * @param value the value to be formatted
-     * @return the resulting formatted string
+     * Format the given number [value]. Values less than or equal to zero are considered invalid and yield a
+     * *null* result.
      */
-    fun formatNumber(value: Double): String = numberFormat.format(value)
+    fun formatNumber(value: Double): String? = value.takeIf { it > 0 }?.let(numberFormat::format)
 
     /**
-     * Formats a duration in milliseconds to a string.
-     * @param deltaMillis the duration in millis
-     * @return the formatted duration string
+     * Format a [duration in milliseconds][deltaMillis] to a string. Values less than or equal to zero are considered
+     * invalid and yield a *null* result.
      */
-    fun formatDuration(deltaMillis: Long): String {
-        val buf = StringBuilder(11)
-        val deltaSecs = deltaMillis / MILLIS_PER_SEC
-        val days = deltaSecs / SECS_PER_DAY
-        formatTimeComponent(buf, days, force = false, withSeparator = true)
-        val hours = (deltaSecs % SECS_PER_DAY)
-        formatTimeComponent(buf, hours / SECS_PER_HOUR, force = false, withSeparator = true)
-        val minutes = hours % SECS_PER_HOUR
-        formatTimeComponent(buf, minutes / SECS_PER_MINUTE, force = true, withSeparator = true)
-        val secs = minutes % SECS_PER_MINUTE
-        formatTimeComponent(buf, secs, force = true, withSeparator = false)
-        return buf.toString()
+    fun formatDuration(deltaMillis: Long): String? = deltaMillis.takeIf { it > 0 }?.let {
+        buildString {
+            val deltaSecs = deltaMillis / MILLIS_PER_SEC
+            val days = deltaSecs / SECS_PER_DAY
+            formatTimeComponent(days, force = false, withSeparator = true)
+            val hours = (deltaSecs % SECS_PER_DAY)
+            formatTimeComponent(hours / SECS_PER_HOUR, force = false, withSeparator = true)
+            val minutes = hours % SECS_PER_HOUR
+            formatTimeComponent(minutes / SECS_PER_MINUTE, force = true, withSeparator = true)
+            val secs = minutes % SECS_PER_MINUTE
+            formatTimeComponent(secs, force = true, withSeparator = false)
+        }
     }
 
     /**
-     * Formats a date to a string. The resulting string is kept to the minimum:
-     * If the date to be formatted is on the same day as today, only the time
-     * portion is printed; otherwise the full date is contained in the output.
-     * @param date the date to be formatted
-     * @return the formatted date
+     * Format [date] to a string. The resulting string is kept to the minimum: If the date to be formatted is on the
+     * same day as today, only the time portion is printed; otherwise the full date is contained in the output. *null*
+     * values as input lead to *null* output.
      */
-    fun formatDate(date: Date?): String {
+    fun formatDate(date: Date?): String? {
         return date?.let {
             val current = timeService.currentTime()
             val calNow = Calendar.getInstance()
@@ -86,7 +86,7 @@ class TrackStatsFormatter private constructor(val timeService: TimeService) {
             return if (isAnotherDay(calDate, calNow))
                 "${dateFormat.format(it)} $timePart"
             else timePart
-        } ?: ""
+        }
     }
 
     companion object {
@@ -103,17 +103,14 @@ class TrackStatsFormatter private constructor(val timeService: TimeService) {
         private const val SECS_PER_DAY = 24 * SECS_PER_HOUR
 
         /**
-         * Creates a new instance of _TrackStatsFormatter_. Optionally, a
-         * _TimeService_ to be used can be passed in; otherwise, a default
-         * service is used.
-         * @param timeService reference to a [TimeService]
+         * Create a new instance of [TrackStatsFormatter]. Use the provided [timeService] or fall back to a default
+         * one if it is undefined.
          */
         fun create(timeService: TimeService = CurrentTimeService): TrackStatsFormatter =
             TrackStatsFormatter(timeService)
 
         /**
-         * Creates an object to be used for formatting fractional numbers.
-         * @return the format object
+         * Create an object to be used for formatting fractional numbers.
          */
         private fun createNumberFormat(): NumberFormat =
             NumberFormat.getNumberInstance().apply {
@@ -122,35 +119,26 @@ class TrackStatsFormatter private constructor(val timeService: TimeService) {
             }
 
         /**
-         * Adds a formatted time component to the given buffer. The component
-         * is only added if necessary (if not 0, or other components already
-         * exists, or the _force_ flag is set). The value must be in the range
-         * between 0 and 59.
-         * @param buf the buffer to add the text
-         * @param time the time component to be formatted
-         * @param force flag whether this component needs to be added
-         * @param withSeparator flag whether a trailing separator needs to be
-         * added
+         * Add a formatted [time] component to this [StringBuilder]. Add the component only if necessary (if it is not
+         * 0, or other components already exists, or the [force] flag is set). If [withSeparator] is *true*, add a
+         * trailing separator. [time] must be in the range between 0 and 59.
          */
-        private fun formatTimeComponent(buf: StringBuilder, time: Long, force: Boolean, withSeparator: Boolean) {
-            val existing = buf.isNotEmpty()
+        private fun StringBuilder.formatTimeComponent(time: Long, force: Boolean, withSeparator: Boolean) {
+            val existing = isNotEmpty()
             if (force || existing || time > 0) {
                 if (existing && time < 10) {
-                    buf.append(0)
+                    append(0)
                 }
-                buf.append(time)
+                append(time)
                 if (withSeparator) {
-                    buf.append(':')
+                    append(':')
                 }
             }
         }
 
         /**
-         * Checks whether two calendars refer to different days. In this case,
-         * formatting has to be done differently.
-         * @param cal1 one calendar
-         * @param cal2 the other calendar
-         * @return a flag whether the calendars have a different day
+         * Check whether the two calendars [cal1] and [cal2] refer to different days. In this case, formatting has to
+         * be done differently.
          */
         private fun isAnotherDay(cal1: Calendar, cal2: Calendar): Boolean =
             cal1.get(Calendar.DATE) != cal2.get(Calendar.DATE) ||
