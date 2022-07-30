@@ -20,6 +20,8 @@
     <string name="pref_server_path">Relative path</string>
     <string name="pref_user">User name</string>
     <string name="pref_password">Password</string>
+    <string name="pref_btn_save">Save</string>
+    <string name="pref_btn_cancel">Cancel</string>
     <string name="lab_track_enabled">Tracking enabled</string>
     <string name="lab_last_location_update">Last location update:</string>
     <string name="lab_last_error">Last error:</string>

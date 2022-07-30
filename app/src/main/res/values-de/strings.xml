@@ -19,6 +19,8 @@
     <string name="pref_server_path">Relativer Pfad</string>
     <string name="pref_user">Benutzername</string>
     <string name="pref_password">Passwort</string>
+    <string name="pref_btn_save">Speichern</string>
+    <string name="pref_btn_cancel">Abbrechen</string>
     <string name="lab_track_enabled">Verfolgen aktiv</string>
     <string name="lab_last_location_update">Letzte Positionsänderung:</string>
     <string name="lab_last_error">Letzter Fehler:</string>
