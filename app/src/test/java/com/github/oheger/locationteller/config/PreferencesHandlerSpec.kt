@@ -18,7 +18,6 @@ package com.github.oheger.locationteller.config
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import com.github.oheger.locationteller.server.ServerConfig
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.nulls.beNull
@@ -294,92 +293,12 @@ class PreferencesHandlerSpec : WordSpec() {
                 handler.unregisterListener(listener)
                 verify { pref.unregisterOnSharedPreferenceChangeListener(listener) }
             }
-
-            "create a correct server configuration" {
-                val handler = PreferencesHandler(preferencesFromServerConfig(defServerConfig))
-
-                handler.createServerConfig() shouldBe defServerConfig
-            }
-
-            "return a null server config if the URI is missing" {
-                checkUndefinedServerConfig(defServerConfig.copy(serverUri = ""))
-            }
-
-            "return a null server config if the base path is missing" {
-                checkUndefinedServerConfig(defServerConfig.copy(basePath = ""))
-            }
-
-            "return a null server config if the user name is missing" {
-                checkUndefinedServerConfig(defServerConfig.copy(user = ""))
-            }
-
-            "return a null server config if the password is missing" {
-                checkUndefinedServerConfig(defServerConfig.copy(password = ""))
-            }
         }
     }
 
     companion object {
         /** A test property key. */
         private const val PROPERTY = "someKey"
-
-        /** A default server configuration.*/
-        private val defServerConfig = ServerConfig(
-            "https://track.tst", "/myTracks", "scott",
-            "tiger"
-        )
-
-        /**
-         * Prepares the given mock for a _SharedPreferences_ object to return a
-         * value for a specific string property. Empty strings are mapped to
-         * *null* values.
-         * @param pref the _SharedPreferences_
-         * @param property the name of the property
-         * @param value the value to be returned for this property
-         */
-        private fun initProperty(pref: SharedPreferences, property: String, value: String) {
-            every { pref.getString(property, null) } returns value.ifEmpty { null }
-        }
-
-        /**
-         * Creates a mock for a _SharedPreferences_ object that is prepared to
-         * return the properties from the given server configuration. If a
-         * string property of the configuration is an empty string, the
-         * property is not set.
-         */
-        private fun preferencesFromServerConfig(serverConfig: ServerConfig): SharedPreferences {
-            val pref = mockk<SharedPreferences>()
-            initProperty(pref, PreferencesHandler.PROP_SERVER_URI, serverConfig.serverUri)
-            initProperty(pref, PreferencesHandler.PROP_BASE_PATH, serverConfig.basePath)
-            initProperty(pref, PreferencesHandler.PROP_USER, serverConfig.user)
-            initProperty(pref, PreferencesHandler.PROP_PASSWORD, serverConfig.password)
-            return pref
-        }
-
-        /**
-         * Tests whether a *null* server config is returned in case of missing
-         * properties. Shared preferences are created based on the passed in
-         * configuration. Then it is tested whether based on the preferences a
-         * *null* configuration is created.
-         * @param config the configuration
-         */
-        private fun checkUndefinedServerConfig(config: ServerConfig) {
-            val handler = PreferencesHandler(preferencesFromServerConfig(config))
-
-            handler.createServerConfig() shouldBe null
-        }
-
-        /**
-         * Prepares the given mock for a preferences object to return the
-         * given value when asked for a data property.
-         * @param prefs the preferences mock
-         * @param key the key of the property
-         * @param value the value to be returned
-         */
-        private fun expectDatePropertyAccess(prefs: SharedPreferences, key: String, value: Long) {
-            every { prefs.contains(key) } returns true
-            every { prefs.getLong(key, 0) } returns value
-        }
 
         /**
          * Helper function that checks whether a time value is close to the

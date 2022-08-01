@@ -19,7 +19,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.preference.PreferenceManager
-import com.github.oheger.locationteller.server.ServerConfig
 import java.util.Date
 
 /**
@@ -69,21 +68,6 @@ class PreferencesHandler internal constructor(
     }
 
     /**
-     * Creates a _ServerConfig_ object from the managed preferences. If
-     * mandatory properties are missing, result is *null*.
-     * @return the server configuration or *null*
-     */
-    fun createServerConfig(): ServerConfig? {
-        val serverUri = preferences.getString(PROP_SERVER_URI, null)
-        val basePath = preferences.getString(PROP_BASE_PATH, null)
-        val user = preferences.getString(PROP_USER, null)
-        val password = preferences.getString(PROP_PASSWORD, null)
-        return if (serverUri == null || basePath == null || user == null || password == null) {
-            return null
-        } else ServerConfig(serverUri, basePath, user, password)
-    }
-
-    /**
      * Updates a _SharedPreferences_ object. This function obtains an editor
      * from the preferences, invokes the block on it and finally applies the
      * changes.
@@ -120,13 +104,6 @@ class PreferencesHandler internal constructor(
             }
         }
     }
-
-    /**
-     * Returns a flag whether the tracking statistics should be reset
-     * automatically when starting a new track operation.
-     * @return the auto reset statistics flag
-     */
-    fun isAutoResetStats(): Boolean = preferences.getBoolean(PROP_AUTO_RESET_STATS, false)
 
     /**
      * Returns an identifier that corresponds to the fading mode the user has
@@ -183,9 +160,6 @@ class PreferencesHandler internal constructor(
 
         /** Shared preferences property for the last time tracking was stopped. */
         const val PROP_TRACKING_END = "trackingEnd"
-
-        /** Shared preferences property to trigger the auto-reset of stats. */
-        const val PROP_AUTO_RESET_STATS = "autoResetStats"
 
         /** Shared preferences property to store the fading mode. */
         const val PROP_FADING_MODE = "fadingMode"
