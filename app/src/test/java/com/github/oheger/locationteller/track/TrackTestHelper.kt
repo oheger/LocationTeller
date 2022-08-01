@@ -17,7 +17,9 @@ package com.github.oheger.locationteller.track
 
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.server.ServerConfig
+
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -31,13 +33,18 @@ import io.mockk.mockkObject
  */
 object TrackTestHelper {
     /** A default test server configuration.*/
-    val defServerConfig = ServerConfig(
+    val DEFAULT_SERVER_CONFIG = TrackServerConfig(
         serverUri = "https://track-server.tst",
-        basePath = "/my-tracks", user = "scott", password = "tiger"
+        basePath = "/my-tracks",
+        user = "scott",
+        password = "tiger"
     )
 
+    /** A server configuration with undefined properties. */
+    val UNDEFINED_SERVER_CONFIG = DEFAULT_SERVER_CONFIG.copy(serverUri = "")
+
     /** A default test track configuration.*/
-    val defTrackConfig = TrackConfig(
+    val DEFAULT_TRACK_CONFIG = TrackConfig(
         minTrackInterval = 42, maxTrackInterval = 727,
         locationValidity = 1000, intervalIncrementOnIdle = 50,
         locationUpdateThreshold = 22, gpsTimeout = 10, retryOnErrorTime = 4,
@@ -49,9 +56,21 @@ object TrackTestHelper {
      * Prepare the creation of a [TrackConfig] from the given [mockHandler]. This means that the factory function
      * from [TrackConfig]'s companion object has to be mocked to return [trackConf].
      */
-    fun prepareTrackConfigFromPreferences(mockHandler: PreferencesHandler, trackConf: TrackConfig = defTrackConfig) {
+    fun prepareTrackConfigFromPreferences(mockHandler: PreferencesHandler, trackConf: TrackConfig = DEFAULT_TRACK_CONFIG) {
         mockkObject(TrackConfig)
         every { TrackConfig.fromPreferences(mockHandler) } returns trackConf
+    }
+
+    /**
+     * Prepare the creation of a [TrackServerConfig] from the given [mockHandler]. So the factory function from
+     * [TrackServerConfig]'s companion object is mocked to return this [serverConfig].
+     */
+    fun prepareTrackServerConfigFromPreferences(
+        mockHandler: PreferencesHandler,
+        serverConfig: TrackServerConfig = DEFAULT_SERVER_CONFIG
+    ) {
+        mockkObject(TrackServerConfig)
+        every { TrackServerConfig.fromPreferences(mockHandler) } returns serverConfig
     }
 
     /**
@@ -59,8 +78,8 @@ object TrackTestHelper {
      * in [svrConf], [trackConf], and [trackingEnabled].
      */
     fun prepareTrackStorage(
-        svrConf: ServerConfig? = defServerConfig,
-        trackConf: TrackConfig = defTrackConfig,
+        svrConf: TrackServerConfig = DEFAULT_SERVER_CONFIG,
+        trackConf: TrackConfig = DEFAULT_TRACK_CONFIG,
         trackingEnabled: Boolean = true
     ): TrackStorage = mockk<TrackStorage>().apply {
         val handler = preparePreferences(svrConf, trackConf)
@@ -73,17 +92,22 @@ object TrackTestHelper {
     }
 
     /**
+     * Transform this [TrackServerConfig] to a [ServerConfig].
+     */
+    fun TrackServerConfig.asServerConfig(): ServerConfig = ServerConfig(serverUri, basePath, user, password)
+
+    /**
      * Create a [PreferencesHandler] mock that is prepared to expect invocations to construct the given
      * [server configuration][svrConf] and [track configuration][trackConf].
      */
     private fun preparePreferences(
-        svrConf: ServerConfig? = defServerConfig,
-        trackConf: TrackConfig = defTrackConfig
+        svrConf: TrackServerConfig = DEFAULT_SERVER_CONFIG,
+        trackConf: TrackConfig = DEFAULT_TRACK_CONFIG
     ): PreferencesHandler {
         val handler = mockk<PreferencesHandler>()
-        every { handler.createServerConfig() } returns svrConf
 
         prepareTrackConfigFromPreferences(handler, trackConf)
+        prepareTrackServerConfigFromPreferences(handler, svrConf)
 
         return handler
     }

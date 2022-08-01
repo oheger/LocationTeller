@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.track
 
 import android.content.Context
 import com.github.oheger.locationteller.server.CurrentTimeService
+import com.github.oheger.locationteller.track.TrackTestHelper.asServerConfig
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import io.kotest.core.spec.style.StringSpec
@@ -41,24 +42,24 @@ class FactoriesSpec : StringSpec() {
             every { locationUpdaterActor(any(), crScope) } answers {
                 val uploadController = arg<UploadController>(0)
                 val service = uploadController.trackService
-                service.davClient.config shouldBe TrackTestHelper.defServerConfig
+                service.davClient.config shouldBe TrackTestHelper.DEFAULT_SERVER_CONFIG.asServerConfig()
                 uploadController.trackStorage shouldBe trackStorage
-                uploadController.trackConfig shouldBe TrackTestHelper.defTrackConfig
-                uploadController.offlineStorage.capacity shouldBe TrackTestHelper.defTrackConfig.offlineStorageSize
-                uploadController.offlineStorage.minTrackInterval shouldBe TrackTestHelper.defTrackConfig.minTrackInterval * 1000
+                uploadController.trackConfig shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG
+                uploadController.offlineStorage.capacity shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG.offlineStorageSize
+                uploadController.offlineStorage.minTrackInterval shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG.minTrackInterval * 1000
                 uploadController.timeService shouldBe CurrentTimeService
                 actor
             }
             val factory = UpdaterActorFactory()
 
-            factory.createActor(trackStorage, TrackTestHelper.defTrackConfig, crScope) shouldBe actor
+            factory.createActor(trackStorage, TrackTestHelper.DEFAULT_TRACK_CONFIG, crScope) shouldBe actor
         }
 
         "UpdateActorFactory should return null if no server config is defined" {
-            val trackStorage = TrackTestHelper.prepareTrackStorage(svrConf = null)
+            val trackStorage = TrackTestHelper.prepareTrackStorage(svrConf = TrackTestHelper.UNDEFINED_SERVER_CONFIG)
             val factory = UpdaterActorFactory()
 
-            factory.createActor(trackStorage, TrackTestHelper.defTrackConfig, mockk()) shouldBe null
+            factory.createActor(trackStorage, TrackTestHelper.DEFAULT_TRACK_CONFIG, mockk()) shouldBe null
         }
 
         "LocationRetrieverFactory should create a correct retriever object" {
@@ -68,10 +69,10 @@ class FactoriesSpec : StringSpec() {
             every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
             val factory = LocationRetrieverFactory()
 
-            val retriever = factory.createRetriever(context, TrackTestHelper.defTrackConfig, false)
+            val retriever = factory.createRetriever(context, TrackTestHelper.DEFAULT_TRACK_CONFIG, false)
             retriever.shouldBeInstanceOf<LocationRetrieverImpl>()
             retriever.locationClient shouldBe locationClient
-            retriever.timeout shouldBe TrackTestHelper.defTrackConfig.gpsTimeout * 1000
+            retriever.timeout shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG.gpsTimeout * 1000
         }
 
         "LocationRetrieverFactory should create a validating retriever object" {
@@ -81,14 +82,14 @@ class FactoriesSpec : StringSpec() {
             every { LocationServices.getFusedLocationProviderClient(context) } returns locationClient
             val factory = LocationRetrieverFactory()
 
-            val retriever = factory.createRetriever(context, TrackTestHelper.defTrackConfig, true)
+            val retriever = factory.createRetriever(context, TrackTestHelper.DEFAULT_TRACK_CONFIG, true)
             retriever.shouldBeInstanceOf<ValidatingLocationRetriever>()
             val wrappedRetriever = retriever.wrappedRetriever
             wrappedRetriever.shouldBeInstanceOf<LocationRetrieverImpl>()
             wrappedRetriever.locationClient shouldBe locationClient
-            wrappedRetriever.timeout shouldBe TrackTestHelper.defTrackConfig.gpsTimeout * 1000
-            retriever.maxSpeedIncrease shouldBe TrackTestHelper.defTrackConfig.maxSpeedIncrease
-            retriever.walkingSpeed shouldBe TrackTestHelper.defTrackConfig.walkingSpeed
+            wrappedRetriever.timeout shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG.gpsTimeout * 1000
+            retriever.maxSpeedIncrease shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG.maxSpeedIncrease
+            retriever.walkingSpeed shouldBe TrackTestHelper.DEFAULT_TRACK_CONFIG.walkingSpeed
             retriever.timeService shouldBe ElapsedTimeService
         }
 

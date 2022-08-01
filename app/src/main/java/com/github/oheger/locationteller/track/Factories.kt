@@ -17,7 +17,9 @@ package com.github.oheger.locationteller.track
 
 import android.content.Context
 import com.github.oheger.locationteller.config.TrackConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.server.CurrentTimeService
+import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
@@ -39,10 +41,10 @@ class UpdaterActorFactory {
         trackStorage: TrackStorage,
         trackConfig: TrackConfig,
         coroutineScope: CoroutineScope
-    ): SendChannel<LocationUpdate>? {
-        val serverConfig = trackStorage.preferencesHandler.createServerConfig()
-        return serverConfig?.let { config ->
-            val trackService = TrackService.create(config)
+    ): SendChannel<LocationUpdate>? = TrackServerConfig.fromPreferences(trackStorage.preferencesHandler)
+        .takeIf { it.isDefined() }?.let { config ->
+            val serverConfig = ServerConfig(config.serverUri, config.basePath, config.user, config.password)
+            val trackService = TrackService.create(serverConfig)
             val uploadController = UploadController(
                 trackStorage,
                 trackService,
@@ -52,7 +54,6 @@ class UpdaterActorFactory {
             )
             locationUpdaterActor(uploadController, coroutineScope)
         }
-    }
 }
 
 /**

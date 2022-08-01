@@ -47,6 +47,7 @@ import com.github.oheger.locationteller.track.LocationRetriever
 import com.github.oheger.locationteller.track.LocationRetrieverFactory
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -137,7 +138,8 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         deltaFormatter = TimeDeltaFormatter.create(requireContext())
         markerFactory = createMarkerFactoryForCalculatorId(preferencesHandler.getFadingMode())
         timeService = createTimeService()
-        val serverConfig = preferencesHandler.createServerConfig()
+        val serverConfig = TrackServerConfig.fromPreferences(preferencesHandler)
+            .takeIf { it.isDefined() }?.let { c -> ServerConfig(c.serverUri, c.basePath, c.user, c.password) }
         mapUpdater = serverConfig?.let(::createMapUpdater)
         val trackConfig = TrackConfig.fromPreferences(preferencesHandler)
         updateInterval = trackConfig.minTrackInterval * 1000L

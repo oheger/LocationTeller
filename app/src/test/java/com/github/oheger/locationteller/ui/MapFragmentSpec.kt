@@ -43,7 +43,9 @@ import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.LocationRetriever
 import com.github.oheger.locationteller.track.LocationRetrieverFactory
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.track.TrackTestHelper
+import com.github.oheger.locationteller.track.TrackTestHelper.asServerConfig
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import io.kotest.matchers.collections.shouldHaveSize
@@ -75,7 +77,7 @@ class MapFragmentSpec {
         val scenario = launchFragmentInContainer<MapFragmentTestImplWithConfig>()
 
         scenario.onFragment { fragment ->
-            fragment.orgMapUpdater.serverConfig shouldBe TrackTestHelper.defServerConfig
+            fragment.orgMapUpdater.serverConfig shouldBe TrackTestHelper.DEFAULT_SERVER_CONFIG.asServerConfig()
             val distTemplate = fragment.getString(R.string.map_distance)
             fragment.orgMapUpdater.distanceTemplate shouldBe distTemplate
         }
@@ -617,7 +619,7 @@ class MapFragmentSpec {
  * A test implementation base class of _MapFragment_ that injects mock objects
  * for important dependencies.
  */
-open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTestHelper.defServerConfig) :
+open class MapFragmentTestImpl(private val serverConfig: TrackServerConfig = TrackTestHelper.DEFAULT_SERVER_CONFIG) :
     MapFragment() {
     override val coroutineContext: CoroutineContext = MockDispatcher()
 
@@ -671,7 +673,7 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
         every {
             factory.createRetriever(
                 requireContext(),
-                TrackTestHelper.defTrackConfig,
+                TrackTestHelper.DEFAULT_TRACK_CONFIG,
                 false
             )
         } returns mockLocationRetriever
@@ -713,9 +715,9 @@ open class MapFragmentTestImpl(private val serverConfig: ServerConfig? = TrackTe
      */
     private fun createMockPrefHandler(): PreferencesHandler {
         val handler = mockk<PreferencesHandler>()
-        every { handler.createServerConfig() } returns serverConfig
         every { handler.getFadingMode() } returns 0
         TrackTestHelper.prepareTrackConfigFromPreferences(handler)
+        TrackTestHelper.prepareTrackServerConfigFromPreferences(handler, serverConfig)
         return handler
     }
 
@@ -748,7 +750,7 @@ open class MapFragmentTestImplWithConfig : MapFragmentTestImpl()
  * An implementation of _MapFragment_ that simulates the scenario that no valid
  * server configuration is available. Here most actions should be disabled.
  */
-class MapFragmentTestImplWithNoConfig : MapFragmentTestImpl(serverConfig = null)
+class MapFragmentTestImplWithNoConfig : MapFragmentTestImpl(serverConfig = TrackTestHelper.UNDEFINED_SERVER_CONFIG)
 
 /**
  * An implementation of _MapFragment_ that prepares the mock preferences
