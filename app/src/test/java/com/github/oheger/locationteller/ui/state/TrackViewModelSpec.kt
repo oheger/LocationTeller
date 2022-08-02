@@ -21,9 +21,11 @@ import android.content.SharedPreferences
 
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.track.TrackStorage
+import com.github.oheger.locationteller.track.TrackTestHelper
 
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCase
@@ -70,9 +72,10 @@ class TrackViewModelSpec : WordSpec() {
             "create a correct TrackStorage instance" {
                 val application = mockk<Application>()
                 val preferencesHandler = storage.preferencesHandler
-                mockkObject(PreferencesHandler, TrackConfig)
+                mockkObject(PreferencesHandler)
                 every { PreferencesHandler.getInstance(application) } returns preferencesHandler
-                every { TrackConfig.fromPreferences(preferencesHandler) } returns TrackConfig.DEFAULT
+                TrackTestHelper.prepareTrackConfigFromPreferences(preferencesHandler)
+                TrackTestHelper.prepareTrackServerConfigFromPreferences(preferencesHandler)
 
                 val model = TrackViewModelImpl(application)
 
@@ -400,6 +403,7 @@ class TrackViewModelSpec : WordSpec() {
 
                 val expectedConfig = TrackConfig.DEFAULT.copy(autoResetStats = true)
                 model.trackConfig shouldBe expectedConfig
+                model.serverConfig shouldBe TrackTestHelper.DEFAULT_SERVER_CONFIG
             }
 
             "return an initial tracking state of false" {
@@ -516,6 +520,21 @@ class TrackViewModelSpec : WordSpec() {
                 }
             }
         }
+
+        "updateServerConfig" should {
+            "replace and persist the server configuration" {
+                val newConfig = mockk<TrackServerConfig>()
+                every { newConfig.save(storage.preferencesHandler) } just runs
+                val model = createModel()
+
+                model.updateServerConfig(newConfig)
+
+                model.serverConfig shouldBe newConfig
+                verify {
+                    newConfig.save(storage.preferencesHandler)
+                }
+            }
+        }
     }
 
     /**
@@ -523,10 +542,10 @@ class TrackViewModelSpec : WordSpec() {
      * Prepare the creation of a [TrackConfig] with the given value of [autoReset].
      */
     private fun createModel(autoReset: Boolean = false): TrackViewModelImpl {
-        mockkObject(TrackConfig)
-        val config = TrackConfig.DEFAULT.copy(autoResetStats = autoReset)
         val prefHandler = storage.preferencesHandler
-        every { TrackConfig.fromPreferences(prefHandler) } returns config
+        val config = TrackConfig.DEFAULT.copy(autoResetStats = autoReset)
+        TrackTestHelper.prepareTrackConfigFromPreferences(prefHandler, config)
+        TrackTestHelper.prepareTrackServerConfigFromPreferences(prefHandler)
 
         val intent = mockk<Intent>()
         val model = TrackViewModelImpl(storage, mockk(relaxed = true))

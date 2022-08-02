@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.TrackConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
@@ -284,13 +285,15 @@ fun StatsLine(labelRes: Int, value: String?, showUndefined: Boolean, tag: String
 data class PreviewTrackViewModel(
     override val trackStatistics: TrackStatsState,
     override var trackingEnabled: Boolean = false,
-    override val trackConfig: TrackConfig = TrackConfig.DEFAULT
+    override val trackConfig: TrackConfig = TrackConfig.DEFAULT,
+    override val serverConfig: TrackServerConfig = TEST_SERVER_CONFIG
 ) : TrackViewModel {
     override fun updateTrackingState(enabled: Boolean) {
         trackingEnabled = enabled
     }
 
     override fun updateTrackConfig(config: TrackConfig) {}
+    override fun updateServerConfig(config: TrackServerConfig) {}
 }
 
 @Preview(showBackground = true)
@@ -338,3 +341,11 @@ class PermissionStateProvider : PreviewParameterProvider<PermissionState> {
             override fun launchPermissionRequest() {}
         }
 }
+
+/** A test server configuration used by the model for the preview. */
+private val TEST_SERVER_CONFIG = TrackServerConfig(
+    serverUri = "https://track.example.org",
+    basePath = "/my/tracks",
+    user = "test-user",
+    password = "test.password"
+)

@@ -25,6 +25,7 @@ import androidx.lifecycle.AndroidViewModel
 
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.TrackStorage
 
@@ -48,6 +49,9 @@ interface TrackViewModel {
     /** The current tracking configuration. */
     val trackConfig: TrackConfig
 
+    /** The current configuration for the tracking server. */
+    val serverConfig: TrackServerConfig
+
     /**
      * Set the tracking state to [enabled].
      */
@@ -58,6 +62,13 @@ interface TrackViewModel {
      * An implementation should also take care that the updated properties are persisted.
      */
     fun updateTrackConfig(config: TrackConfig)
+
+    /**
+     * Set the tracking server configuration to [config]. This function is called when there is a change in
+     * configuration settings related to the server. An implementation should also take care that the updated
+     * properties are persisted.
+     */
+    fun updateServerConfig(config: TrackServerConfig)
 }
 
 /**
@@ -94,11 +105,15 @@ class TrackViewModelImpl(
     /** Stores the managed [TrackConfig]. */
     private var currentTrackConfig: TrackConfig
 
+    /** Stores the managed [TrackServerConfig]. */
+    private var currentServerConfig: TrackServerConfig
+
     init {
         trackStorage.setTrackingEnabled(false)
         trackStorage.preferencesHandler.registerListener(this)
 
         currentTrackConfig = TrackConfig.fromPreferences(trackStorage.preferencesHandler)
+        currentServerConfig = TrackServerConfig.fromPreferences(trackStorage.preferencesHandler)
 
         initializeFromSharedPreferences()
     }
@@ -114,6 +129,12 @@ class TrackViewModelImpl(
      */
     override val trackConfig: TrackConfig
         get() = currentTrackConfig
+
+    /**
+     * Allows read-only access to the current track server configuration.
+     */
+    override val serverConfig: TrackServerConfig
+        get() = currentServerConfig
 
     /**
      * Set the tracking state to [enabled]. This causes the tracking service to be updated accordingly.
@@ -138,6 +159,11 @@ class TrackViewModelImpl(
 
     override fun updateTrackConfig(config: TrackConfig) {
         currentTrackConfig = config
+        config.save(trackStorage.preferencesHandler)
+    }
+
+    override fun updateServerConfig(config: TrackServerConfig) {
+        currentServerConfig = config
         config.save(trackStorage.preferencesHandler)
     }
 
