@@ -22,7 +22,11 @@ import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
+import io.mockk.slot
+import io.mockk.verify
 
 /**
  * Test class for [TrackServerConfig].
@@ -71,6 +75,26 @@ class TrackServerConfigSpec : WordSpec({
 
             undefinedConfigs.forAll {
                 it.isDefined() shouldBe false
+            }
+        }
+    }
+
+    "save" should {
+        "store the configuration in preferences" {
+            val handler = mockk<PreferencesHandler>(relaxed = true)
+            val editor = mockk<SharedPreferences.Editor>()
+            val slotUpdater = slot<SharedPreferences.Editor.() -> Unit>()
+            every { handler.update(capture(slotUpdater)) } just runs
+            every { editor.putString(any(), any()) } returns editor
+
+            TEST_CONFIG.save(handler)
+            slotUpdater.captured(editor)
+
+            verify {
+                editor.putString(TrackServerConfig.PROP_SERVER_URI, TEST_CONFIG.serverUri)
+                editor.putString(TrackServerConfig.PROP_BASE_PATH, TEST_CONFIG.basePath)
+                editor.putString(TrackServerConfig.PROP_USER, TEST_CONFIG.user)
+                editor.putString(TrackServerConfig.PROP_PASSWORD, TEST_CONFIG.password)
             }
         }
     }

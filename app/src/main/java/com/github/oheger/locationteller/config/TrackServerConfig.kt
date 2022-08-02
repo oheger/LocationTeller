@@ -70,6 +70,18 @@ data class TrackServerConfig(
      */
     fun isDefined(): Boolean =
         serverUri.isNotEmpty() && basePath.isNotEmpty() && user.isNotEmpty() && password.isNotEmpty()
+
+    /**
+     * Write the values contained in this configuration into the preferences managed by [handler].
+     */
+    fun save(handler: PreferencesHandler) {
+        handler.update {
+            putString(PROP_SERVER_URI, serverUri)
+            putString(PROP_BASE_PATH, basePath)
+            putString(PROP_USER, user)
+            putString(PROP_PASSWORD, password)
+        }
+    }
 }
 
 /**
