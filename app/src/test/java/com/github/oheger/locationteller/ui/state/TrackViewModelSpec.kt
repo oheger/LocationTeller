@@ -503,13 +503,17 @@ class TrackViewModelSpec : WordSpec() {
         }
 
         "updateTrackingConfig" should {
-            "replace the tracking configuration" {
+            "replace and persist the tracking configuration" {
                 val newConfig = mockk<TrackConfig>()
+                every { newConfig.save(storage.preferencesHandler) } just runs
                 val model = createModel()
 
                 model.updateTrackConfig(newConfig)
 
                 model.trackConfig shouldBe newConfig
+                verify {
+                    newConfig.save(storage.preferencesHandler)
+                }
             }
         }
     }

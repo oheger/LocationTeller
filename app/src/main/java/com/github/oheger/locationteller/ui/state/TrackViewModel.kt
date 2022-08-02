@@ -55,6 +55,7 @@ interface TrackViewModel {
 
     /**
      * Set the tracking configuration to [config]. This function is called when there is a change in the configuration.
+     * An implementation should also take care that the updated properties are persisted.
      */
     fun updateTrackConfig(config: TrackConfig)
 }
@@ -137,6 +138,7 @@ class TrackViewModelImpl(
 
     override fun updateTrackConfig(config: TrackConfig) {
         currentTrackConfig = config
+        config.save(trackStorage.preferencesHandler)
     }
 
     /**
