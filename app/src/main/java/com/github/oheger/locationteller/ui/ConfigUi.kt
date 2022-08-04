@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -34,8 +35,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.config.TrackServerConfig
+import com.github.oheger.locationteller.ui.state.TrackViewModel
+import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
+
+internal const val CONFIG_ITEM_SERVER_URI = "config_server_uri"
+internal const val CONFIG_ITEM_SERVER_PATH = "config_server_path"
+internal const val CONFIG_ITEM_SERVER_USER = "config_server_username"
 
 /**
  * An enum class with constants for the single elements of the UI of a configuration item. This is mainly used by
@@ -52,6 +61,62 @@ internal enum class ConfigItemElement {
      * Generate a tag for this input element of the given configuration [item].
      */
     fun tagForItem(item: String): String = "tag_${item}_$name"
+}
+
+/**
+ * Generate the UI for the configuration of the track server settings. This is the entry point into this configuration
+ * UI.
+ */
+@Composable
+fun ServerConfigUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = Modifier) {
+    ServerConfigView(model = model, modifier = modifier)
+}
+
+/**
+ * Generate the view for displaying and changing configuration settings related to the tracking server using [model]
+ * as view model.
+ */
+@Composable
+fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
+    val editItem = rememberSaveable { mutableStateOf<String?>(null) }
+    val editFunc: (String?) -> Unit = { editItem.value = it }
+
+    fun updateConfig(updateFunc: (TrackServerConfig, String) -> TrackServerConfig): (String) -> Unit = { value ->
+        val serverConfig = model.serverConfig
+        val updatedConfig = updateFunc(serverConfig, value)
+        model.updateServerConfig(updatedConfig)
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(all = 10.dp)
+    ) {
+        ConfigItem(
+            item = CONFIG_ITEM_SERVER_URI,
+            editItem = editItem.value,
+            labelRes = R.string.pref_server_uri,
+            value = model.serverConfig.serverUri,
+            update = updateConfig { config, uri -> config.copy(serverUri = uri) },
+            edit = editFunc
+        )
+        ConfigItem(
+            item = CONFIG_ITEM_SERVER_PATH,
+            editItem = editItem.value,
+            labelRes = R.string.pref_server_path,
+            value = model.serverConfig.basePath,
+            update = updateConfig { config, path -> config.copy(basePath = path) },
+            edit = editFunc
+        )
+        ConfigItem(
+            item = CONFIG_ITEM_SERVER_USER,
+            editItem = editItem.value,
+            labelRes = R.string.pref_user,
+            value = model.serverConfig.user,
+            update = updateConfig { config, user -> config.copy(user = user) },
+            edit = editFunc
+        )
+    }
 }
 
 /**
@@ -121,20 +186,7 @@ fun ConfigItem(
 @Preview(showBackground = true)
 @Composable
 fun ConfigPreview() {
-    Column {
-        ConfigItem(
-            item = "Minimum Interval",
-            editItem = null,
-            labelRes = R.string.pref_server_uri,
-            value = "100",
-            update = {},
-            edit = {})
-        ConfigItem(
-            item = "Maximum Interval",
-            editItem = "Maximum Interval",
-            labelRes = R.string.pref_server_path,
-            value = "500",
-            update = {},
-            edit = {})
-    }
+    val model = PreviewTrackViewModel()
+
+    ServerConfigView(model = model)
 }

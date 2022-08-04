@@ -16,12 +16,11 @@
 package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
-import android.text.InputType
-import android.text.TextUtils
-import androidx.preference.EditTextPreference
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
-import com.github.oheger.locationteller.R
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+
+import com.github.oheger.locationteller.databinding.FragmentServerConfigBinding
 
 /**
  * A fragment for displaying the settings related to the tracking server.
@@ -29,17 +28,34 @@ import com.github.oheger.locationteller.R
  * With the settings defined here the server is configured on which location
  * information is stored.
  */
-class ServerSettingsFragment : PreferenceFragmentCompat() {
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.server_preferences, rootKey)
+class ServerSettingsFragment : androidx.fragment.app.Fragment() {
+    /** Holds the binding of this fragment. */
+    private var _binding: FragmentServerConfigBinding? = null
 
-        val passwordPref: EditTextPreference? = findPreference("password")
-        passwordPref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { preference ->
-            if (TextUtils.isEmpty(preference.text)) ""
-            else "****"
-        }
-        passwordPref?.setOnBindEditTextListener { editText ->
-            editText.inputType = (InputType.TYPE_CLASS_TEXT + InputType.TYPE_TEXT_VARIATION_PASSWORD)
+    /**
+     * A property for the convenient access to the binding, as long as this
+     * fragment is active.
+     */
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentServerConfigBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.serverConfig.setContent {
+            ServerConfigUi()
         }
     }
 }
