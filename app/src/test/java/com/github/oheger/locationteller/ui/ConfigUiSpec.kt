@@ -24,6 +24,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import io.kotest.inspectors.forAll
@@ -206,6 +208,32 @@ class ConfigUiSpec {
         composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM)).performClick()
         composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).assertTextEquals(orgValue)
     }
+
+    @Test
+    fun `A visual transformation can be specified`() {
+        val valueState = mutableStateOf("top-secret")
+        composableTestRule.setContent {
+            ConfigUiTestWrapper(
+                value = valueState.value,
+                update = { valueState.value = it },
+                visualTransformation = PasswordVisualTransformation()
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals("••••••••••")
+        composableTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM)).performClick()
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))) {
+            performTextClearance()
+            performTextInput("more-secret")
+            assertTextEquals("•••••••••••")
+        }
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
+
+        valueState.value shouldBe "more-secret"
+        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals("•••••••••••")
+    }
 }
 
 /** The name of the config item used by tests. */
@@ -213,10 +241,14 @@ private const val CONFIG_ITEM = "test"
 
 /**
  * A test composable function that wraps a [ConfigItem] and manages the selected state. Set the current value to
- * [value] and propagate changes to [update].
+ * [value] and propagate changes to [update]. Optionally apply a [visualTransformation].
  */
 @Composable
-fun ConfigUiTestWrapper(value: String, update: (String) -> Unit) {
+fun ConfigUiTestWrapper(
+    value: String,
+    update: (String) -> Unit,
+    visualTransformation: VisualTransformation = VisualTransformation.None
+) {
     val selectedState = remember { mutableStateOf<String?>(null) }
 
     ConfigItem(
@@ -225,5 +257,7 @@ fun ConfigUiTestWrapper(value: String, update: (String) -> Unit) {
         labelRes = R.string.pref_server_uri,
         value = value,
         update = update,
-        edit = { selectedState.value = it })
+        edit = { selectedState.value = it },
+        visualTransformation = visualTransformation
+    )
 }

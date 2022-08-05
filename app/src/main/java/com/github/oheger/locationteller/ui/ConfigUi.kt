@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
@@ -33,6 +34,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -132,7 +136,9 @@ fun ConfigItem(
     value: String,
     update: (String) -> Unit,
     edit: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
     var editorText by rememberSaveable { mutableStateOf<String?>(null) }
     val inEditMode = item == editItem
@@ -146,7 +152,7 @@ fun ConfigItem(
         )
         if (!inEditMode) {
             Text(
-                text = value, modifier = modifier
+                text = visualTransformation.transform(value), modifier = modifier
                     .testTag(ConfigItemElement.VALUE.tagForItem(item))
                     .clickable(onClick = startEdit)
             )
@@ -155,7 +161,9 @@ fun ConfigItem(
             TextField(
                 value = editorText ?: value,
                 onValueChange = { editorText = it },
-                modifier = modifier.testTag(ConfigItemElement.EDITOR.tagForItem(item))
+                modifier = modifier.testTag(ConfigItemElement.EDITOR.tagForItem(item)),
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions
             )
             Row {
                 Button(
@@ -181,6 +189,14 @@ fun ConfigItem(
             }
         }
     }
+}
+
+/**
+ * Apply this [VisualTransformation] to the given plain [text].
+ */
+private fun VisualTransformation.transform(text: String): AnnotatedString {
+    val annotatedString = buildAnnotatedString { append(text) }
+    return filter(annotatedString).text
 }
 
 @Preview(showBackground = true)
