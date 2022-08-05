@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -65,13 +66,17 @@ class ServerConfigUiSpec {
             composeTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(item)).performClick()
         }
 
-        val testConfig = TrackServerConfig("https://my-track.example.org", "/tests", "u1", "")
+        val testConfig = TrackServerConfig("https://my-track.example.org", "/tests", "u1", "pass")
         editValue(CONFIG_ITEM_SERVER_URI, testConfig.serverUri)
         editValue(CONFIG_ITEM_SERVER_PATH, testConfig.basePath)
         editValue(CONFIG_ITEM_SERVER_USER, testConfig.user)
+        editValue(CONFIG_ITEM_SERVER_PASSWORD, testConfig.password)
 
         val currentConfig =
             TrackServerConfig.fromPreferences(PreferencesHandler.getInstance(ApplicationProvider.getApplicationContext()))
         currentConfig shouldBe testConfig
+
+        composeTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM_SERVER_PASSWORD))
+            .assertTextEquals("••••")
     }
 }

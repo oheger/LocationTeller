@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
@@ -31,14 +33,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
@@ -49,6 +56,7 @@ import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 internal const val CONFIG_ITEM_SERVER_URI = "config_server_uri"
 internal const val CONFIG_ITEM_SERVER_PATH = "config_server_path"
 internal const val CONFIG_ITEM_SERVER_USER = "config_server_username"
+internal const val CONFIG_ITEM_SERVER_PASSWORD = "config_server_password"
 
 /**
  * An enum class with constants for the single elements of the UI of a configuration item. This is mainly used by
@@ -95,6 +103,7 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(all = 10.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         ConfigItem(
             item = CONFIG_ITEM_SERVER_URI,
@@ -102,7 +111,8 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             labelRes = R.string.pref_server_uri,
             value = model.serverConfig.serverUri,
             update = updateConfig { config, uri -> config.copy(serverUri = uri) },
-            edit = editFunc
+            edit = editFunc,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
         )
         ConfigItem(
             item = CONFIG_ITEM_SERVER_PATH,
@@ -119,6 +129,16 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             value = model.serverConfig.user,
             update = updateConfig { config, user -> config.copy(user = user) },
             edit = editFunc
+        )
+        ConfigItem(
+            item = CONFIG_ITEM_SERVER_PASSWORD,
+            editItem = editItem.value,
+            labelRes = R.string.pref_password,
+            value = model.serverConfig.password,
+            update = updateConfig { config, pass -> config.copy(password = pass) },
+            edit = editFunc,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
     }
 }
@@ -144,28 +164,39 @@ fun ConfigItem(
     val inEditMode = item == editItem
     val startEdit: () -> Unit = { edit(item) }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 15.dp)
+    ) {
         Text(
-            text = stringResource(id = labelRes), modifier = modifier
+            text = stringResource(id = labelRes),
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = modifier
                 .testTag(ConfigItemElement.LABEL.tagForItem(item))
                 .clickable(onClick = startEdit)
         )
         if (!inEditMode) {
             Text(
-                text = visualTransformation.transform(value), modifier = modifier
+                text = visualTransformation.transform(value),
+                modifier = modifier
                     .testTag(ConfigItemElement.VALUE.tagForItem(item))
                     .clickable(onClick = startEdit)
+                    .padding(start = 10.dp)
             )
         } else {
 
             TextField(
                 value = editorText ?: value,
                 onValueChange = { editorText = it },
-                modifier = modifier.testTag(ConfigItemElement.EDITOR.tagForItem(item)),
+                modifier = modifier
+                    .testTag(ConfigItemElement.EDITOR.tagForItem(item))
+                    .padding(start = 10.dp),
                 visualTransformation = visualTransformation,
                 keyboardOptions = keyboardOptions
             )
-            Row {
+            Row(modifier = modifier.align(Alignment.CenterHorizontally)) {
                 Button(
                     onClick = {
                         update(editorText.orEmpty())
