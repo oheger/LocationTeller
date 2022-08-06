@@ -76,6 +76,18 @@ internal enum class ConfigItemElement {
 }
 
 /**
+ * Type definition for a function that provides an editor for [ConfigItem] of a specific type. The current value of
+ * this is editor is hoisted. It is passed as argument to the function as well as the update function.
+ */
+typealias ConfigEditor<T> = @Composable (T, (T) -> Unit, Modifier) -> Unit
+
+/**
+ * Type definition for a function that generates a string representation of a configuration item. This function is
+ * used by [ConfigItem] to generate the display text based on the current value of the item
+ */
+typealias ConfigItemRenderer<T> = (T) -> AnnotatedString
+
+/**
  * Generate the UI for the configuration of the track server settings. This is the entry point into this configuration
  * UI.
  */
@@ -105,7 +117,7 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             .padding(all = 10.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        ConfigItem(
+        ConfigStringItem(
             item = CONFIG_ITEM_SERVER_URI,
             editItem = editItem.value,
             labelRes = R.string.pref_server_uri,
@@ -114,7 +126,7 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             edit = editFunc,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
         )
-        ConfigItem(
+        ConfigStringItem(
             item = CONFIG_ITEM_SERVER_PATH,
             editItem = editItem.value,
             labelRes = R.string.pref_server_path,
@@ -122,7 +134,7 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             update = updateConfig { config, path -> config.copy(basePath = path) },
             edit = editFunc
         )
-        ConfigItem(
+        ConfigStringItem(
             item = CONFIG_ITEM_SERVER_USER,
             editItem = editItem.value,
             labelRes = R.string.pref_user,
@@ -130,7 +142,7 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             update = updateConfig { config, user -> config.copy(user = user) },
             edit = editFunc
         )
-        ConfigItem(
+        ConfigStringItem(
             item = CONFIG_ITEM_SERVER_PASSWORD,
             editItem = editItem.value,
             labelRes = R.string.pref_password,
@@ -144,12 +156,14 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
 }
 
 /**
- * Generate the UI for the configuration setting [item] with the specified [resource ID for the label][labelRes] and
- * [value]. The item that is currently edited is [editItem]; this can be changed via the [edit] function. Changes on
- * the value of the item are reported using the [update] function.
+ * Generate the UI for the configuration setting [item] of type [String] with the specified
+ * [resource ID for the label][labelRes] and [value]. The item that is currently edited is [editItem]; this can be
+ * changed via the [edit] function. Changes on the value of the item are reported using the [update] function.
+ * Apply the given [visualTransformation] to the edited text and use the given [keyboardOptions] to define the
+ * keyboard of the text field.
  */
 @Composable
-fun ConfigItem(
+fun ConfigStringItem(
     item: String,
     editItem: String?,
     labelRes: Int,
@@ -160,9 +174,52 @@ fun ConfigItem(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
-    var editorText by rememberSaveable { mutableStateOf<String?>(null) }
+    ConfigItem(
+        item = item,
+        editItem = editItem,
+        labelRes = labelRes,
+        value = value,
+        update = update,
+        updateEdit = edit,
+        renderer = visualTransformation::transform,
+        modifier = modifier
+    ) { editValue, editUpdate, editModifier ->
+        TextField(
+            value = editValue,
+            onValueChange = editUpdate,
+            modifier = editModifier
+                .testTag(ConfigItemElement.EDITOR.tagForItem(item)),
+            visualTransformation = visualTransformation,
+            keyboardOptions = keyboardOptions
+        )
+    }
+}
+
+/**
+ * Generate the UI for the configuration setting [item] of a generic type. This UI consists of a label whose content is
+ * defined by [labelRes]. It either shows the current [value] of the item (or a string representation of it generated
+ * by the [renderer] function) or a type-specific editor produced by [configEditor]. Whether the editor is displayed
+ * or not depends on [editItem]: if this is the current [item], the editor is active. With the [updateEdit] function,
+ * the currently edited item can be changed, e.g. when the user clicks on the cancel button. Changes on the edited
+ * value are reported upwards using the [update] function.
+ * This function takes care about managing the whole edit state and providing the buttons to commit the new value or
+ * cancel the edit operation. Via the [configEditor] function, arbitrary editor controls can be injected.
+ */
+@Composable
+fun <T> ConfigItem(
+    item: String,
+    editItem: String?,
+    labelRes: Int,
+    value: T,
+    update: (T) -> Unit,
+    updateEdit: (String?) -> Unit,
+    renderer: ConfigItemRenderer<T> = { it.toString().toAnnotatedString() },
+    modifier: Modifier = Modifier,
+    configEditor: ConfigEditor<T>
+) {
+    var editorValue by rememberSaveable { mutableStateOf(value) }
     val inEditMode = item == editItem
-    val startEdit: () -> Unit = { edit(item) }
+    val startEdit: () -> Unit = { updateEdit(item) }
 
     Column(
         modifier = modifier
@@ -179,7 +236,7 @@ fun ConfigItem(
         )
         if (!inEditMode) {
             Text(
-                text = visualTransformation.transform(value),
+                text = renderer(value),
                 modifier = modifier
                     .testTag(ConfigItemElement.VALUE.tagForItem(item))
                     .clickable(onClick = startEdit)
@@ -187,21 +244,12 @@ fun ConfigItem(
             )
         } else {
 
-            TextField(
-                value = editorText ?: value,
-                onValueChange = { editorText = it },
-                modifier = modifier
-                    .testTag(ConfigItemElement.EDITOR.tagForItem(item))
-                    .padding(start = 10.dp),
-                visualTransformation = visualTransformation,
-                keyboardOptions = keyboardOptions
-            )
+            configEditor(editorValue, { editorValue = it }, modifier.padding(start = 10.dp))
             Row(modifier = modifier.align(Alignment.CenterHorizontally)) {
                 Button(
                     onClick = {
-                        update(editorText.orEmpty())
-                        editorText = null
-                        edit(null)
+                        update(editorValue)
+                        updateEdit(null)
                     },
                     modifier = modifier.testTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(item))
                 ) {
@@ -210,8 +258,8 @@ fun ConfigItem(
                 Spacer(modifier = modifier.width(4.dp))
                 Button(
                     onClick = {
-                        edit(null)
-                        editorText = null
+                        updateEdit(null)
+                        editorValue = value
                     },
                     modifier = modifier.testTag(ConfigItemElement.CANCEL_BUTTON.tagForItem(item))
                 ) {
@@ -223,12 +271,14 @@ fun ConfigItem(
 }
 
 /**
+ * Convert this string to an [AnnotatedString].
+ */
+private fun String.toAnnotatedString(): AnnotatedString = buildAnnotatedString { append(this@toAnnotatedString) }
+
+/**
  * Apply this [VisualTransformation] to the given plain [text].
  */
-private fun VisualTransformation.transform(text: String): AnnotatedString {
-    val annotatedString = buildAnnotatedString { append(text) }
-    return filter(annotatedString).text
-}
+private fun VisualTransformation.transform(text: String): AnnotatedString = filter(text.toAnnotatedString()).text
 
 @Preview(showBackground = true)
 @Composable

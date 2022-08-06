@@ -55,7 +55,7 @@ class ConfigUiSpec {
         val expectedElements = setOf(ConfigItemElement.LABEL, ConfigItemElement.VALUE)
 
         composableTestRule.setContent {
-            ConfigItem(
+            ConfigStringItem(
                 item = CONFIG_ITEM,
                 editItem = "anotherItem",
                 labelRes = R.string.pref_server_uri,
@@ -79,7 +79,7 @@ class ConfigUiSpec {
         val nonEditModeElements = setOf(ConfigItemElement.VALUE)
 
         composableTestRule.setContent {
-            ConfigItem(
+            ConfigStringItem(
                 item = CONFIG_ITEM,
                 editItem = CONFIG_ITEM,
                 labelRes = R.string.pref_server_uri,
@@ -103,7 +103,7 @@ class ConfigUiSpec {
         val state = mutableStateOf<String?>("someValue")
 
         composableTestRule.setContent {
-            ConfigItem(
+            ConfigStringItem(
                 item = CONFIG_ITEM,
                 editItem = state.value,
                 labelRes = R.string.pref_server_uri,
@@ -122,7 +122,7 @@ class ConfigUiSpec {
         val state = mutableStateOf<String?>("aValue")
 
         composableTestRule.setContent {
-            ConfigItem(
+            ConfigStringItem(
                 item = CONFIG_ITEM,
                 editItem = "someItem",
                 labelRes = R.string.pref_server_uri,
@@ -158,26 +158,6 @@ class ConfigUiSpec {
     }
 
     @Test
-    fun `The editor state is updated after saving a value`() {
-        val orgValue = "original, non-modified config value"
-        val valueState = mutableStateOf(orgValue)
-        composableTestRule.setContent {
-            ConfigUiTestWrapper(value = valueState.value, update = { valueState.value = it })
-        }
-
-        composableTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM)).performClick()
-        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))
-            .performTextInput("someChanges")
-        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
-
-        val updatedValue = "externally changed value"
-        valueState.value = updatedValue
-        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM)).performClick()
-        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))
-            .assertTextEquals(updatedValue)
-    }
-
-    @Test
     fun `An edit operation can be canceled`() {
         val orgValue = "original config value"
         composableTestRule.setContent {
@@ -207,6 +187,19 @@ class ConfigUiSpec {
 
         composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM)).performClick()
         composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).assertTextEquals(orgValue)
+    }
+
+    fun `Clicking the commit button without changing the text works`() {
+        val orgValue = "the value"
+        val valueState = mutableStateOf(orgValue)
+        composableTestRule.setContent {
+            ConfigUiTestWrapper(value = valueState.value, update = { valueState.value = it })
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM)).performClick()
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
+
+        valueState.value shouldBe orgValue
     }
 
     @Test
@@ -240,7 +233,7 @@ class ConfigUiSpec {
 private const val CONFIG_ITEM = "test"
 
 /**
- * A test composable function that wraps a [ConfigItem] and manages the selected state. Set the current value to
+ * A test composable function that wraps a [ConfigStringItem] and manages the selected state. Set the current value to
  * [value] and propagate changes to [update]. Optionally apply a [visualTransformation].
  */
 @Composable
@@ -251,7 +244,7 @@ fun ConfigUiTestWrapper(
 ) {
     val selectedState = remember { mutableStateOf<String?>(null) }
 
-    ConfigItem(
+    ConfigStringItem(
         item = CONFIG_ITEM,
         editItem = selectedState.value,
         labelRes = R.string.pref_server_uri,
