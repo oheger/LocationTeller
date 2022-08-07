@@ -227,6 +227,46 @@ class ConfigUiSpec {
         composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM))
             .assertTextEquals("•••••••••••")
     }
+
+    @Test
+    fun `An Int configuration item is correctly displayed`() {
+        composableTestRule.setContent {
+            ConfigIntItem(
+                item = CONFIG_ITEM,
+                editItem = null,
+                labelRes = R.string.pref_multi_upload_chunk_size,
+                value = 42,
+                update = {},
+                updateEdit = {}
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM)).assertTextEquals("42")
+    }
+
+    @Test
+    fun `An Int configuration item can be edited`() {
+        val valueState = mutableStateOf(42)
+        composableTestRule.setContent {
+            ConfigIntItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_multi_upload_chunk_size,
+                value = valueState.value,
+                update = { valueState.value = it },
+                updateEdit = {}
+            )
+        }
+
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))) {
+            assertTextEquals("42")
+            performTextClearance()
+            performTextInput("21")
+        }
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
+
+        valueState.value shouldBe 21
+    }
 }
 
 /** The name of the config item used by tests. */

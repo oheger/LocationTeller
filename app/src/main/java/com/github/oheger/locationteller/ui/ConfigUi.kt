@@ -196,6 +196,32 @@ fun ConfigStringItem(
 }
 
 /**
+ * Generate the UI for the configuration setting [item] of type [Int] with the specified
+ * [resource ID for the label][labelRes] and [value]. The item that is currently edited is [editItem]; this can be
+ * changed via the [updateEdit] function. Changes on the value of the item are reported using the [update] function.
+ */
+@Composable
+fun ConfigIntItem(
+    item: String,
+    editItem: String?,
+    labelRes: Int,
+    value: Int,
+    update: (Int) -> Unit,
+    updateEdit: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ConfigStringItem(
+        item = item,
+        editItem = editItem,
+        labelRes = labelRes,
+        value = value.toString(),
+        update = { strValue -> update(strValue.toInt()) },
+        edit = updateEdit,
+        modifier = modifier
+    )
+}
+
+/**
  * Generate the UI for the configuration setting [item] of a generic type. This UI consists of a label whose content is
  * defined by [labelRes]. It either shows the current [value] of the item (or a string representation of it generated
  * by the [renderer] function) or a type-specific editor produced by [configEditor]. Whether the editor is displayed
