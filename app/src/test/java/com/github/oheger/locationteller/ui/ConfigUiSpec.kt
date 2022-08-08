@@ -15,9 +15,11 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -26,6 +28,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import io.kotest.inspectors.forAll
@@ -61,7 +64,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_server_uri,
                 value = "value",
                 update = {},
-                edit = {})
+                updateEdit = {})
         }
 
         ConfigItemElement.values().forAll { element ->
@@ -72,11 +75,16 @@ class ConfigUiSpec {
                 interaction.assertDoesNotExist()
             }
         }
+
+        val expectedLabel =
+            ApplicationProvider.getApplicationContext<Application>().getString(R.string.pref_server_uri)
+        composableTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM))
+            .assertTextEquals(expectedLabel)
     }
 
     @Test
     fun `The elements for the edit mode are correctly displayed`() {
-        val nonEditModeElements = setOf(ConfigItemElement.VALUE)
+        val nonEditModeElements = setOf(ConfigItemElement.VALUE, ConfigItemElement.ERROR_MESSAGE)
 
         composableTestRule.setContent {
             ConfigStringItem(
@@ -85,7 +93,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_server_uri,
                 value = "value",
                 update = {},
-                edit = {})
+                updateEdit = {})
         }
 
         ConfigItemElement.values().forAll { element ->
@@ -109,7 +117,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_server_uri,
                 value = "configValue",
                 update = {},
-                edit = { value -> state.value = value }
+                updateEdit = { value -> state.value = value }
             )
         }
         composableTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM)).performClick()
@@ -128,7 +136,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_server_uri,
                 value = "configValue",
                 update = {},
-                edit = { value -> state.value = value }
+                updateEdit = { value -> state.value = value }
             )
         }
         composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM)).performClick()
@@ -267,6 +275,31 @@ class ConfigUiSpec {
 
         valueState.value shouldBe 21
     }
+
+    @Test
+    fun `An invalid Int configuration value is handled`() {
+        composableTestRule.setContent {
+            ConfigIntItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_multi_upload_chunk_size,
+                value = 42,
+                update = {},
+                updateEdit = {}
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).performTextInput("abc")
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM))
+            .assertIsNotEnabled()
+
+        val expectedErrorMessage =
+            ApplicationProvider.getApplicationContext<Application>().getString(R.string.pref_err_no_number)
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM)).assertExists()
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals(expectedErrorMessage)
+    }
 }
 
 /** The name of the config item used by tests. */
@@ -290,7 +323,7 @@ fun ConfigUiTestWrapper(
         labelRes = R.string.pref_server_uri,
         value = value,
         update = update,
-        edit = { selectedState.value = it },
+        updateEdit = { selectedState.value = it },
         visualTransformation = visualTransformation
     )
 }

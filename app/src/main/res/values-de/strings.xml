@@ -21,6 +21,7 @@
     <string name="pref_password">Passwort</string>
     <string name="pref_btn_save">Speichern</string>
     <string name="pref_btn_cancel">Abbrechen</string>
+    <string name="pref_err_no_number">Der eingebene Text is keine gültige Zahl.</string>
     <string name="lab_track_enabled">Verfolgen aktiv</string>
     <string name="lab_last_location_update">Letzte Positionsänderung:</string>
     <string name="lab_last_error">Letzter Fehler:</string>
