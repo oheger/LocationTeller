@@ -175,8 +175,8 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
  * Generate the UI for the configuration setting [item] of type [String] with the specified
  * [resource ID for the label][labelRes] and [value]. The item that is currently edited is [editItem]; this can be
  * changed via the [updateEdit] function. Changes on the value of the item are reported using the [update] function.
- * Before that, a validation takes place via the [validate] function. Apply the given [visualTransformation] to the
- * edited text and use the given [keyboardOptions] to define the keyboard of the text field.
+ * Apply the given [visualTransformation] to the edited text and use the given [keyboardOptions] to define the
+ * keyboard of the text field.
  */
 @Composable
 fun ConfigStringItem(
@@ -186,8 +186,6 @@ fun ConfigStringItem(
     value: String,
     update: (String) -> Unit,
     updateEdit: (String?) -> Unit,
-    validate: (String) -> Result<String> = { Result.success(it) },
-    invalidInputHandler: ConfigInvalidInputHandler = ::defaultInvalidInputHandler,
     modifier: Modifier = Modifier,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default
@@ -200,18 +198,14 @@ fun ConfigStringItem(
         update = update,
         updateEdit = updateEdit,
         renderer = visualTransformation::transform,
-        invalidInputHandler = invalidInputHandler,
-        modifier = modifier
-    ) { editValue, editUpdate, editModifier ->
-        TextField(
-            value = editValue,
-            onValueChange = { value -> editUpdate(validate(value)) },
-            modifier = editModifier
-                .testTag(ConfigItemElement.EDITOR.tagForItem(item)),
+        modifier = modifier,
+        configEditor = ConfigTextFieldEditor(
+            item = item,
+            validate = { Result.success(it) },
             visualTransformation = visualTransformation,
             keyboardOptions = keyboardOptions
         )
-    }
+    )
 }
 
 /**
@@ -230,17 +224,23 @@ fun ConfigIntItem(
     modifier: Modifier = Modifier
 ) {
     val errorMessage = stringResource(id = R.string.pref_err_no_number).toAnnotatedString()
+    val validateInt: (String) -> Result<Int> = { strValue -> runCatching { strValue.toInt() } }
+    val configEditor = ConfigTextFieldEditor(
+        item = item,
+        validate = validateInt,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
 
-    ConfigStringItem(
+    ConfigItem(
         item = item,
         editItem = editItem,
         labelRes = labelRes,
-        value = value.toString(),
-        update = { strValue -> update(strValue.toInt()) },
+        value = value,
+        update = update,
         updateEdit = updateEdit,
-        validate = { strValue -> runCatching { strValue.takeUnless { it.isEmpty() }?.toInt() ?: 0 }.map { strValue } },
         invalidInputHandler = { errorMessage },
-        modifier = modifier
+        modifier = modifier,
+        configEditor = configEditor
     )
 }
 
@@ -339,6 +339,35 @@ fun <T> ConfigItem(
             }
         }
     }
+}
+
+/**
+ * Return a [ConfigEditor] for the given [item] of a specific data type consisting of a single [TextField]. Validate
+ * user input using the given [validation function][validate]. Obtain the string to be passed to the [TextField] via
+ * the given [renderer function][renderer]. Optionally, a [visualTransformation] and [keyboardOptions] can be
+ * specified.
+ */
+@Composable
+private fun <T> ConfigTextFieldEditor(
+    item: String,
+    validate: (String) -> Result<T>,
+    renderer: (T) -> String = { it.toString() },
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+): ConfigEditor<T> = { editValue, editUpdate, editModifier ->
+    var editorText by rememberSaveable { mutableStateOf(renderer(editValue)) }
+
+    TextField(
+        value = editorText,
+        onValueChange = { value ->
+            editorText = value
+            editUpdate(validate(value))
+        },
+        modifier = editModifier
+            .testTag(ConfigItemElement.EDITOR.tagForItem(item)),
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions
+    )
 }
 
 /**
