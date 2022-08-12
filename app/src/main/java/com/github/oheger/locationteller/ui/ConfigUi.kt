@@ -54,6 +54,9 @@ import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
+import java.text.NumberFormat
+import java.text.ParsePosition
+
 internal const val CONFIG_ITEM_SERVER_URI = "config_server_uri"
 internal const val CONFIG_ITEM_SERVER_PATH = "config_server_path"
 internal const val CONFIG_ITEM_SERVER_USER = "config_server_username"
@@ -245,6 +248,47 @@ fun ConfigIntItem(
 }
 
 /**
+ * Generate the UI for the configuration setting [item] of type [Double] with the specified
+ * [resource ID for the label][labelRes] and [value]. The item that is currently edited is [editItem]; this can be
+ * changed via the [updateEdit] function. Changes on the value of the item are reported using the [update] function.
+ * Use [formatter] to format the number and parse user input.
+ */
+@Composable
+fun ConfigDoubleItem(
+    item: String,
+    editItem: String?,
+    labelRes: Int,
+    value: Double,
+    update: (Double) -> Unit,
+    updateEdit: (String?) -> Unit,
+    formatter: NumberFormat,
+    modifier: Modifier = Modifier
+) {
+    val errorMessage = stringResource(id = R.string.pref_err_no_number).toAnnotatedString()
+    val rendererDouble: (Double) -> String = { formatter.format(it) }
+    val renderDoubleAnn: ConfigItemRenderer<Double> = { rendererDouble(it).toAnnotatedString() }
+    val configEditor = ConfigTextFieldEditor(
+        item = item,
+        renderer = rendererDouble,
+        validate = formatter::validateDouble,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+    )
+
+    ConfigItem(
+        item = item,
+        editItem = editItem,
+        labelRes = labelRes,
+        value = value,
+        update = update,
+        updateEdit = updateEdit,
+        invalidInputHandler = { errorMessage },
+        modifier = modifier,
+        configEditor = configEditor,
+        renderer = renderDoubleAnn
+    )
+}
+
+/**
  * Generate the UI for the configuration setting [item] of a generic type. This UI consists of a label whose content is
  * defined by [labelRes]. It either shows the current [value] of the item (or a string representation of it generated
  * by the [renderer] function) or a type-specific editor produced by [configEditor]. Whether the editor is displayed
@@ -387,6 +431,43 @@ private fun String.toAnnotatedString(): AnnotatedString = buildAnnotatedString {
  * Apply this [VisualTransformation] to the given plain [text].
  */
 private fun VisualTransformation.transform(text: String): AnnotatedString = filter(text.toAnnotatedString()).text
+
+/**
+ * Check whether [strValue] can be successfully parsed using this [NumberFormat]. If so, return a success [Result]
+ * with the parsed [Double] value; otherwise, return a failure [Result].
+ */
+private fun NumberFormat.validateDouble(strValue: String): Result<Double> {
+    val parsePosition = ParsePosition(0)
+    return parse(strValue, parsePosition)
+        ?.takeIf { parsePosition.index >= strValue.length }
+        ?.let { Result.success(it.toDouble()) }
+        ?: Result.failure(NumberFormatException("'$strValue' could not be parsed to a decimal number."))
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ItemsPreview() {
+    Column {
+        ConfigIntItem(
+            item = "intItem",
+            editItem = "intItem",
+            labelRes = R.string.pref_multi_upload_chunk_size,
+            value = 20,
+            update = {},
+            updateEdit = {}
+        )
+
+        ConfigDoubleItem(
+            item = "doubleItem",
+            editItem = "doubleItem",
+            labelRes = R.string.pref_walking_speed,
+            value = 3.5,
+            update = {},
+            updateEdit = {},
+            formatter = NumberFormat.getNumberInstance()
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable

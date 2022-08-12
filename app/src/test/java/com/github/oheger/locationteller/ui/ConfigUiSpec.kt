@@ -42,6 +42,12 @@ import org.robolectric.annotation.Config
 
 import com.github.oheger.locationteller.R
 
+import io.mockk.every
+import io.mockk.mockk
+
+import java.text.NumberFormat
+import java.util.Locale
+
 /**
  * Test class for composable functions related to the config UI.
  */
@@ -286,6 +292,86 @@ class ConfigUiSpec {
                 value = 42,
                 update = {},
                 updateEdit = {}
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).performTextInput("abc")
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM))
+            .assertIsNotEnabled()
+
+        val expectedErrorMessage =
+            ApplicationProvider.getApplicationContext<Application>().getString(R.string.pref_err_no_number)
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM)).assertExists()
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals(expectedErrorMessage)
+    }
+
+    @Test
+    fun `A Double configuration item is correctly displayed`() {
+        val value = 3.1415
+        val formattedValue = "3,14"
+        val formatter = mockk<NumberFormat>()
+        every { formatter.format(value) } returns formattedValue
+
+        composableTestRule.setContent {
+            ConfigDoubleItem(
+                item = CONFIG_ITEM,
+                editItem = null,
+                labelRes = R.string.pref_walking_speed,
+                value = value,
+                update = {},
+                updateEdit = {},
+                formatter = formatter
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals(formattedValue)
+    }
+
+    @Test
+    fun `A Double configuration item can be edited`() {
+        val value = 6.28
+        val formattedValue = "6,28"
+        val newValue = 1.23
+        val newValueStr = "1,23"
+        val formatter = NumberFormat.getNumberInstance(Locale.GERMANY)
+
+        val valueState = mutableStateOf(value)
+        composableTestRule.setContent {
+            ConfigDoubleItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_walking_speed,
+                value = valueState.value,
+                update = { valueState.value = it },
+                updateEdit = {},
+                formatter = formatter
+            )
+        }
+
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))) {
+            assertTextEquals(formattedValue)
+            performTextClearance()
+            performTextInput(newValueStr)
+        }
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
+
+        valueState.value shouldBe newValue
+    }
+
+    @Test
+    fun `An invalid Double configuration value is handled`() {
+        composableTestRule.setContent {
+            ConfigDoubleItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_walking_speed,
+                value = 1.0,
+                update = {},
+                updateEdit = {},
+                formatter = NumberFormat.getInstance()
             )
         }
 
