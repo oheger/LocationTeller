@@ -37,7 +37,7 @@ import kotlin.text.StringBuilder
  */
 class TrackStatsFormatter private constructor(val timeService: TimeService) {
     /** An object to format numbers.*/
-    private val numberFormat = createNumberFormat()
+    val numberFormat = createNumberFormat()
 
     /** The formatter for a date object. */
     private val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)

@@ -29,6 +29,8 @@ import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.TrackStorage
 
+import java.text.NumberFormat
+
 private const val TAG = "TrackViewModel"
 
 /** The number of seconds per hour.*/
@@ -51,6 +53,12 @@ interface TrackViewModel {
 
     /** The current configuration for the tracking server. */
     val serverConfig: TrackServerConfig
+
+    /**
+     * A configured format object used to format (decimal) numbers. This central object is used from multiple places to
+     * make sure that numbers are always formatted in the same way.
+     */
+    val numberFormat: NumberFormat
 
     /**
      * Set the tracking state to [enabled].
@@ -135,6 +143,9 @@ class TrackViewModelImpl(
      */
     override val serverConfig: TrackServerConfig
         get() = currentServerConfig
+
+    override val numberFormat: NumberFormat
+        get() = formatter.numberFormat
 
     /**
      * Set the tracking state to [enabled]. This causes the tracking service to be updated accordingly.
