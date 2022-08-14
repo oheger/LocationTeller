@@ -203,7 +203,7 @@ fun ConfigStringItem(
         renderer = visualTransformation::transform,
         modifier = modifier,
         configEditor = ConfigTextFieldEditor(
-            item = item,
+            tag = ConfigItemElement.EDITOR.tagForItem(item),
             validate = { Result.success(it) },
             visualTransformation = visualTransformation,
             keyboardOptions = keyboardOptions
@@ -227,12 +227,7 @@ fun ConfigIntItem(
     modifier: Modifier = Modifier
 ) {
     val errorMessage = stringResource(id = R.string.pref_err_no_number).toAnnotatedString()
-    val validateInt: (String) -> Result<Int> = { strValue -> runCatching { strValue.toInt() } }
-    val configEditor = ConfigTextFieldEditor(
-        item = item,
-        validate = validateInt,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-    )
+    val configEditor = ConfigIntFieldEditor(tag = ConfigItemElement.EDITOR.tagForItem(item))
 
     ConfigItem(
         item = item,
@@ -268,7 +263,7 @@ fun ConfigDoubleItem(
     val rendererDouble: (Double) -> String = { formatter.format(it) }
     val renderDoubleAnn: ConfigItemRenderer<Double> = { rendererDouble(it).toAnnotatedString() }
     val configEditor = ConfigTextFieldEditor(
-        item = item,
+        tag = ConfigItemElement.EDITOR.tagForItem(item),
         renderer = rendererDouble,
         validate = formatter::validateDouble,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -386,16 +381,16 @@ fun <T> ConfigItem(
 }
 
 /**
- * Return a [ConfigEditor] for the given [item] of a specific data type consisting of a single [TextField]. Validate
- * user input using the given [validation function][validate]. Obtain the string to be passed to the [TextField] via
- * the given [renderer function][renderer]. Optionally, a [visualTransformation] and [keyboardOptions] can be
- * specified.
+ * Return a [ConfigEditor] of a specific data type consisting of a single [TextField]. Validate user input using the
+ * given [validation function][validate]. Obtain the string to be passed to the [TextField] via the given
+ * [renderer function][renderer]. Add the test tag [tag]. Optionally, a [visualTransformation] and [keyboardOptions]
+ * can be specified.
  */
 @Composable
 private fun <T> ConfigTextFieldEditor(
-    item: String,
     validate: (String) -> Result<T>,
     renderer: (T) -> String = { it.toString() },
+    tag: String,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ): ConfigEditor<T> = { editValue, editUpdate, editModifier ->
@@ -407,10 +402,23 @@ private fun <T> ConfigTextFieldEditor(
             editorText = value
             editUpdate(validate(value))
         },
-        modifier = editModifier
-            .testTag(ConfigItemElement.EDITOR.tagForItem(item)),
+        modifier = editModifier.testTag(tag),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions
+    )
+}
+
+/**
+ * Return a [ConfigEditor] consisting of a single [TextField] that allows entering an integer number. Add the test tag
+ * [tag].
+ */
+@Composable
+private fun ConfigIntFieldEditor(tag: String): ConfigEditor<Int> {
+    val validateInt: (String) -> Result<Int> = { strValue -> runCatching { strValue.toInt() } }
+    return ConfigTextFieldEditor(
+        tag = tag,
+        validate = validateInt,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
 }
 
