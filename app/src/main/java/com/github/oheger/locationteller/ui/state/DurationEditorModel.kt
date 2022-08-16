@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.ui.state
 
+import androidx.compose.runtime.saveable.Saver
+
 import java.util.EnumMap
 
 /**
@@ -32,6 +34,22 @@ class DurationEditorModel private constructor(
     private val maxComponent: Component
 ) {
     companion object {
+        /**
+         * A [Saver] implementation to store instances of this model class.
+         */
+        val SAVER = Saver<DurationEditorModel, Array<Int>>(
+            restore = { data ->
+                data.takeIf { it.size == 2 }?.let { serial ->
+                    Component.values().find { it.ordinal == serial[1] }?.let { maxComponent ->
+                        create(data[0], maxComponent)
+                    }
+                }
+            },
+            save = { model ->
+                arrayOf(model.duration(), model.maxComponent.ordinal)
+            }
+        )
+
         /**
          * Create a [DurationEditorModel] instance for the given [duration] (in seconds) that manages a duration up to
          * the given [maxComponent].

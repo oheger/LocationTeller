@@ -15,8 +15,16 @@
  */
 package com.github.oheger.locationteller.ui.state
 
+import androidx.compose.runtime.saveable.SaverScope
+
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.inspectors.forAll
+import io.kotest.matchers.nulls.beNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+
+import io.mockk.mockk
 
 /**
  * Test class for [DurationEditorModel].
@@ -58,6 +66,33 @@ class DurationEditorModelSpec : WordSpec({
             model[DurationEditorModel.Component.SECOND] = model[DurationEditorModel.Component.SECOND] - 1
 
             model.duration() shouldBe newDuration
+        }
+    }
+
+    "the saver" should {
+        "support a round-trip of a model" {
+            val model = DurationEditorModel.create(123456789, DurationEditorModel.Component.HOUR)
+
+            val scope = mockk<SaverScope>()
+            val savedData = with(DurationEditorModel.SAVER) {
+                scope.save(model)
+            }
+            val restoredModel = DurationEditorModel.SAVER.restore(savedData!!)
+
+            restoredModel.shouldNotBeNull()
+            restoredModel.duration() shouldBe model.duration()
+
+            DurationEditorModel.Component.values().forAll { component ->
+                restoredModel[component] shouldBe model[component]
+            }
+        }
+
+        "handle a serialized array with an unexpected number of components" {
+            DurationEditorModel.SAVER.restore(arrayOf(1, 2, 3)) should beNull()
+        }
+
+        "handle a serialized array with an invalid maximum component" {
+            DurationEditorModel.SAVER.restore(arrayOf(1000, 1000)) should beNull()
         }
     }
 })
