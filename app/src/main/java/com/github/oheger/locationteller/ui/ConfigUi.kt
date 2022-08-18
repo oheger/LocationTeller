@@ -51,11 +51,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.TrackServerConfig
+import com.github.oheger.locationteller.ui.state.DurationEditorModel
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
 import java.text.NumberFormat
 import java.text.ParsePosition
+import java.util.EnumMap
 
 internal const val CONFIG_ITEM_SERVER_URI = "config_server_uri"
 internal const val CONFIG_ITEM_SERVER_PATH = "config_server_path"
@@ -77,7 +80,16 @@ internal enum class ConfigItemElement {
     /**
      * Generate a tag for this input element of the given configuration [item].
      */
-    fun tagForItem(item: String): String = "tag_${item}_$name"
+    fun tagForItem(item: String): String = tagForIndexedItem(item, 0)
+
+    /**
+     * Generate a tag for this input element which can occur multiple times of the given configuration [item]. Use
+     * [index] to generate a unique tag.
+     */
+    fun tagForIndexedItem(item: String, index: Int): String {
+        val indexStr = index.takeIf { it > 0 }?.toString().orEmpty()
+        return "tag_${item}_$name$indexStr"
+    }
 }
 
 /**
@@ -284,6 +296,152 @@ fun ConfigDoubleItem(
 }
 
 /**
+ * Generate the UI for the configuration setting [item] of type duration (in seconds) with the specified
+ * [resource ID for the label][labelRes] and [value]. In edit mode, display editor fields for the duration components
+ * up to [maxComponent]; otherwise, show a duration formatted using [formatter]. The item that is currently edited is
+ * [editItem]; this can be changed via the [updateEdit] function. Changes on the value of the item are reported using
+ * the [update] function.
+ */
+@Composable
+fun ConfigDurationItem(
+    item: String,
+    editItem: String?,
+    labelRes: Int,
+    value: Int,
+    formatter: TrackStatsFormatter,
+    maxComponent: DurationEditorModel.Component,
+    update: (Int) -> Unit,
+    updateEdit: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val renderDuration: ConfigItemRenderer<Int> = { duration ->
+        formatter.formatDuration(duration * 1000L).orEmpty().toAnnotatedString()
+    }
+    val configEditor = DurationEditor(item = item, maxComponent = maxComponent)
+
+    val errorMessageSingle = stringResource(id = R.string.pref_err_invalid_duration_component)
+    val errorMessageMulti = stringResource(id = R.string.pref_err_invalid_duration_components)
+    val invalidInputHandler: ConfigInvalidInputHandler = { exception ->
+        when (exception) {
+            is InvalidDurationException ->
+                exception.errorMessage(errorMessageSingle, errorMessageMulti).toAnnotatedString()
+            else -> "".toAnnotatedString()
+        }
+    }
+
+    ConfigItem(
+        item = item,
+        editItem = editItem,
+        labelRes = labelRes,
+        value = value,
+        update = update,
+        updateEdit = updateEdit,
+        invalidInputHandler = invalidInputHandler,
+        modifier = modifier,
+        configEditor = configEditor,
+        renderer = renderDuration
+    )
+}
+
+/**
+ * Generate an editor for the given configuration [item] of type duration. The editor consists of multiple numeric
+ * fields for the single components up to [maxComponent].
+ */
+@Composable
+private fun DurationEditor(item: String, maxComponent: DurationEditorModel.Component): ConfigEditor<Int> =
+    { duration, durationUpdate, modifier ->
+        val durationState by rememberSaveable(stateSaver = DurationEditorModel.SAVER) {
+            mutableStateOf(DurationEditorModel.create(duration, maxComponent))
+        }
+        val errorState by rememberSaveable {
+            mutableStateOf(EnumMap<DurationEditorModel.Component, Throwable>(DurationEditorModel.Component::class.java))
+        }
+
+        val componentLabels = mapOf(
+            DurationEditorModel.Component.SECOND to R.string.time_secs,
+            DurationEditorModel.Component.MINUTE to R.string.time_minutes,
+            DurationEditorModel.Component.HOUR to R.string.time_hours,
+            DurationEditorModel.Component.DAY to R.string.time_days
+        ).mapValues { stringResource(id = it.value) }
+
+        fun componentUpdater(component: DurationEditorModel.Component): ConfigUpdater<Int> = { result ->
+            result.onSuccess { value ->
+                durationState[component] = value
+                errorState -= component
+            }
+            result.onFailure { exception ->
+                errorState[component] = exception
+            }
+            val updateResult = if (errorState.isNotEmpty()) {
+                val invalidComponents = errorState.keys.sortedBy { it.ordinal }.map(componentLabels::getValue)
+                Result.failure(InvalidDurationException(invalidComponents))
+            } else {
+                Result.success(durationState.duration())
+            }
+            durationUpdate(updateResult)
+        }
+
+        if (maxComponent == DurationEditorModel.Component.DAY) {
+            DurationComponentField(
+                item = item,
+                labelRes = R.string.time_days,
+                index = 3,
+                value = durationState[DurationEditorModel.Component.DAY],
+                update = componentUpdater(DurationEditorModel.Component.DAY),
+                modifier = modifier
+            )
+        }
+        if (maxComponent >= DurationEditorModel.Component.HOUR) {
+            DurationComponentField(
+                item = item,
+                labelRes = R.string.time_hours,
+                index = 2,
+                value = durationState[DurationEditorModel.Component.HOUR],
+                update = componentUpdater(DurationEditorModel.Component.HOUR),
+                modifier = modifier
+            )
+        }
+        DurationComponentField(
+            item = item,
+            labelRes = R.string.time_minutes,
+            index = 1,
+            value = durationState[DurationEditorModel.Component.MINUTE],
+            update = componentUpdater(DurationEditorModel.Component.MINUTE),
+            modifier = modifier
+        )
+        DurationComponentField(
+            item = item,
+            labelRes = R.string.time_secs,
+            index = 0,
+            value = durationState[DurationEditorModel.Component.SECOND],
+            update = componentUpdater(DurationEditorModel.Component.SECOND),
+            modifier = modifier
+        )
+    }
+
+/**
+ * Generate an editor for a single component of a duration for the setting [item]. The editor consists of an integer
+ * input field to display [value] and report changes to [update]. The text field is followed by a label with a text
+ * defined by [labelRes]. Use [index] to generate the help tag for the edit field.
+ */
+@Composable
+private fun DurationComponentField(
+    item: String,
+    labelRes: Int,
+    index: Int,
+    value: Int,
+    update: ConfigUpdater<Int>,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier = modifier.padding(bottom = 8.dp)) {
+        val tag = ConfigItemElement.EDITOR.tagForIndexedItem(item, index)
+        val editorFunc = ConfigIntFieldEditor(tag = tag)
+        editorFunc(value, update, modifier)
+        Text(text = stringResource(id = labelRes), modifier = modifier.padding(start = 4.dp, end = 10.dp))
+    }
+}
+
+/**
  * Generate the UI for the configuration setting [item] of a generic type. This UI consists of a label whose content is
  * defined by [labelRes]. It either shows the current [value] of the item (or a string representation of it generated
  * by the [renderer] function) or a type-specific editor produced by [configEditor]. Whether the editor is displayed
@@ -452,6 +610,20 @@ private fun NumberFormat.validateDouble(strValue: String): Result<Double> {
         ?: Result.failure(NumberFormatException("'$strValue' could not be parsed to a decimal number."))
 }
 
+/**
+ * An exception class to report the invalid components of a duration.
+ */
+private class InvalidDurationException(val invalidComponents: List<String>) : Exception() {
+    /**
+     * Generate an error message based on the invalid components using the correct template for a
+     * [single invalid field][messageSingle] or [multiple invalid fields][messageMulti].
+     */
+    fun errorMessage(messageSingle: String, messageMulti: String): String {
+        val template = if (invalidComponents.size > 1) messageMulti else messageSingle
+        return template.replace("\$field", invalidComponents.joinToString())
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun ItemsPreview() {
@@ -473,6 +645,28 @@ fun ItemsPreview() {
             update = {},
             updateEdit = {},
             formatter = NumberFormat.getNumberInstance()
+        )
+
+        ConfigDurationItem(
+            item = "shortDurationItem",
+            editItem = "shortDurationItem",
+            labelRes = R.string.pref_min_track_interval,
+            value = 30,
+            formatter = TrackStatsFormatter.create(),
+            maxComponent = DurationEditorModel.Component.MINUTE,
+            update = {},
+            updateEdit = {}
+        )
+
+        ConfigDurationItem(
+            item = "longDurationItem",
+            editItem = "longDurationItem",
+            labelRes = R.string.pref_validity_time,
+            value = 386185,
+            formatter = TrackStatsFormatter.create(),
+            maxComponent = DurationEditorModel.Component.DAY,
+            update = {},
+            updateEdit = {}
         )
     }
 }

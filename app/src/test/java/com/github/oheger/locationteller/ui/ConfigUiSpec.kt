@@ -16,9 +16,13 @@
 package com.github.oheger.locationteller.ui
 
 import android.app.Application
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -41,6 +45,8 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.ui.state.DurationEditorModel
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 
 import io.mockk.every
 import io.mockk.mockk
@@ -300,8 +306,7 @@ class ConfigUiSpec {
         composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM))
             .assertIsNotEnabled()
 
-        val expectedErrorMessage =
-            ApplicationProvider.getApplicationContext<Application>().getString(R.string.pref_err_no_number)
+        val expectedErrorMessage = stringResource(R.string.pref_err_no_number)
         composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM)).assertExists()
         composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM))
             .assertTextEquals(expectedErrorMessage)
@@ -380,9 +385,168 @@ class ConfigUiSpec {
         composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM))
             .assertIsNotEnabled()
 
-        val expectedErrorMessage =
-            ApplicationProvider.getApplicationContext<Application>().getString(R.string.pref_err_no_number)
+        val expectedErrorMessage = stringResource(R.string.pref_err_no_number)
         composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM)).assertExists()
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals(expectedErrorMessage)
+    }
+
+    @Test
+    fun `A duration configuration item is correctly displayed`() {
+        val duration = 4000
+        val formatter = TrackStatsFormatter.create()
+
+        composableTestRule.setContent {
+            ConfigDurationItem(
+                item = CONFIG_ITEM,
+                editItem = null,
+                labelRes = R.string.pref_min_track_interval,
+                value = duration,
+                formatter = formatter,
+                maxComponent = DurationEditorModel.Component.HOUR,
+                update = {},
+                updateEdit = {}
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).assertDoesNotExist()
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM))
+            .assertDoesNotExist()
+        composableTestRule.onNodeWithTag(ConfigItemElement.CANCEL_BUTTON.tagForItem(CONFIG_ITEM))
+            .assertDoesNotExist()
+        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals("1:06:40")
+    }
+
+    @Test
+    fun `A duration configuration with two fields can be edited`() {
+        val durationState = mutableStateOf(0)
+        composableTestRule.setContent {
+            ConfigDurationItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_min_track_interval,
+                value = 750,
+                formatter = TrackStatsFormatter.create(),
+                maxComponent = DurationEditorModel.Component.MINUTE,
+                update = { durationState.value = it },
+                updateEdit = {}
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.VALUE.tagForItem(CONFIG_ITEM)).assertDoesNotExist()
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))) {
+            assertTextEquals("30")
+            performTextClearance()
+            performTextInput("12")
+        }
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForIndexedItem(CONFIG_ITEM, 1))) {
+            assertTextEquals("12")
+            performTextClearance()
+            performTextInput("10")
+        }
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
+
+        durationState.value shouldBe 612
+    }
+
+    @Test
+    fun `A duration configuration with all fields can be edited`() {
+        val durationState = mutableStateOf(0)
+        composableTestRule.setContent {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                ConfigDurationItem(
+                    item = CONFIG_ITEM,
+                    editItem = CONFIG_ITEM,
+                    labelRes = R.string.pref_validity_time,
+                    value = 296244,
+                    formatter = TrackStatsFormatter.create(),
+                    maxComponent = DurationEditorModel.Component.DAY,
+                    update = { durationState.value = it },
+                    updateEdit = {}
+                )
+            }
+        }
+
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM))) {
+            assertTextEquals("24")
+            performTextClearance()
+            performTextInput("25")
+        }
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForIndexedItem(CONFIG_ITEM, 1))) {
+            assertTextEquals("17")
+            performTextClearance()
+            performTextInput("16")
+        }
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForIndexedItem(CONFIG_ITEM, 2))) {
+            assertTextEquals("10")
+            performTextClearance()
+            performTextInput("11")
+        }
+        with(composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForIndexedItem(CONFIG_ITEM, 3))) {
+            assertTextEquals("3")
+            performTextClearance()
+            performTextInput("4")
+        }
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM)).performClick()
+
+        durationState.value shouldBe 386185
+    }
+
+    @Test
+    fun `An invalid duration configuration is handled`() {
+        composableTestRule.setContent {
+            ConfigDurationItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_min_track_interval,
+                value = 750,
+                formatter = TrackStatsFormatter.create(),
+                maxComponent = DurationEditorModel.Component.MINUTE,
+                update = { },
+                updateEdit = {}
+            )
+        }
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).performTextInput("abc")
+
+        composableTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(CONFIG_ITEM))
+            .assertIsNotEnabled()
+
+        val secString = stringResource(R.string.time_secs)
+        val expectedErrorMessage = stringResource(R.string.pref_err_invalid_duration_component)
+            .replace("\$field", secString)
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM)).assertExists()
+        composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM))
+            .assertTextEquals(expectedErrorMessage)
+    }
+
+    @Test
+    fun `An invalid duration with multiple wrong components is handled`() {
+        composableTestRule.setContent {
+            ConfigDurationItem(
+                item = CONFIG_ITEM,
+                editItem = CONFIG_ITEM,
+                labelRes = R.string.pref_min_track_interval,
+                value = 750,
+                formatter = TrackStatsFormatter.create(),
+                maxComponent = DurationEditorModel.Component.DAY,
+                update = { },
+                updateEdit = {}
+            )
+        }
+
+        DurationEditorModel.Component.values().forEach { comp ->
+            composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForIndexedItem(CONFIG_ITEM, comp.ordinal))
+                .performTextInput("xyz")
+        }
+        val secString = stringResource(R.string.time_secs)
+        val minString = stringResource(R.string.time_minutes)
+        val hourString = stringResource(R.string.time_hours)
+        val dayString = stringResource(R.string.time_days)
+        val fields = "$secString, $minString, $hourString, $dayString"
+        val expectedErrorMessage = stringResource(R.string.pref_err_invalid_duration_components)
+            .replace("\$field", fields)
         composableTestRule.onNodeWithTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(CONFIG_ITEM))
             .assertTextEquals(expectedErrorMessage)
     }
@@ -413,3 +577,9 @@ fun ConfigUiTestWrapper(
         visualTransformation = visualTransformation
     )
 }
+
+/**
+ * Convenience function to obtain the string resource with the given [id].
+ */
+private fun stringResource(id: Int): String =
+    ApplicationProvider.getApplicationContext<Application>().getString(id)

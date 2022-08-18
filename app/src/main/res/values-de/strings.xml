@@ -22,6 +22,8 @@
     <string name="pref_btn_save">Speichern</string>
     <string name="pref_btn_cancel">Abbrechen</string>
     <string name="pref_err_no_number">Der eingebene Text is keine gültige Zahl.</string>
+    <string name="pref_err_invalid_duration_component">Das Feld \'$field\' enthält einen ungültigen Wert.</string>
+    <string name="pref_err_invalid_duration_components">Die folgenden Felder enthalten ungültige Werte: \'$field\'.</string>
     <string name="lab_track_enabled">Verfolgen aktiv</string>
     <string name="lab_last_location_update">Letzte Positionsänderung:</string>
     <string name="lab_last_error">Letzter Fehler:</string>

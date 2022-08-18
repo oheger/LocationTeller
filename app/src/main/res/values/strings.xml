@@ -23,6 +23,8 @@
     <string name="pref_btn_save">Save</string>
     <string name="pref_btn_cancel">Cancel</string>
     <string name="pref_err_no_number">The text you entered is not a valid number.</string>
+    <string name="pref_err_invalid_duration_component">The field \'$field\' contains an invalid value.</string>
+    <string name="pref_err_invalid_duration_components">The following fields contain invalid values: \'%$field\'.</string>
     <string name="lab_track_enabled">Tracking enabled</string>
     <string name="lab_last_location_update">Last location update:</string>
     <string name="lab_last_error">Last error:</string>
