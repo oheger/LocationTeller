@@ -4,11 +4,11 @@
     android:id="@+id/linearLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.TrackFragment"
+    tools:context=".ui.MainActivity"
     android:orientation="vertical">
 
     <androidx.compose.ui.platform.ComposeView
-        android:id="@+id/serverConfig"
+        android:id="@+id/composeView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="5"/>

@@ -15,12 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-
-import com.github.oheger.locationteller.databinding.FragmentServerConfigBinding
+import androidx.compose.runtime.Composable
 
 /**
  * A fragment for displaying the settings related to the tracking server.
@@ -28,34 +23,8 @@ import com.github.oheger.locationteller.databinding.FragmentServerConfigBinding
  * With the settings defined here the server is configured on which location
  * information is stored.
  */
-class ServerSettingsFragment : androidx.fragment.app.Fragment() {
-    /** Holds the binding of this fragment. */
-    private var _binding: FragmentServerConfigBinding? = null
-
-    /**
-     * A property for the convenient access to the binding, as long as this
-     * fragment is active.
-     */
-    private val binding get() = _binding!!
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentServerConfigBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.serverConfig.setContent {
-            ServerConfigUi()
-        }
+class ServerSettingsFragment : ComposeFragment() {
+    override fun getContent(): @Composable () -> Unit = {
+        ServerConfigUi()
     }
 }

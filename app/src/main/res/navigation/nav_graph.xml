@@ -8,8 +8,7 @@
     <fragment
         android:id="@+id/trackView"
         android:name="com.github.oheger.locationteller.ui.TrackFragment"
-        android:label="@string/trackView"
-        tools:layout="@layout/fragment_track" />
+        android:label="@string/trackView" />
     <fragment
         android:id="@+id/mapView"
         android:name="com.github.oheger.locationteller.ui.MapFragment"

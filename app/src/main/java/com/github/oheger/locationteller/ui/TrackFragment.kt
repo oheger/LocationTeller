@@ -16,59 +16,32 @@
 package com.github.oheger.locationteller.ui
 
 import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
+
+import androidx.compose.runtime.Composable
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.PreferencesHandler
-import com.github.oheger.locationteller.databinding.FragmentTrackBinding
 import com.github.oheger.locationteller.track.TrackStorage
 
 /**
  * A fragment that allows enabling or disabling the tracking functionality.
  */
-open class TrackFragment : androidx.fragment.app.Fragment() {
-    private val logTag = "TrackFragment"
-
-    /** Holds the binding of this fragment. */
-    private var _binding: FragmentTrackBinding? = null
-
-    /**
-     * A property for the convenient access to the binding, as long as this
-     * fragment is active.
-     */
-    private val binding get() = _binding!!
-
+open class TrackFragment : ComposeFragment() {
     /** The object to access persistent tracking-related properties. */
     private lateinit var trackStorage: TrackStorage
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        Log.i(logTag, "Creating TrackFragment")
-        _binding = FragmentTrackBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)
         trackStorage = createTrackStorage()
+    }
 
-        binding.trackingStats.setContent {
-            TrackUi()
-        }
+    override fun getContent(): @Composable () -> Unit = {
+        TrackUi()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
