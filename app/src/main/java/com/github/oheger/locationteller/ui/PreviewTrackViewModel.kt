@@ -17,10 +17,9 @@ package com.github.oheger.locationteller.ui
 
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.config.TrackServerConfig
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
-
-import java.text.NumberFormat
 
 /**
  * A dummy implementation of [TrackViewModel] that can be used in preview functions.
@@ -30,7 +29,7 @@ internal data class PreviewTrackViewModel(
     override var trackingEnabled: Boolean = false,
     override val trackConfig: TrackConfig = TrackConfig.DEFAULT,
     override val serverConfig: TrackServerConfig = TEST_SERVER_CONFIG,
-    override val numberFormat: NumberFormat = NumberFormat.getNumberInstance()
+    override val formatter: TrackStatsFormatter = TrackStatsFormatter.create()
 ) : TrackViewModel {
     override fun updateTrackingState(enabled: Boolean) {
         trackingEnabled = enabled
