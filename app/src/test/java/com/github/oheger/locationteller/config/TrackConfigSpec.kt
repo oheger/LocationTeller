@@ -53,16 +53,28 @@ class TrackConfigSpec : StringSpec({
         val prefHandler = mockk<PreferencesHandler>()
         every { prefHandler.preferences } returns prefs
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_MIN_TRACK_INTERVAL, 60, TrackConfig.DEFAULT.minTrackInterval)
+            prefHandler.getNumeric(
+                TrackConfig.PROP_MIN_TRACK_INTERVAL,
+                defaultValue = TrackConfig.DEFAULT.minTrackInterval
+            )
         } returns config.minTrackInterval
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_MAX_TRACK_INTERVAL, 60, TrackConfig.DEFAULT.maxTrackInterval)
+            prefHandler.getNumeric(
+                TrackConfig.PROP_MAX_TRACK_INTERVAL,
+                defaultValue = TrackConfig.DEFAULT.maxTrackInterval
+            )
         } returns config.maxTrackInterval
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_IDLE_INCREMENT, 60, TrackConfig.DEFAULT.intervalIncrementOnIdle)
+            prefHandler.getNumeric(
+                TrackConfig.PROP_IDLE_INCREMENT,
+                defaultValue = TrackConfig.DEFAULT.intervalIncrementOnIdle
+            )
         } returns config.intervalIncrementOnIdle
         every {
-            prefHandler.getNumeric(TrackConfig.PROP_LOCATION_VALIDITY, 60, TrackConfig.DEFAULT.locationValidity)
+            prefHandler.getNumeric(
+                TrackConfig.PROP_LOCATION_VALIDITY,
+                defaultValue = TrackConfig.DEFAULT.locationValidity
+            )
         } returns config.locationValidity
         every {
             prefHandler.getNumeric(
@@ -128,10 +140,10 @@ class TrackConfigSpec : StringSpec({
         slotUpdater.captured(editor)
 
         verify {
-            editor.putString(TrackConfig.PROP_MIN_TRACK_INTERVAL, (config.minTrackInterval / 60).toString())
-            editor.putString(TrackConfig.PROP_MAX_TRACK_INTERVAL, (config.maxTrackInterval / 60).toString())
-            editor.putString(TrackConfig.PROP_IDLE_INCREMENT, (config.intervalIncrementOnIdle / 60).toString())
-            editor.putString(TrackConfig.PROP_LOCATION_VALIDITY, (config.locationValidity / 60).toString())
+            editor.putString(TrackConfig.PROP_MIN_TRACK_INTERVAL, config.minTrackInterval.toString())
+            editor.putString(TrackConfig.PROP_MAX_TRACK_INTERVAL, config.maxTrackInterval.toString())
+            editor.putString(TrackConfig.PROP_IDLE_INCREMENT, config.intervalIncrementOnIdle.toString())
+            editor.putString(TrackConfig.PROP_LOCATION_VALIDITY, config.locationValidity.toString())
             editor.putString(TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD, config.locationUpdateThreshold.toString())
             editor.putString(TrackConfig.PROP_RETRY_ON_ERROR_TIME, config.retryOnErrorTime.toString())
             editor.putString(TrackConfig.PROP_GPS_TIMEOUT, config.gpsTimeout.toString())

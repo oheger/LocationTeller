@@ -134,9 +134,6 @@ data class TrackConfig(
             walkingSpeed = 4.0 / 3.6 // 4 km/h in m/s
         )
 
-        /** Factor to convert minutes to seconds. */
-        private const val MINUTE = 60
-
         /** Factor to convert Km/h to m/s. */
         private const val METER_PER_SECOND = 1.0 / 3.6
 
@@ -163,22 +160,18 @@ data class TrackConfig(
         fun fromPreferences(preferencesHandler: PreferencesHandler): TrackConfig {
             val minTrackInterval = preferencesHandler.getNumeric(
                 PROP_MIN_TRACK_INTERVAL,
-                factor = MINUTE,
                 defaultValue = DEFAULT.minTrackInterval
             )
             val maxTrackInterval = preferencesHandler.getNumeric(
                 PROP_MAX_TRACK_INTERVAL,
-                factor = MINUTE,
                 defaultValue = DEFAULT.maxTrackInterval
             )
             val intervalIncrementOnIdle = preferencesHandler.getNumeric(
                 PROP_IDLE_INCREMENT,
-                factor = MINUTE,
                 defaultValue = DEFAULT.intervalIncrementOnIdle
             )
             val locationValidity = preferencesHandler.getNumeric(
                 PROP_LOCATION_VALIDITY,
-                factor = MINUTE,
                 defaultValue = DEFAULT.locationValidity
             )
             val locationUpdateThreshold = preferencesHandler.getNumeric(
@@ -247,10 +240,10 @@ data class TrackConfig(
      */
     fun save(handler: PreferencesHandler, keepExisting: Boolean = false) {
         val values = mapOf(
-            PROP_MIN_TRACK_INTERVAL to (minTrackInterval / 60),
-            PROP_MAX_TRACK_INTERVAL to (maxTrackInterval / 60),
-            PROP_IDLE_INCREMENT to (intervalIncrementOnIdle / 60),
-            PROP_LOCATION_VALIDITY to (locationValidity / 60),
+            PROP_MIN_TRACK_INTERVAL to minTrackInterval,
+            PROP_MAX_TRACK_INTERVAL to maxTrackInterval,
+            PROP_IDLE_INCREMENT to intervalIncrementOnIdle,
+            PROP_LOCATION_VALIDITY to locationValidity,
             PROP_LOCATION_UPDATE_THRESHOLD to locationUpdateThreshold,
             PROP_RETRY_ON_ERROR_TIME to retryOnErrorTime,
             PROP_GPS_TIMEOUT to gpsTimeout,
