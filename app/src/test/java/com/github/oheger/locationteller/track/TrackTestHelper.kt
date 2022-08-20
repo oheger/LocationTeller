@@ -45,11 +45,19 @@ object TrackTestHelper {
 
     /** A default test track configuration.*/
     val DEFAULT_TRACK_CONFIG = TrackConfig(
-        minTrackInterval = 42, maxTrackInterval = 727,
-        locationValidity = 1000, intervalIncrementOnIdle = 50,
-        locationUpdateThreshold = 22, gpsTimeout = 10, retryOnErrorTime = 4,
-        autoResetStats = false, offlineStorageSize = 8, maxOfflineStorageSyncTime = 20,
-        multiUploadChunkSize = 4, maxSpeedIncrease = 2.0, walkingSpeed = 1.1111
+        minTrackInterval = 42,
+        maxTrackInterval = 727,
+        locationValidity = 1_103_027, // 12d, 18h, 23min, 47sec
+        intervalIncrementOnIdle = 50,
+        locationUpdateThreshold = 22,
+        gpsTimeout = 60,
+        retryOnErrorTime = 40,
+        autoResetStats = false,
+        offlineStorageSize = 8,
+        maxOfflineStorageSyncTime = 20,
+        multiUploadChunkSize = 4,
+        maxSpeedIncrease = 2.0,
+        walkingSpeed = 1.1111
     )
 
     /**

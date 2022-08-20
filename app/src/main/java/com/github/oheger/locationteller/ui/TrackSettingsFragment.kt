@@ -15,41 +15,15 @@
  */
 package com.github.oheger.locationteller.ui
 
-import android.os.Bundle
-import android.text.InputType
-import androidx.preference.EditTextPreference
-import androidx.preference.PreferenceFragmentCompat
-import com.github.oheger.locationteller.R
+import androidx.compose.runtime.Composable
 
 /**
  * A fragment for displaying settings related to the tracking functionality.
  *
- * Here it can be configured how often the current location is uploaded to the
- * server and how long it remains there.
+ * Here the basic and advanced parameters of the tracking operation can be specified.
  */
-class TrackSettingsFragment : PreferenceFragmentCompat() {
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.track_preferences, rootKey)
-
-        fun inputTypeBindListener(inputType: Int): EditTextPreference.OnBindEditTextListener =
-            EditTextPreference.OnBindEditTextListener { it.inputType = inputType }
-
-        fun setBindListener(key: String, listener: EditTextPreference.OnBindEditTextListener) {
-            findPreference<EditTextPreference>(key)?.setOnBindEditTextListener(listener)
-        }
-
-        val intBindListener = inputTypeBindListener(InputType.TYPE_CLASS_NUMBER)
-        val floatBindListener =
-            inputTypeBindListener(InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL)
-
-        listOf(
-            "minTrackInterval", "maxTrackInterval", "intervalIncrementOnIdle", "locationValidity",
-            "locationUpdateThreshold", "retryOnErrorTime", "gpsTimeout", "offlineStorageSize",
-            "offlineStorageSyncTime", "multiUploadChunkSize"
-        )
-            .forEach { setBindListener(it, intBindListener) }
-
-        listOf("maxSpeedIncrease", "walkingSpeed")
-            .forEach { setBindListener(it, floatBindListener) }
+class TrackSettingsFragment : ComposeFragment() {
+    override fun getContent(): @Composable () -> Unit = {
+        TrackConfigUi()
     }
 }
