@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
+import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -61,6 +62,9 @@ import java.text.NumberFormat
 import java.text.ParsePosition
 import java.util.EnumMap
 
+/** The indent of an editor relative to the label of a configuration item. */
+internal const val EDITOR_INDENT = 10
+
 internal const val CONFIG_ITEM_SERVER_URI = "config_server_uri"
 internal const val CONFIG_ITEM_SERVER_PATH = "config_server_path"
 internal const val CONFIG_ITEM_SERVER_USER = "config_server_username"
@@ -73,6 +77,7 @@ internal const val CONFIG_ITEM_TRACK_LOCATION_VALIDITY = "config_track_location_
 internal const val CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD = "config_track_location_update_threshold"
 internal const val CONFIG_ITEM_TRACK_GPS_TIMEOUT = "config_track_gps_timeout"
 internal const val CONFIG_ITEM_TRACK_RETRY_ERROR_TIME = "config_track_retry_error_time"
+internal const val CONFIG_ITEM_TRACK_AUTO_RESET_STATS = "config_track_auto_reset_stats"
 
 /**
  * An enum class with constants for the single elements of the UI of a configuration item. This is mainly used by
@@ -459,6 +464,30 @@ fun ConfigDurationItem(
 }
 
 /**
+ * Generate the UI for the configuration setting [item] of type boolean with the specified
+ * [resource ID for the label][labelRes] and [value]. In contrast to other functions for configuration settings, for
+ * booleans, no separate editor is used; the boolean value is represented by a switch, which can be updated
+ * directly. Changes on the switch state are propagated to the [update] function.
+ */
+@Composable
+fun ConfigBooleanItem(
+    item: String,
+    labelRes: Int,
+    value: Boolean,
+    update: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ConfigItemLabel(item = item, labelRes = labelRes, onClick = {}, modifier = modifier)
+    Switch(
+        checked = value,
+        onCheckedChange = update,
+        modifier = modifier
+            .padding(start = EDITOR_INDENT.dp)
+            .testTag(ConfigItemElement.EDITOR.tagForItem(item))
+    )
+}
+
+/**
  * Generate an editor for the given configuration [item] of type duration. The editor consists of multiple numeric
  * fields for the single components up to [maxComponent].
  */
@@ -590,21 +619,14 @@ fun <T> ConfigItem(
             .fillMaxWidth()
             .padding(top = 15.dp)
     ) {
-        Text(
-            text = stringResource(id = labelRes),
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = modifier
-                .testTag(ConfigItemElement.LABEL.tagForItem(item))
-                .clickable(onClick = startEdit)
-        )
+        ConfigItemLabel(item = item, labelRes = labelRes, onClick = startEdit)
         if (!inEditMode) {
             Text(
                 text = renderer(value),
                 modifier = modifier
                     .testTag(ConfigItemElement.VALUE.tagForItem(item))
                     .clickable(onClick = startEdit)
-                    .padding(start = 10.dp)
+                    .padding(start = EDITOR_INDENT.dp)
             )
         } else {
 
@@ -616,7 +638,7 @@ fun <T> ConfigItem(
                 result.onFailure { editorFailure = it }
             }
 
-            configEditor(editorValue, updater, modifier.padding(start = 10.dp))
+            configEditor(editorValue, updater, modifier.padding(start = EDITOR_INDENT.dp))
             editorFailure?.let { exception ->
                 Text(
                     text = invalidInputHandler(exception),
@@ -651,6 +673,22 @@ fun <T> ConfigItem(
             }
         }
     }
+}
+
+/**
+ * Generate the label for the given configuration [item], using the given [resource ID][labelRes]. The label can be
+ * clicked, then the [onClick] callback is invoked.
+ */
+@Composable
+private fun ConfigItemLabel(item: String, labelRes: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(id = labelRes),
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        modifier = modifier
+            .testTag(ConfigItemElement.LABEL.tagForItem(item))
+            .clickable(onClick = onClick)
+    )
 }
 
 /**
@@ -742,7 +780,9 @@ private class InvalidDurationException(val invalidComponents: List<String>) : Ex
 @Preview(showBackground = true)
 @Composable
 fun ItemsPreview() {
-    Column {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        ConfigBooleanItem(item = "booleanItem", labelRes = R.string.pref_auto_reset_stats, value = true, update = {})
+
         ConfigIntItem(
             item = "intItem",
             editItem = "intItem",
