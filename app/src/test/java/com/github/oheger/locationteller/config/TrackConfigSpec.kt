@@ -134,6 +134,7 @@ class TrackConfigSpec : StringSpec({
         every { handler.update(capture(slotUpdater)) } just runs
         every { pref.contains(any()) } returns false
         every { editor.putString(any(), any()) } returns editor
+        every { editor.putBoolean(any(), any()) } returns editor
         val config = TrackConfig.DEFAULT.copy(minTrackInterval = 42)
 
         config.save(handler)
@@ -152,6 +153,7 @@ class TrackConfigSpec : StringSpec({
             editor.putString(TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE, config.multiUploadChunkSize.toString())
             editor.putString(TrackConfig.PROP_MAX_SPEED_INCREASE, config.maxSpeedIncrease.toString())
             editor.putString(TrackConfig.PROP_WALKING_SPEED, config.walkingSpeed.toString())
+            editor.putBoolean(TrackConfig.PROP_AUTO_RESET_STATS, config.autoResetStats)
         }
     }
 
@@ -168,6 +170,7 @@ class TrackConfigSpec : StringSpec({
 
     "Configuration properties can be identified" {
         val configProps = listOf(
+            TrackConfig.PROP_AUTO_RESET_STATS,
             TrackConfig.PROP_IDLE_INCREMENT,
             TrackConfig.PROP_LOCATION_VALIDITY,
             TrackConfig.PROP_MAX_TRACK_INTERVAL,

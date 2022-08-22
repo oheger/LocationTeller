@@ -139,6 +139,7 @@ data class TrackConfig(
 
         /** A set with all properties related to configuration.*/
         private val CONFIG_PROPS = setOf(
+            PROP_AUTO_RESET_STATS,
             PROP_MIN_TRACK_INTERVAL,
             PROP_MAX_TRACK_INTERVAL,
             PROP_IDLE_INCREMENT,
@@ -251,14 +252,19 @@ data class TrackConfig(
             PROP_OFFLINE_STORAGE_SYNC_TIME to maxOfflineStorageSyncTime,
             PROP_MULTI_UPLOAD_CHUNK_SIZE to multiUploadChunkSize,
             PROP_MAX_SPEED_INCREASE to maxSpeedIncrease,
-            PROP_WALKING_SPEED to walkingSpeed
+            PROP_WALKING_SPEED to walkingSpeed,
+            PROP_AUTO_RESET_STATS to autoResetStats
         )
 
         values.filter { !keepExisting || !handler.preferences.contains(it.key) }
             .takeUnless { it.isEmpty() }?.let { undefinedProps ->
                 handler.update {
-                    undefinedProps.forEach { pair ->
-                        putString(pair.key, pair.value.toString())
+                    undefinedProps.forEach { (key, value) ->
+                        when (value) {
+                            // Boolean needs a special treatment; otherwise, loading fails
+                            is Boolean -> putBoolean(key, value)
+                            else -> putString(key, value.toString())
+                        }
                     }
                 }
             }
