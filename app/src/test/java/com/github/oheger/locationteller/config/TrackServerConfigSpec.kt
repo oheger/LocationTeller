@@ -98,6 +98,12 @@ class TrackServerConfigSpec : WordSpec({
             }
         }
     }
+
+    "the EMPTY instance" should {
+        "not be defined" {
+            TrackServerConfig.EMPTY.isDefined() shouldBe false
+        }
+    }
 })
 
 /** A fully populated test configuration. */

@@ -52,6 +52,9 @@ data class TrackServerConfig(
         /** Shared preferences property for the password.*/
         const val PROP_PASSWORD = "password"
 
+        /** Constant for an undefined configuration instance. */
+        val EMPTY = TrackServerConfig("", "", "", "")
+
         /**
          * Return an instance of [TrackServerConfig] that is initialized from the preferences managed by the given
          * [preferencesHandler].
