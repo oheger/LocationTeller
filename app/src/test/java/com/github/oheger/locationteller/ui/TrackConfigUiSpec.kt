@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -53,6 +54,11 @@ class TrackConfigUiSpec {
     @Before
     fun navigateToTrackConfig() {
         composeTestRule.activityRule.scenario.onActivity {
+            // Set a defined value for the auto reset statistics configuration item
+            PreferencesHandler.getInstance(it).update {
+                putBoolean(TrackConfig.PROP_AUTO_RESET_STATS, true)
+            }
+
             findNavController(it, R.id.nav_host_fragment).navigate(R.id.trackSettingsFragment)
         }
     }
@@ -82,6 +88,14 @@ class TrackConfigUiSpec {
         editValue(CONFIG_ITEM_TRACK_GPS_TIMEOUT, "0", "1")
         editValue(CONFIG_ITEM_TRACK_RETRY_ERROR_TIME, "40", "0")
 
+        composeTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM_TRACK_AUTO_RESET_STATS))
+            .assertExists()
+        with(composeTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM_TRACK_AUTO_RESET_STATS))) {
+            performScrollTo()
+            assertIsOn()
+            performClick()
+        }
+
         val currentConfig =
             TrackConfig.fromPreferences(PreferencesHandler.getInstance(ApplicationProvider.getApplicationContext()))
                 // TODO: The following properties are not yet supported by the UI. They will be added later.
@@ -90,8 +104,7 @@ class TrackConfigUiSpec {
                     maxOfflineStorageSyncTime = testConfig.maxOfflineStorageSyncTime,
                     multiUploadChunkSize = testConfig.multiUploadChunkSize,
                     maxSpeedIncrease = testConfig.maxSpeedIncrease,
-                    walkingSpeed = testConfig.walkingSpeed,
-                    autoResetStats = testConfig.autoResetStats
+                    walkingSpeed = testConfig.walkingSpeed
                 )
         currentConfig shouldBe testConfig
     }

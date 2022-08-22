@@ -303,6 +303,13 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             updateEdit = editFunc,
             modifier = modifier
         )
+        ConfigBooleanItem(
+            item = CONFIG_ITEM_TRACK_AUTO_RESET_STATS,
+            labelRes = R.string.pref_auto_reset_stats,
+            value = model.trackConfig.autoResetStats,
+            update = updateConfig { config, reset -> config.copy(autoResetStats = reset) },
+            modifier = modifier
+        )
     }
 }
 
