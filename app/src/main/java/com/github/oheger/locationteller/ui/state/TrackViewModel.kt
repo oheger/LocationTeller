@@ -29,8 +29,6 @@ import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.track.LocationTellerService
 import com.github.oheger.locationteller.track.TrackStorage
 
-import java.text.NumberFormat
-
 private const val TAG = "TrackViewModel"
 
 /** The number of seconds per hour.*/
@@ -59,13 +57,6 @@ interface TrackViewModel {
      * object is made available via this property, so that numbers, durations, etc. are formatted in the same way.
      */
     val formatter: TrackStatsFormatter
-
-    /**
-     * A configured format object used to format (decimal) numbers. This central object is used from multiple places to
-     * make sure that numbers are always formatted in the same way.
-     */
-    val numberFormat: NumberFormat
-        get() = formatter.numberFormat
 
     /**
      * Set the tracking state to [enabled].
@@ -115,10 +106,10 @@ class TrackViewModelImpl(
     private val trackEnabledState = mutableStateOf(false)
 
     /** Stores the managed [TrackConfig]. */
-    private var currentTrackConfig: TrackConfig
+    private val currentTrackConfig = mutableStateOf(TrackConfig.DEFAULT)
 
     /** Stores the managed [TrackServerConfig]. */
-    private var currentServerConfig: TrackServerConfig
+    private val currentServerConfig = mutableStateOf(TrackServerConfig.EMPTY)
 
     /** The formatter for statistics data. */
     override val formatter = TrackStatsFormatter.create()
@@ -127,8 +118,8 @@ class TrackViewModelImpl(
         trackStorage.setTrackingEnabled(false)
         trackStorage.preferencesHandler.registerListener(this)
 
-        currentTrackConfig = TrackConfig.fromPreferences(trackStorage.preferencesHandler)
-        currentServerConfig = TrackServerConfig.fromPreferences(trackStorage.preferencesHandler)
+        currentTrackConfig.value = TrackConfig.fromPreferences(trackStorage.preferencesHandler)
+        currentServerConfig.value = TrackServerConfig.fromPreferences(trackStorage.preferencesHandler)
 
         initializeFromSharedPreferences()
     }
@@ -143,13 +134,13 @@ class TrackViewModelImpl(
      * Allows read-only access to the current track configuration.
      */
     override val trackConfig: TrackConfig
-        get() = currentTrackConfig
+        get() = currentTrackConfig.value
 
     /**
      * Allows read-only access to the current track server configuration.
      */
     override val serverConfig: TrackServerConfig
-        get() = currentServerConfig
+        get() = currentServerConfig.value
 
     /**
      * Set the tracking state to [enabled]. This causes the tracking service to be updated accordingly.
@@ -173,12 +164,12 @@ class TrackViewModelImpl(
     }
 
     override fun updateTrackConfig(config: TrackConfig) {
-        currentTrackConfig = config
+        currentTrackConfig.value = config
         config.save(trackStorage.preferencesHandler)
     }
 
     override fun updateServerConfig(config: TrackServerConfig) {
-        currentServerConfig = config
+        currentServerConfig.value = config
         config.save(trackStorage.preferencesHandler)
     }
 
