@@ -115,6 +115,9 @@ data class TrackConfig(
         /** Shared preferences property to trigger the auto-reset of stats. */
         const val PROP_AUTO_RESET_STATS = "autoResetStats"
 
+        /** Factor to convert Km/h to m/s. */
+        private const val METER_PER_SECOND = 1.0 / 3.6
+
         /**
          * An instance of [TrackConfig] with default values for all properties.
          */
@@ -131,11 +134,8 @@ data class TrackConfig(
             multiUploadChunkSize = 4,
             autoResetStats = false,
             maxSpeedIncrease = 2.0,
-            walkingSpeed = 4.0 / 3.6 // 4 km/h in m/s
+            walkingSpeed = 4.0 * METER_PER_SECOND
         )
-
-        /** Factor to convert Km/h to m/s. */
-        private const val METER_PER_SECOND = 1.0 / 3.6
 
         /** A set with all properties related to configuration.*/
         private val CONFIG_PROPS = setOf(
@@ -205,7 +205,6 @@ data class TrackConfig(
             )
             val walkingSpeed = preferencesHandler.getDouble(
                 PROP_WALKING_SPEED,
-                factor = METER_PER_SECOND,
                 defaultValue = DEFAULT.walkingSpeed
             )
             val autoResetStats = preferencesHandler.preferences.getBoolean(PROP_AUTO_RESET_STATS, false)
@@ -233,6 +232,15 @@ data class TrackConfig(
          */
         fun isProperty(prop: String): Boolean = prop in CONFIG_PROPS
     }
+
+    /** The walking speed in Km/h. */
+    val walkingSpeedKmH: Double
+    get() = walkingSpeed / METER_PER_SECOND
+
+    /**
+     * Return a new instance of [TrackConfig] with [walkingSpeed] set to [speed] in Km/h.
+     */
+    fun updateWalkingSpeedKmH(speed: Double): TrackConfig = copy(walkingSpeed = speed * METER_PER_SECOND)
 
     /**
      * Write the values contained in this configuration into the preferences managed by [handler]. If [keepExisting]

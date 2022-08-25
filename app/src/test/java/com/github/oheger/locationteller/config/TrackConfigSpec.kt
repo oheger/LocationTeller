@@ -116,7 +116,7 @@ class TrackConfigSpec : StringSpec({
             )
         } returns config.maxSpeedIncrease
         every {
-            prefHandler.getDouble(TrackConfig.PROP_WALKING_SPEED, 1.0 / 3.6, TrackConfig.DEFAULT.walkingSpeed)
+            prefHandler.getDouble(TrackConfig.PROP_WALKING_SPEED, defaultValue = TrackConfig.DEFAULT.walkingSpeed)
         } returns config.walkingSpeed
         every { prefs.getBoolean(TrackConfig.PROP_AUTO_RESET_STATS, false) } returns true
 
@@ -192,5 +192,16 @@ class TrackConfigSpec : StringSpec({
         val nonConfigProps = listOf("foo", "bar", "baz")
 
         nonConfigProps.forAll { prop -> TrackConfig.isProperty(prop) shouldBe false }
+    }
+
+    "The walking speed can be queried in Km/h" {
+        TrackConfig.DEFAULT.walkingSpeedKmH shouldBe 4.0
+    }
+
+    "The walking speed can be set in Km/h" {
+        val update = TrackConfig.DEFAULT.updateWalkingSpeedKmH(5.0)
+
+        update.walkingSpeedKmH shouldBe 5.0
+        update.walkingSpeed shouldBe 5.0 / 3.6
     }
 })
