@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.ui.state.DurationEditorModel
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
@@ -56,13 +57,30 @@ fun TrackConfigUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = 
  */
 @Composable
 fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
+    BasicTrackConfig(
+        trackConfig = model.trackConfig,
+        update = { model.updateTrackConfig(it) },
+        formatter = model.formatter,
+        modifier = modifier
+    )
+}
+
+/**
+ * Generate the UI for the basic tracking configuration settings based on [trackConfig]. Report changes on the
+ * configuration via the given [update] function. Use [formatter] to format numbers and durations.
+ */
+@Composable
+private fun BasicTrackConfig(
+    trackConfig: TrackConfig,
+    update: (TrackConfig) -> Unit,
+    formatter: TrackStatsFormatter,
+    modifier: Modifier
+) {
     val editItem = rememberSaveable { mutableStateOf<String?>(null) }
     val editFunc: (String?) -> Unit = { editItem.value = it }
 
     fun <T> updateConfig(updateFunc: (TrackConfig, T) -> TrackConfig): (T) -> Unit = { value ->
-        val trackConfig = model.trackConfig
-        val updatedConfig = updateFunc(trackConfig, value)
-        model.updateTrackConfig(updatedConfig)
+        update(updateFunc(trackConfig, value))
     }
 
     Column(
@@ -75,8 +93,8 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_MIN_INTERVAL,
             editItem = editItem.value,
             labelRes = R.string.pref_min_track_interval,
-            value = model.trackConfig.minTrackInterval,
-            formatter = model.formatter,
+            value = trackConfig.minTrackInterval,
+            formatter = formatter,
             maxComponent = DurationEditorModel.Component.MINUTE,
             update = updateConfig { config, minInterval -> config.copy(minTrackInterval = minInterval) },
             updateEdit = editFunc,
@@ -86,8 +104,8 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_MAX_INTERVAL,
             editItem = editItem.value,
             labelRes = R.string.pref_max_track_interval,
-            value = model.trackConfig.maxTrackInterval,
-            formatter = model.formatter,
+            value = trackConfig.maxTrackInterval,
+            formatter = formatter,
             maxComponent = DurationEditorModel.Component.MINUTE,
             update = updateConfig { config, maxInterval -> config.copy(maxTrackInterval = maxInterval) },
             updateEdit = editFunc,
@@ -97,8 +115,8 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_IDLE_INCREMENT,
             editItem = editItem.value,
             labelRes = R.string.pref_interval_idle_increment,
-            value = model.trackConfig.intervalIncrementOnIdle,
-            formatter = model.formatter,
+            value = trackConfig.intervalIncrementOnIdle,
+            formatter = formatter,
             maxComponent = DurationEditorModel.Component.MINUTE,
             update = updateConfig { config, increment -> config.copy(intervalIncrementOnIdle = increment) },
             updateEdit = editFunc,
@@ -108,8 +126,8 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_LOCATION_VALIDITY,
             editItem = editItem.value,
             labelRes = R.string.pref_validity_time,
-            value = model.trackConfig.locationValidity,
-            formatter = model.formatter,
+            value = trackConfig.locationValidity,
+            formatter = formatter,
             maxComponent = DurationEditorModel.Component.DAY,
             update = updateConfig { config, validity -> config.copy(locationValidity = validity) },
             updateEdit = editFunc,
@@ -119,7 +137,7 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD,
             editItem = editItem.value,
             labelRes = R.string.pref_location_update_threshold,
-            value = model.trackConfig.locationUpdateThreshold,
+            value = trackConfig.locationUpdateThreshold,
             update = updateConfig { config, threshold -> config.copy(locationUpdateThreshold = threshold) },
             updateEdit = editFunc,
             modifier
@@ -128,8 +146,8 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_GPS_TIMEOUT,
             editItem = editItem.value,
             labelRes = R.string.pref_gps_timeout,
-            value = model.trackConfig.gpsTimeout,
-            formatter = model.formatter,
+            value = trackConfig.gpsTimeout,
+            formatter = formatter,
             maxComponent = DurationEditorModel.Component.MINUTE,
             update = updateConfig { config, timeout -> config.copy(gpsTimeout = timeout) },
             updateEdit = editFunc,
@@ -139,8 +157,8 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             item = CONFIG_ITEM_TRACK_RETRY_ERROR_TIME,
             editItem = editItem.value,
             labelRes = R.string.pref_error_retry_time,
-            value = model.trackConfig.retryOnErrorTime,
-            formatter = model.formatter,
+            value = trackConfig.retryOnErrorTime,
+            formatter = formatter,
             maxComponent = DurationEditorModel.Component.MINUTE,
             update = updateConfig { config, time -> config.copy(retryOnErrorTime = time) },
             updateEdit = editFunc,
@@ -149,7 +167,7 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
         ConfigBooleanItem(
             item = CONFIG_ITEM_TRACK_AUTO_RESET_STATS,
             labelRes = R.string.pref_auto_reset_stats,
-            value = model.trackConfig.autoResetStats,
+            value = trackConfig.autoResetStats,
             update = updateConfig { config, reset -> config.copy(autoResetStats = reset) },
             modifier = modifier
         )
