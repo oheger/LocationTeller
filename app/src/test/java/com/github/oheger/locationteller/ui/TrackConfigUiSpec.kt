@@ -88,9 +88,6 @@ class TrackConfigUiSpec {
         editValue(CONFIG_ITEM_TRACK_MAX_INTERVAL, "7", "12")
         editValue(CONFIG_ITEM_TRACK_IDLE_INCREMENT, testConfig.intervalIncrementOnIdle.toString(), "0")
         editValue(CONFIG_ITEM_TRACK_LOCATION_VALIDITY, "47", "23", "18", "12")
-        editValue(CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD, testConfig.locationUpdateThreshold.toString())
-        editValue(CONFIG_ITEM_TRACK_GPS_TIMEOUT, "0", "1")
-        editValue(CONFIG_ITEM_TRACK_RETRY_ERROR_TIME, "40", "0")
 
         composeTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM_TRACK_AUTO_RESET_STATS))
             .assertExists()
@@ -102,6 +99,9 @@ class TrackConfigUiSpec {
 
         // Advanced settings
         composeTestRule.onNodeWithTag(CONFIG_ITEM_TRACK_TAB_ADVANCED).performClick()
+        editValue(CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD, testConfig.locationUpdateThreshold.toString())
+        editValue(CONFIG_ITEM_TRACK_GPS_TIMEOUT, "0", "1")
+        editValue(CONFIG_ITEM_TRACK_RETRY_ERROR_TIME, "40", "0")
         editValue(CONFIG_ITEM_TRACK_MAX_SPEED_INCREASE, testConfig.maxSpeedIncrease.toString())
         editValue(CONFIG_ITEM_TRACK_OFFLINE_SYNC_TIME, testConfig.maxOfflineStorageSyncTime.toString(), "0")
         editValue(CONFIG_ITEM_TRACK_UPLOAD_CHUNK_SIZE, testConfig.multiUploadChunkSize.toString())

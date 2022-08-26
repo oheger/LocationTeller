@@ -131,6 +131,7 @@ private fun BasicTrackConfig(
             .padding(all = 10.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Text(text = stringResource(id = R.string.pref_track_basic_intro), modifier = modifier.padding(bottom = 2.dp))
         ConfigDurationItem(
             item = CONFIG_ITEM_TRACK_MIN_INTERVAL,
             editItem = editItem.value,
@@ -175,37 +176,6 @@ private fun BasicTrackConfig(
             updateEdit = editFunc,
             modifier = modifier
         )
-        ConfigIntItem(
-            item = CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD,
-            editItem = editItem.value,
-            labelRes = R.string.pref_location_update_threshold,
-            value = trackConfig.locationUpdateThreshold,
-            update = updateConfig { config, threshold -> config.copy(locationUpdateThreshold = threshold) },
-            updateEdit = editFunc,
-            modifier
-        )
-        ConfigDurationItem(
-            item = CONFIG_ITEM_TRACK_GPS_TIMEOUT,
-            editItem = editItem.value,
-            labelRes = R.string.pref_gps_timeout,
-            value = trackConfig.gpsTimeout,
-            formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
-            update = updateConfig { config, timeout -> config.copy(gpsTimeout = timeout) },
-            updateEdit = editFunc,
-            modifier = modifier
-        )
-        ConfigDurationItem(
-            item = CONFIG_ITEM_TRACK_RETRY_ERROR_TIME,
-            editItem = editItem.value,
-            labelRes = R.string.pref_error_retry_time,
-            value = trackConfig.retryOnErrorTime,
-            formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
-            update = updateConfig { config, time -> config.copy(retryOnErrorTime = time) },
-            updateEdit = editFunc,
-            modifier = modifier
-        )
         ConfigBooleanItem(
             item = CONFIG_ITEM_TRACK_AUTO_RESET_STATS,
             labelRes = R.string.pref_auto_reset_stats,
@@ -240,6 +210,38 @@ private fun AdvancedTrackConfig(
             .padding(all = 10.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Text(text = stringResource(id = R.string.pref_track_advanced_intro), modifier = modifier.padding(bottom = 2.dp))
+        ConfigDurationItem(
+            item = CONFIG_ITEM_TRACK_RETRY_ERROR_TIME,
+            editItem = editItem.value,
+            labelRes = R.string.pref_error_retry_time,
+            value = trackConfig.retryOnErrorTime,
+            formatter = formatter,
+            maxComponent = DurationEditorModel.Component.MINUTE,
+            update = updateConfig { config, time -> config.copy(retryOnErrorTime = time) },
+            updateEdit = editFunc,
+            modifier = modifier
+        )
+        ConfigDurationItem(
+            item = CONFIG_ITEM_TRACK_GPS_TIMEOUT,
+            editItem = editItem.value,
+            labelRes = R.string.pref_gps_timeout,
+            value = trackConfig.gpsTimeout,
+            formatter = formatter,
+            maxComponent = DurationEditorModel.Component.MINUTE,
+            update = updateConfig { config, timeout -> config.copy(gpsTimeout = timeout) },
+            updateEdit = editFunc,
+            modifier = modifier
+        )
+        ConfigIntItem(
+            item = CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD,
+            editItem = editItem.value,
+            labelRes = R.string.pref_location_update_threshold,
+            value = trackConfig.locationUpdateThreshold,
+            update = updateConfig { config, threshold -> config.copy(locationUpdateThreshold = threshold) },
+            updateEdit = editFunc,
+            modifier
+        )
         ConfigIntItem(
             item = CONFIG_ITEM_TRACK_OFFLINE_STORAGE_SIZE,
             editItem = editItem.value,

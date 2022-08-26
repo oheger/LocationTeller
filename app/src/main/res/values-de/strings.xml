@@ -9,7 +9,9 @@
     <string name="trackSettingsView">Verfolgungseinstellungen</string>
     <string name="serverSettingsView">Servereinstellungen</string>
     <string name="pref_track_basic">Grundlegend</string>
+    <string name="pref_track_basic_intro">Geben Sie an, wie häufig Positionsänderungen ermittelt werden sollen, wie sich das Interval ändern soll, wenn keine Änderungen erfolgen und wie lange die Daten auf dem Server vorgehalten werden sollen.</string>
     <string name="pref_track_advanced">Fortgeschritten</string>
+    <string name="pref_track_advanced_intro">Auf dieser Seite können Sie das Verhalten der Anwendung bei Fehlern oder in speziellen Ausnahmesituationen konfigurieren. Für die meisten Anwender sollten die Standardwerte gut funktionieren, aber Sie können Sie an Ihre speziellen Bedürfnisse anpassen.</string>
     <string name="pref_min_track_interval">Minimales Update-Intervall (Min)</string>
     <string name="pref_max_track_interval">Maximales Update-Intervall (Min)</string>
     <string name="pref_interval_idle_increment">Intervallvergrößerung bei keiner Änderung (Min)</string>
