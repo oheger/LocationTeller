@@ -8,6 +8,8 @@
     <string name="mapView">Karte</string>
     <string name="trackSettingsView">Verfolgungseinstellungen</string>
     <string name="serverSettingsView">Servereinstellungen</string>
+    <string name="pref_track_basic">Grundlegend</string>
+    <string name="pref_track_advanced">Fortgeschritten</string>
     <string name="pref_min_track_interval">Minimales Update-Intervall (Min)</string>
     <string name="pref_max_track_interval">Maximales Update-Intervall (Min)</string>
     <string name="pref_interval_idle_increment">Intervallvergrößerung bei keiner Änderung (Min)</string>

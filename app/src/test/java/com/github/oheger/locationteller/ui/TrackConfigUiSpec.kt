@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui
 
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -79,6 +80,9 @@ class TrackConfigUiSpec {
             composeTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(item)).performClick()
         }
 
+        // Basic settings
+        composeTestRule.onNodeWithTag(CONFIG_ITEM_TRACK_TAB_BASIC).assertIsSelected()
+
         val testConfig = TrackTestHelper.DEFAULT_TRACK_CONFIG
         editValue(CONFIG_ITEM_TRACK_MIN_INTERVAL, testConfig.minTrackInterval.toString(), "0")
         editValue(CONFIG_ITEM_TRACK_MAX_INTERVAL, "7", "12")
@@ -96,16 +100,16 @@ class TrackConfigUiSpec {
             performClick()
         }
 
+        // Advanced settings
+        composeTestRule.onNodeWithTag(CONFIG_ITEM_TRACK_TAB_ADVANCED).performClick()
+        editValue(CONFIG_ITEM_TRACK_MAX_SPEED_INCREASE, testConfig.maxSpeedIncrease.toString())
+        editValue(CONFIG_ITEM_TRACK_OFFLINE_SYNC_TIME, testConfig.maxOfflineStorageSyncTime.toString(), "0")
+        editValue(CONFIG_ITEM_TRACK_UPLOAD_CHUNK_SIZE, testConfig.multiUploadChunkSize.toString())
+        editValue(CONFIG_ITEM_TRACK_OFFLINE_STORAGE_SIZE, testConfig.offlineStorageSize.toString())
+        editValue(CONFIG_ITEM_TRACK_WALKING_SPEED, testConfig.walkingSpeedKmH.toString())
+
         val currentConfig =
             TrackConfig.fromPreferences(PreferencesHandler.getInstance(ApplicationProvider.getApplicationContext()))
-                // TODO: The following properties are not yet supported by the UI. They will be added later.
-                .copy(
-                    offlineStorageSize = testConfig.offlineStorageSize,
-                    maxOfflineStorageSyncTime = testConfig.maxOfflineStorageSyncTime,
-                    multiUploadChunkSize = testConfig.multiUploadChunkSize,
-                    maxSpeedIncrease = testConfig.maxSpeedIncrease,
-                    walkingSpeed = testConfig.walkingSpeed
-                )
         currentConfig shouldBe testConfig
     }
 }

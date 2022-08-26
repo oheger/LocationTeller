@@ -20,10 +20,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Tab
+import androidx.compose.material.TabRow
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,6 +42,8 @@ import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
+internal const val CONFIG_ITEM_TRACK_TAB_BASIC = "config_track_tab_basic"
+internal const val CONFIG_ITEM_TRACK_TAB_ADVANCED = "config_track_tab_advanced"
 internal const val CONFIG_ITEM_TRACK_MIN_INTERVAL = "config_track_min_interval"
 internal const val CONFIG_ITEM_TRACK_MAX_INTERVAL = "config_track_max_interval"
 internal const val CONFIG_ITEM_TRACK_IDLE_INCREMENT = "config_track_idle_increment"
@@ -43,6 +52,11 @@ internal const val CONFIG_ITEM_TRACK_LOCATION_UPDATE_THRESHOLD = "config_track_l
 internal const val CONFIG_ITEM_TRACK_GPS_TIMEOUT = "config_track_gps_timeout"
 internal const val CONFIG_ITEM_TRACK_RETRY_ERROR_TIME = "config_track_retry_error_time"
 internal const val CONFIG_ITEM_TRACK_AUTO_RESET_STATS = "config_track_auto_reset_stats"
+internal const val CONFIG_ITEM_TRACK_OFFLINE_STORAGE_SIZE = "config_track_offline_storage_size"
+internal const val CONFIG_ITEM_TRACK_OFFLINE_SYNC_TIME = "config_track_offline_sync_time"
+internal const val CONFIG_ITEM_TRACK_UPLOAD_CHUNK_SIZE = "config_track_upload_chunk_size"
+internal const val CONFIG_ITEM_TRACK_MAX_SPEED_INCREASE = "config_track_max_speed_increase"
+internal const val CONFIG_ITEM_TRACK_WALKING_SPEED = "config_track_walking_speed"
 
 /**
  * Generate the UI for the configuration of the tracking settings. This is the entry point into this configuration UI.
@@ -57,12 +71,40 @@ fun TrackConfigUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = 
  */
 @Composable
 fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
-    BasicTrackConfig(
-        trackConfig = model.trackConfig,
-        update = { model.updateTrackConfig(it) },
-        formatter = model.formatter,
-        modifier = modifier
+    var tabIndex by rememberSaveable { mutableStateOf(0) }
+    val tabData = listOf(
+        R.string.pref_track_basic to CONFIG_ITEM_TRACK_TAB_BASIC,
+        R.string.pref_track_advanced to CONFIG_ITEM_TRACK_TAB_ADVANCED
     )
+
+    Column(modifier = modifier) {
+        TabRow(selectedTabIndex = tabIndex) {
+            tabData.forEachIndexed { index, (label, tag) ->
+                Tab(
+                    selected = tabIndex == index,
+                    onClick = { tabIndex = index },
+                    text = { Text(text = stringResource(id = label)) },
+                    modifier = modifier.testTag(tag)
+                )
+            }
+        }
+
+        if (tabIndex == 1) {
+            AdvancedTrackConfig(
+                trackConfig = model.trackConfig,
+                update = { model.updateTrackConfig(it) },
+                formatter = model.formatter,
+                modifier = modifier
+            )
+        } else {
+            BasicTrackConfig(
+                trackConfig = model.trackConfig,
+                update = { model.updateTrackConfig(it) },
+                formatter = model.formatter,
+                modifier = modifier
+            )
+        }
+    }
 }
 
 /**
@@ -174,10 +216,94 @@ private fun BasicTrackConfig(
     }
 }
 
+/**
+ * Generate the UI for the advanced tracking configuration settings based on [trackConfig]. Report changes on the
+ * configuration via the given [update] function. Use [formatter] to format numbers and durations.
+ */
+@Composable
+private fun AdvancedTrackConfig(
+    trackConfig: TrackConfig,
+    update: (TrackConfig) -> Unit,
+    formatter: TrackStatsFormatter,
+    modifier: Modifier
+) {
+    val editItem = rememberSaveable { mutableStateOf<String?>(null) }
+    val editFunc: (String?) -> Unit = { editItem.value = it }
+
+    fun <T> updateConfig(updateFunc: (TrackConfig, T) -> TrackConfig): (T) -> Unit = { value ->
+        update(updateFunc(trackConfig, value))
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(all = 10.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        ConfigIntItem(
+            item = CONFIG_ITEM_TRACK_OFFLINE_STORAGE_SIZE,
+            editItem = editItem.value,
+            labelRes = R.string.pref_offline_storage_size,
+            value = trackConfig.offlineStorageSize,
+            update = updateConfig { config, size -> config.copy(offlineStorageSize = size) },
+            updateEdit = editFunc,
+            modifier
+        )
+        ConfigDurationItem(
+            item = CONFIG_ITEM_TRACK_OFFLINE_SYNC_TIME,
+            editItem = editItem.value,
+            labelRes = R.string.pref_offline_sync_time,
+            value = trackConfig.maxOfflineStorageSyncTime,
+            formatter = formatter,
+            maxComponent = DurationEditorModel.Component.MINUTE,
+            update = updateConfig { config, syncTime -> config.copy(maxOfflineStorageSyncTime = syncTime) },
+            updateEdit = editFunc,
+            modifier = modifier
+        )
+        ConfigIntItem(
+            item = CONFIG_ITEM_TRACK_UPLOAD_CHUNK_SIZE,
+            editItem = editItem.value,
+            labelRes = R.string.pref_multi_upload_chunk_size,
+            value = trackConfig.multiUploadChunkSize,
+            update = updateConfig { config, size -> config.copy(multiUploadChunkSize = size) },
+            updateEdit = editFunc,
+            modifier
+        )
+        ConfigDoubleItem(
+            item = CONFIG_ITEM_TRACK_MAX_SPEED_INCREASE,
+            editItem = editItem.value,
+            labelRes = R.string.pref_max_speed_increase,
+            value = trackConfig.maxSpeedIncrease,
+            update = updateConfig { config, factor -> config.copy(maxSpeedIncrease = factor) },
+            updateEdit = editFunc,
+            formatter = formatter.numberFormat,
+            modifier = modifier
+        )
+        ConfigDoubleItem(
+            item = CONFIG_ITEM_TRACK_WALKING_SPEED,
+            editItem = editItem.value,
+            labelRes = R.string.pref_walking_speed,
+            value = trackConfig.walkingSpeedKmH,
+            update = updateConfig { config, speed -> config.updateWalkingSpeedKmH(speed) },
+            updateEdit = editFunc,
+            formatter = formatter.numberFormat,
+            modifier = modifier
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun TrackConfigPreview() {
     val model = PreviewTrackViewModel()
 
     TrackConfigView(model = model)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TrackConfigAdvancedPreview() {
+    val model = PreviewTrackViewModel()
+
+    AdvancedTrackConfig(trackConfig = model.trackConfig, update = {}, formatter = model.formatter, modifier = Modifier)
 }

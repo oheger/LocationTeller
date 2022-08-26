@@ -9,6 +9,8 @@
     <string name="mapView">Map</string>
     <string name="trackSettingsView">Track settings</string>
     <string name="serverSettingsView">Server settings</string>
+    <string name="pref_track_basic">Basic</string>
+    <string name="pref_track_advanced">Advanced</string>
     <string name="pref_min_track_interval">Minimum track interval (min)</string>
     <string name="pref_max_track_interval">Maximum track interval (min)</string>
     <string name="pref_interval_idle_increment">Track interval increment on idle (min)</string>
