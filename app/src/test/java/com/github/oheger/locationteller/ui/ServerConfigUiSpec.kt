@@ -19,6 +19,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.Navigation.findNavController
@@ -60,9 +61,11 @@ class ServerConfigUiSpec {
         fun editValue(item: String, value: String) {
             composeTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(item)).performClick()
             with(composeTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(item))) {
+                performScrollTo()
                 performTextClearance()
                 performTextInput(value)
             }
+            composeTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(item)).performScrollTo()
             composeTestRule.onNodeWithTag(ConfigItemElement.COMMIT_BUTTON.tagForItem(item)).performClick()
         }
 

@@ -361,7 +361,7 @@ fun ConfigBooleanItem(
     update: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ConfigItemLabel(item = item, labelRes = labelRes, onClick = {}, modifier = modifier)
+    ConfigItemLabel(item = item, labelRes = labelRes, onClick = {}, modifier = modifier.padding(top = 15.dp))
     Switch(
         checked = value,
         onCheckedChange = update,
@@ -409,42 +409,44 @@ private fun DurationEditor(item: String, maxComponent: DurationEditorModel.Compo
             durationUpdate(updateResult)
         }
 
-        if (maxComponent == DurationEditorModel.Component.DAY) {
+        Column(modifier = modifier.padding(top = 8.dp)) {
+            if (maxComponent == DurationEditorModel.Component.DAY) {
+                DurationComponentField(
+                    item = item,
+                    labelRes = R.string.time_days,
+                    index = 3,
+                    value = durationState[DurationEditorModel.Component.DAY],
+                    update = componentUpdater(DurationEditorModel.Component.DAY),
+                    modifier = modifier
+                )
+            }
+            if (maxComponent >= DurationEditorModel.Component.HOUR) {
+                DurationComponentField(
+                    item = item,
+                    labelRes = R.string.time_hours,
+                    index = 2,
+                    value = durationState[DurationEditorModel.Component.HOUR],
+                    update = componentUpdater(DurationEditorModel.Component.HOUR),
+                    modifier = modifier
+                )
+            }
             DurationComponentField(
                 item = item,
-                labelRes = R.string.time_days,
-                index = 3,
-                value = durationState[DurationEditorModel.Component.DAY],
-                update = componentUpdater(DurationEditorModel.Component.DAY),
+                labelRes = R.string.time_minutes,
+                index = 1,
+                value = durationState[DurationEditorModel.Component.MINUTE],
+                update = componentUpdater(DurationEditorModel.Component.MINUTE),
+                modifier = modifier
+            )
+            DurationComponentField(
+                item = item,
+                labelRes = R.string.time_secs,
+                index = 0,
+                value = durationState[DurationEditorModel.Component.SECOND],
+                update = componentUpdater(DurationEditorModel.Component.SECOND),
                 modifier = modifier
             )
         }
-        if (maxComponent >= DurationEditorModel.Component.HOUR) {
-            DurationComponentField(
-                item = item,
-                labelRes = R.string.time_hours,
-                index = 2,
-                value = durationState[DurationEditorModel.Component.HOUR],
-                update = componentUpdater(DurationEditorModel.Component.HOUR),
-                modifier = modifier
-            )
-        }
-        DurationComponentField(
-            item = item,
-            labelRes = R.string.time_minutes,
-            index = 1,
-            value = durationState[DurationEditorModel.Component.MINUTE],
-            update = componentUpdater(DurationEditorModel.Component.MINUTE),
-            modifier = modifier
-        )
-        DurationComponentField(
-            item = item,
-            labelRes = R.string.time_secs,
-            index = 0,
-            value = durationState[DurationEditorModel.Component.SECOND],
-            update = componentUpdater(DurationEditorModel.Component.SECOND),
-            modifier = modifier
-        )
     }
 
 /**
@@ -461,11 +463,16 @@ private fun DurationComponentField(
     update: ConfigUpdater<Int>,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier = modifier.padding(bottom = 8.dp)) {
+    Row(modifier = modifier.padding(top = 8.dp)) {
         val tag = ConfigItemElement.EDITOR.tagForIndexedItem(item, index)
         val editorFunc = ConfigIntFieldEditor(tag = tag)
         editorFunc(value, update, modifier)
-        Text(text = stringResource(id = labelRes), modifier = modifier.padding(start = 4.dp, end = 10.dp))
+        Text(
+            text = stringResource(id = labelRes),
+            modifier = modifier
+                .padding(start = 4.dp, end = 10.dp)
+                .align(Alignment.CenterVertically)
+        )
     }
 }
 
@@ -533,7 +540,7 @@ fun <T> ConfigItem(
                 )
             }
 
-            Row(modifier = modifier.align(Alignment.CenterHorizontally)) {
+            Row(modifier = modifier.padding(EDITOR_INDENT.dp)) {
                 Button(
                     onClick = {
                         update(editorValue)
@@ -597,7 +604,7 @@ private fun <T> ConfigTextFieldEditor(
             editorText = value
             editUpdate(validate(value))
         },
-        modifier = editModifier.testTag(tag),
+        modifier = applyWidth(editModifier, keyboardOptions).testTag(tag),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions
     )
@@ -646,6 +653,18 @@ private fun NumberFormat.validateDouble(strValue: String): Result<Double> {
         ?.let { Result.success(it.toDouble()) }
         ?: Result.failure(NumberFormatException("'$strValue' could not be parsed to a decimal number."))
 }
+
+/** A set with the keyboard types that cause text fields to be rendered with smaller width. */
+private val SMALL_FIELD_OPTIONS = setOf(KeyboardType.Decimal, KeyboardType.Number)
+
+/**
+ * Apply a width modification to [modifier] based on [keyboardOptions]. Numeric fields are typically smaller than
+ * others. This is implemented by this function.
+ */
+private fun applyWidth(modifier: Modifier, keyboardOptions: KeyboardOptions): Modifier =
+    if(keyboardOptions.keyboardType in SMALL_FIELD_OPTIONS)
+        modifier.width(75.dp)
+else modifier
 
 /**
  * An exception class to report the invalid components of a duration.
