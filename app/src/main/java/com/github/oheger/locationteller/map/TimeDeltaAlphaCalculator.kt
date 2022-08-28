@@ -16,42 +16,31 @@
 package com.github.oheger.locationteller.map
 
 /**
- * An interface for a component that calculates an alpha value for a marker
- * with a specific age.
+ * An interface for a component that calculates an alpha value for a marker with a specific age.
  *
- * The idea is that positions markers should be rendered more and more
- * transparently the older they become. By having different implementations of
- * this interface, the fading out of old positions can be configured.
+ * The idea is that position markers should be rendered more and more transparently the older they become. By having
+ * different implementations of this interface, the fading out of old positions can be configured.
  */
 interface TimeDeltaAlphaCalculator {
     /**
-     * Calculates the alpha value for a marker with the given age in
-     * milliseconds.
-     * @param ageMillis the age of the marker in milliseconds
-     * @return the alpha value to be used for this marker
+     * Calculate the alpha value for a marker with the given [age in milliseconds][ageMillis].
      */
     fun calculateAlpha(ageMillis: Long): Float
 }
 
 /**
- * A trivial implementation of [TimeDeltaAlphaCalculator], which always returns
- * the same alpha value, independent on the passed in age.
- *
- * This implementation is useful if old markers should not fade out.
+ * A trivial implementation of [TimeDeltaAlphaCalculator], which does not apply any fading. Instead, it always returns
+ * the alpha value of 1.0f. This implementation is used if old markers should not fade out.
  */
-class ConstantTimeDeltaAlphaCalculator(
-    /** The constant alpha value to be returned by this object. */
-    val alpha: Float
-) : TimeDeltaAlphaCalculator {
-    override fun calculateAlpha(ageMillis: Long): Float = alpha
+object DisabledFadeOutAlphaCalculator : TimeDeltaAlphaCalculator {
+    override fun calculateAlpha(ageMillis: Long): Float = 1.0f
 }
 
 /**
  * A data class defining a range for an alpha calculation.
  *
- * The meaning of the properties of this class is that in a time range between
- * the maximum time of the previous range and the maximum time of this range,
- * the alpha value decreases from [alphaMax] to [alphaMin].
+ * The meaning of the properties of this class is that in a time range between the maximum time of the previous range
+ * and the maximum time of this range, the alpha value decreases from [alphaMax] to [alphaMin].
  */
 data class AlphaRange(
     /** The maximum alpha value (at the beginning of the time range). */
@@ -65,14 +54,12 @@ data class AlphaRange(
 )
 
 /**
- * An implementation of [TimeDeltaAlphaCalculator] that calculates an alpha
- * value based on a list of [AlphaRange] objects.
+ * An implementation of [TimeDeltaAlphaCalculator] that calculates an alpha value based on a list of [AlphaRange]
+ * objects.
  *
- * The calculator determines the first element in its range list, for which the
- * maximum time is larger than the time delta passed in. Then the properties of
- * this range are used to determine the alpha value. With this approach, alpha
- * values can decrease with different speeds in different, non-linear
- * intervals.
+ * The calculator determines the first element in its ranges list, for which the maximum time is larger than the time
+ * delta passed in. Then the properties of this range are used to determine the alpha value. With this approach, alpha
+ * values can decrease with different speeds in different, non-linear intervals.
  */
 class RangeTimeDeltaAlphaCalculator(
     /** The ranges to be used by this calculator (must be sorted). */

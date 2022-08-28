@@ -27,7 +27,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.MockDispatcher
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
+import com.github.oheger.locationteller.map.DisabledFadeOutAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapMarkerState
 import com.github.oheger.locationteller.map.MapUpdater
@@ -50,7 +50,6 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
 import io.mockk.CapturingSlot
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -476,8 +475,7 @@ class MapFragmentSpec {
             fragment.onOptionsItemSelected(fadingItem)
             fragment.calculators shouldHaveSize 2
             val initCalc = fragment.calculators[0]
-            initCalc.shouldBeInstanceOf<ConstantTimeDeltaAlphaCalculator>()
-            initCalc.alpha shouldBe 1.0f
+            initCalc shouldBe DisabledFadeOutAlphaCalculator
             fragment.calculators[1] shouldBe fragment.alphaCalculatorFor(itemId)
             fadingItem.isChecked shouldBe true
             verify {

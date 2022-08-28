@@ -30,7 +30,7 @@ import android.widget.Toast
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.databinding.FragmentMapBinding
 import com.github.oheger.locationteller.map.AlphaRange
-import com.github.oheger.locationteller.map.ConstantTimeDeltaAlphaCalculator
+import com.github.oheger.locationteller.map.DisabledFadeOutAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapMarkerState
 import com.github.oheger.locationteller.map.MapUpdater
@@ -302,7 +302,7 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
      * @return the [TimeDeltaAlphaCalculator] for this menu item
      */
     internal fun alphaCalculatorFor(itemId: Int): TimeDeltaAlphaCalculator =
-        alphaCalculators[itemId] ?: calculatorNone
+        alphaCalculators[itemId] ?: DisabledFadeOutAlphaCalculator
 
     /**
      * Updates the location state by fetching new location data from the server
@@ -523,9 +523,6 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
                 AlphaRange(0.7f, 0.5f, 7 * DAY_MILLIS)
             ), 0.4f
         )
-
-        /** The alpha calculator for disabled fading. */
-        private val calculatorNone = ConstantTimeDeltaAlphaCalculator(1f)
 
         /** A map assigning calculators to menu items. */
         private val alphaCalculators = mapOf<Int, TimeDeltaAlphaCalculator>(

@@ -17,16 +17,14 @@ package com.github.oheger.locationteller.map
 
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.shouldBe
+
 import kotlin.math.pow
 
 class TimeDeltaAlphaCalculatorSpec : WordSpec({
-    "ConstantTimeDeltaAlphaCalculator" should {
+    "DisabledFadeOutAlphaCalculator" should {
         "return the constant alpha value" {
-            val alpha = 0.75f
-            val calculator = ConstantTimeDeltaAlphaCalculator(alpha)
-
             (0 until 20).map { 2f.pow(it).toLong() }
-                .forEach { calculator.calculateAlpha(it) shouldBe alpha }
+                .forEach { DisabledFadeOutAlphaCalculator.calculateAlpha(it) shouldBe 1.0f }
         }
     }
 
