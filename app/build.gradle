@@ -69,20 +69,20 @@ dependencies {
     implementation 'android.arch.navigation:navigation-fragment-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-runtime-ktx:1.0.0'
     implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0'
-    implementation 'androidx.activity:activity-compose:1.4.0'
-    implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation "androidx.activity:activity-compose:$versionComposeActivity"
+    implementation "androidx.appcompat:appcompat:$versionAppCompat"
     implementation "androidx.compose.animation:animation:$versionCompose"
     implementation "androidx.compose.material:material:$versionCompose"
     implementation "androidx.compose.ui:ui-tooling:$versionCompose"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation "androidx.fragment:fragment-ktx:$versionFragment"
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$versionComposeViewModel"
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation "com.google.accompanist:accompanist-permissions:$versionAccompanist"
     implementation 'com.google.android.gms:play-services-location:20.0.0'
-    implementation 'com.google.android.gms:play-services-maps:18.0.2'
+    implementation "com.google.android.gms:play-services-maps:$versionPlayServicesMaps"
     implementation 'com.google.android.material:material:1.6.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$versionCoroutines"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versionCoroutines"
