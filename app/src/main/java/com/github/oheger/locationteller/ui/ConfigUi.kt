@@ -219,7 +219,7 @@ fun ConfigStringItem(
         updateEdit = updateEdit,
         renderer = visualTransformation::transform,
         modifier = modifier,
-        configEditor = ConfigTextFieldEditor(
+        configEditor = configTextFieldEditor(
             tag = ConfigItemElement.EDITOR.tagForItem(item),
             validate = { Result.success(it) },
             visualTransformation = visualTransformation,
@@ -244,7 +244,7 @@ fun ConfigIntItem(
     modifier: Modifier = Modifier
 ) {
     val errorMessage = stringResource(id = R.string.pref_err_no_number).toAnnotatedString()
-    val configEditor = ConfigIntFieldEditor(tag = ConfigItemElement.EDITOR.tagForItem(item))
+    val configEditor = configIntFieldEditor(tag = ConfigItemElement.EDITOR.tagForItem(item))
 
     ConfigItem(
         item = item,
@@ -279,7 +279,7 @@ fun ConfigDoubleItem(
     val errorMessage = stringResource(id = R.string.pref_err_no_number).toAnnotatedString()
     val rendererDouble: (Double) -> String = { formatter.format(it) }
     val renderDoubleAnn: ConfigItemRenderer<Double> = { rendererDouble(it).toAnnotatedString() }
-    val configEditor = ConfigTextFieldEditor(
+    val configEditor = configTextFieldEditor(
         tag = ConfigItemElement.EDITOR.tagForItem(item),
         renderer = rendererDouble,
         validate = formatter::validateDouble,
@@ -322,7 +322,7 @@ fun ConfigDurationItem(
     val renderDuration: ConfigItemRenderer<Int> = { duration ->
         formatter.formatDuration(duration * 1000L).orEmpty().toAnnotatedString()
     }
-    val configEditor = DurationEditor(item = item, maxComponent = maxComponent)
+    val configEditor = durationEditor(item = item, maxComponent = maxComponent)
 
     val errorMessageSingle = stringResource(id = R.string.pref_err_invalid_duration_component)
     val errorMessageMulti = stringResource(id = R.string.pref_err_invalid_duration_components)
@@ -377,7 +377,7 @@ fun ConfigBooleanItem(
  * fields for the single components up to [maxComponent].
  */
 @Composable
-private fun DurationEditor(item: String, maxComponent: DurationModel.Component): ConfigEditor<Int> =
+private fun durationEditor(item: String, maxComponent: DurationModel.Component): ConfigEditor<Int> =
     { duration, durationUpdate, modifier ->
         val durationState by rememberDuration(duration, maxComponent)
         val errorState by rememberSaveable {
@@ -464,7 +464,7 @@ private fun DurationComponentField(
 ) {
     Row(modifier = modifier.padding(top = 8.dp)) {
         val tag = ConfigItemElement.EDITOR.tagForIndexedItem(item, index)
-        val editorFunc = ConfigIntFieldEditor(tag = tag)
+        val editorFunc = configIntFieldEditor(tag = tag)
         editorFunc(value, update, modifier)
         Text(
             text = stringResource(id = labelRes),
@@ -588,7 +588,7 @@ private fun ConfigItemLabel(item: String, labelRes: Int, onClick: () -> Unit, mo
  * can be specified.
  */
 @Composable
-private fun <T> ConfigTextFieldEditor(
+private fun <T> configTextFieldEditor(
     validate: (String) -> Result<T>,
     renderer: (T) -> String = { it.toString() },
     tag: String,
@@ -614,9 +614,9 @@ private fun <T> ConfigTextFieldEditor(
  * [tag].
  */
 @Composable
-private fun ConfigIntFieldEditor(tag: String): ConfigEditor<Int> {
+private fun configIntFieldEditor(tag: String): ConfigEditor<Int> {
     val validateInt: (String) -> Result<Int> = { strValue -> runCatching { strValue.toInt() } }
-    return ConfigTextFieldEditor(
+    return configTextFieldEditor(
         tag = tag,
         validate = validateInt,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
