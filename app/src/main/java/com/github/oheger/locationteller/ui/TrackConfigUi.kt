@@ -37,7 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.TrackConfig
-import com.github.oheger.locationteller.ui.state.DurationEditorModel
+import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
@@ -138,7 +138,7 @@ private fun BasicTrackConfig(
             labelRes = R.string.pref_min_track_interval,
             value = trackConfig.minTrackInterval,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = updateConfig { config, minInterval -> config.copy(minTrackInterval = minInterval) },
             updateEdit = editFunc,
             modifier = modifier
@@ -149,7 +149,7 @@ private fun BasicTrackConfig(
             labelRes = R.string.pref_max_track_interval,
             value = trackConfig.maxTrackInterval,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = updateConfig { config, maxInterval -> config.copy(maxTrackInterval = maxInterval) },
             updateEdit = editFunc,
             modifier = modifier
@@ -160,7 +160,7 @@ private fun BasicTrackConfig(
             labelRes = R.string.pref_interval_idle_increment,
             value = trackConfig.intervalIncrementOnIdle,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = updateConfig { config, increment -> config.copy(intervalIncrementOnIdle = increment) },
             updateEdit = editFunc,
             modifier = modifier
@@ -171,7 +171,7 @@ private fun BasicTrackConfig(
             labelRes = R.string.pref_validity_time,
             value = trackConfig.locationValidity,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.DAY,
+            maxComponent = DurationModel.Component.DAY,
             update = updateConfig { config, validity -> config.copy(locationValidity = validity) },
             updateEdit = editFunc,
             modifier = modifier
@@ -217,7 +217,7 @@ private fun AdvancedTrackConfig(
             labelRes = R.string.pref_error_retry_time,
             value = trackConfig.retryOnErrorTime,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = updateConfig { config, time -> config.copy(retryOnErrorTime = time) },
             updateEdit = editFunc,
             modifier = modifier
@@ -228,7 +228,7 @@ private fun AdvancedTrackConfig(
             labelRes = R.string.pref_gps_timeout,
             value = trackConfig.gpsTimeout,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = updateConfig { config, timeout -> config.copy(gpsTimeout = timeout) },
             updateEdit = editFunc,
             modifier = modifier
@@ -257,7 +257,7 @@ private fun AdvancedTrackConfig(
             labelRes = R.string.pref_offline_sync_time,
             value = trackConfig.maxOfflineStorageSyncTime,
             formatter = formatter,
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = updateConfig { config, syncTime -> config.copy(maxOfflineStorageSyncTime = syncTime) },
             updateEdit = editFunc,
             modifier = modifier

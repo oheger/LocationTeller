@@ -13,49 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.oheger.locationteller.ui.state
-
-import androidx.compose.runtime.saveable.Saver
+package com.github.oheger.locationteller.duration
 
 import java.util.EnumMap
 
 /**
- * A class that manages the different properties used by the Composable function to edit durations.
+ * A class that manages the different components of a duration.
  *
- * The duration editor consists of multiple input fields for integer numbers corresponding to the single components of
- * the duration: the seconds, minutes, hours, and days. This class is able to split a duration in seconds into these
- * components and to combine the components again to a duration. The number of components is dynamic.
+ * Durations play an important role in this app. They can be entered by the user in multiple places, and they are also
+ * displayed in multiple UIs. To do this, durations are split into their single components, such as seconds, minutes,
+ * hours, and days. This class is able to split a duration in seconds into these components and to combine the
+ * components again to a duration. The number of components is dynamic.
  */
-class DurationEditorModel private constructor(
+class DurationModel private constructor(
     /** Holds the values of the single components. */
     private val components: EnumMap<Component, Int>,
 
     /** The maximum component represented by this model. */
-    private val maxComponent: Component
+    val maxComponent: Component
 ) {
     companion object {
         /**
-         * A [Saver] implementation to store instances of this model class.
-         */
-        val SAVER = Saver<DurationEditorModel, Array<Int>>(
-            restore = { data ->
-                data.takeIf { it.size == 2 }?.let { serial ->
-                    Component.values().find { it.ordinal == serial[1] }?.let { maxComponent ->
-                        create(data[0], maxComponent)
-                    }
-                }
-            },
-            save = { model ->
-                arrayOf(model.duration(), model.maxComponent.ordinal)
-            }
-        )
-
-        /**
-         * Create a [DurationEditorModel] instance for the given [duration] (in seconds) that manages a duration up to
+         * Create a [DurationModel] instance for the given [duration] (in seconds) that manages a duration up to
          * the given [maxComponent].
          */
-        fun create(duration: Int, maxComponent: Component = Component.MINUTE): DurationEditorModel =
-            DurationEditorModel(splitDuration(duration, maxComponent), maxComponent)
+        fun create(duration: Int, maxComponent: Component = Component.MINUTE): DurationModel =
+            DurationModel(splitDuration(duration, maxComponent), maxComponent)
     }
 
     /**
@@ -102,11 +85,11 @@ class DurationEditorModel private constructor(
  */
 private fun splitDuration(
     duration: Int,
-    maxComponent: DurationEditorModel.Component
-): EnumMap<DurationEditorModel.Component, Int> {
-    val components = EnumMap<DurationEditorModel.Component, Int>(DurationEditorModel.Component::class.java)
+    maxComponent: DurationModel.Component
+): EnumMap<DurationModel.Component, Int> {
+    val components = EnumMap<DurationModel.Component, Int>(DurationModel.Component::class.java)
 
-    fun processComponent(currentDuration: Int, component: DurationEditorModel.Component) {
+    fun processComponent(currentDuration: Int, component: DurationModel.Component) {
         if (component == maxComponent) {
             components[component] = currentDuration
         } else {
@@ -115,12 +98,12 @@ private fun splitDuration(
         }
     }
 
-    processComponent(duration, DurationEditorModel.Component.SECOND)
+    processComponent(duration, DurationModel.Component.SECOND)
     return components
 }
 
 /**
  * Return the next higher component (in ascending order).
  */
-private fun DurationEditorModel.Component.next(): DurationEditorModel.Component =
-    DurationEditorModel.Component.values()[ordinal + 1]
+private fun DurationModel.Component.next(): DurationModel.Component =
+    DurationModel.Component.values()[ordinal + 1]

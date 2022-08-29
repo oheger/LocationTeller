@@ -47,7 +47,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.ui.state.DurationEditorModel
+import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 
 import io.mockk.every
@@ -405,7 +405,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_min_track_interval,
                 value = duration,
                 formatter = formatter,
-                maxComponent = DurationEditorModel.Component.HOUR,
+                maxComponent = DurationModel.Component.HOUR,
                 update = {},
                 updateEdit = {}
             )
@@ -430,7 +430,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_min_track_interval,
                 value = 750,
                 formatter = TrackStatsFormatter.create(),
-                maxComponent = DurationEditorModel.Component.MINUTE,
+                maxComponent = DurationModel.Component.MINUTE,
                 update = { durationState.value = it },
                 updateEdit = {}
             )
@@ -463,7 +463,7 @@ class ConfigUiSpec {
                     labelRes = R.string.pref_validity_time,
                     value = 296244,
                     formatter = TrackStatsFormatter.create(),
-                    maxComponent = DurationEditorModel.Component.DAY,
+                    maxComponent = DurationModel.Component.DAY,
                     update = { durationState.value = it },
                     updateEdit = {}
                 )
@@ -504,7 +504,7 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_min_track_interval,
                 value = 750,
                 formatter = TrackStatsFormatter.create(),
-                maxComponent = DurationEditorModel.Component.MINUTE,
+                maxComponent = DurationModel.Component.MINUTE,
                 update = { },
                 updateEdit = {}
             )
@@ -532,13 +532,13 @@ class ConfigUiSpec {
                 labelRes = R.string.pref_min_track_interval,
                 value = 750,
                 formatter = TrackStatsFormatter.create(),
-                maxComponent = DurationEditorModel.Component.DAY,
+                maxComponent = DurationModel.Component.DAY,
                 update = { },
                 updateEdit = {}
             )
         }
 
-        DurationEditorModel.Component.values().forEach { comp ->
+        DurationModel.Component.values().forEach { comp ->
             composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForIndexedItem(CONFIG_ITEM, comp.ordinal))
                 .performTextInput("xyz")
         }

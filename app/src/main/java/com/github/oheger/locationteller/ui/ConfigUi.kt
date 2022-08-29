@@ -52,10 +52,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.TrackServerConfig
-import com.github.oheger.locationteller.ui.state.DurationEditorModel
+import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
+import com.github.oheger.locationteller.ui.state.rememberDuration
 
 import java.text.NumberFormat
 import java.text.ParsePosition
@@ -313,7 +314,7 @@ fun ConfigDurationItem(
     labelRes: Int,
     value: Int,
     formatter: TrackStatsFormatter,
-    maxComponent: DurationEditorModel.Component,
+    maxComponent: DurationModel.Component,
     update: (Int) -> Unit,
     updateEdit: (String?) -> Unit,
     modifier: Modifier = Modifier
@@ -376,23 +377,21 @@ fun ConfigBooleanItem(
  * fields for the single components up to [maxComponent].
  */
 @Composable
-private fun DurationEditor(item: String, maxComponent: DurationEditorModel.Component): ConfigEditor<Int> =
+private fun DurationEditor(item: String, maxComponent: DurationModel.Component): ConfigEditor<Int> =
     { duration, durationUpdate, modifier ->
-        val durationState by rememberSaveable(stateSaver = DurationEditorModel.SAVER) {
-            mutableStateOf(DurationEditorModel.create(duration, maxComponent))
-        }
+        val durationState by rememberDuration(duration, maxComponent)
         val errorState by rememberSaveable {
-            mutableStateOf(EnumMap<DurationEditorModel.Component, Throwable>(DurationEditorModel.Component::class.java))
+            mutableStateOf(EnumMap<DurationModel.Component, Throwable>(DurationModel.Component::class.java))
         }
 
         val componentLabels = mapOf(
-            DurationEditorModel.Component.SECOND to R.string.time_secs,
-            DurationEditorModel.Component.MINUTE to R.string.time_minutes,
-            DurationEditorModel.Component.HOUR to R.string.time_hours,
-            DurationEditorModel.Component.DAY to R.string.time_days
+            DurationModel.Component.SECOND to R.string.time_secs,
+            DurationModel.Component.MINUTE to R.string.time_minutes,
+            DurationModel.Component.HOUR to R.string.time_hours,
+            DurationModel.Component.DAY to R.string.time_days
         ).mapValues { stringResource(id = it.value) }
 
-        fun componentUpdater(component: DurationEditorModel.Component): ConfigUpdater<Int> = { result ->
+        fun componentUpdater(component: DurationModel.Component): ConfigUpdater<Int> = { result ->
             result.onSuccess { value ->
                 durationState[component] = value
                 errorState -= component
@@ -410,23 +409,23 @@ private fun DurationEditor(item: String, maxComponent: DurationEditorModel.Compo
         }
 
         Column(modifier = modifier.padding(top = 8.dp)) {
-            if (maxComponent == DurationEditorModel.Component.DAY) {
+            if (maxComponent == DurationModel.Component.DAY) {
                 DurationComponentField(
                     item = item,
                     labelRes = R.string.time_days,
                     index = 3,
-                    value = durationState[DurationEditorModel.Component.DAY],
-                    update = componentUpdater(DurationEditorModel.Component.DAY),
+                    value = durationState[DurationModel.Component.DAY],
+                    update = componentUpdater(DurationModel.Component.DAY),
                     modifier = modifier
                 )
             }
-            if (maxComponent >= DurationEditorModel.Component.HOUR) {
+            if (maxComponent >= DurationModel.Component.HOUR) {
                 DurationComponentField(
                     item = item,
                     labelRes = R.string.time_hours,
                     index = 2,
-                    value = durationState[DurationEditorModel.Component.HOUR],
-                    update = componentUpdater(DurationEditorModel.Component.HOUR),
+                    value = durationState[DurationModel.Component.HOUR],
+                    update = componentUpdater(DurationModel.Component.HOUR),
                     modifier = modifier
                 )
             }
@@ -434,16 +433,16 @@ private fun DurationEditor(item: String, maxComponent: DurationEditorModel.Compo
                 item = item,
                 labelRes = R.string.time_minutes,
                 index = 1,
-                value = durationState[DurationEditorModel.Component.MINUTE],
-                update = componentUpdater(DurationEditorModel.Component.MINUTE),
+                value = durationState[DurationModel.Component.MINUTE],
+                update = componentUpdater(DurationModel.Component.MINUTE),
                 modifier = modifier
             )
             DurationComponentField(
                 item = item,
                 labelRes = R.string.time_secs,
                 index = 0,
-                value = durationState[DurationEditorModel.Component.SECOND],
-                update = componentUpdater(DurationEditorModel.Component.SECOND),
+                value = durationState[DurationModel.Component.SECOND],
+                update = componentUpdater(DurationModel.Component.SECOND),
                 modifier = modifier
             )
         }
@@ -711,7 +710,7 @@ fun ItemsPreview() {
             labelRes = R.string.pref_min_track_interval,
             value = 30,
             formatter = TrackStatsFormatter.create(),
-            maxComponent = DurationEditorModel.Component.MINUTE,
+            maxComponent = DurationModel.Component.MINUTE,
             update = {},
             updateEdit = {}
         )
@@ -722,7 +721,7 @@ fun ItemsPreview() {
             labelRes = R.string.pref_validity_time,
             value = 386185,
             formatter = TrackStatsFormatter.create(),
-            maxComponent = DurationEditorModel.Component.DAY,
+            maxComponent = DurationModel.Component.DAY,
             update = {},
             updateEdit = {}
         )
