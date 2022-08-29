@@ -70,7 +70,7 @@ internal fun labelTag(tag: String): String = "${tag}_label"
  * Generate the whole tracking UI. This is the entry point into this UI.
  */
 @Composable
-fun TrackUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = Modifier) {
+fun TrackUi(modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
     val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
 
     TrackView(model = model, locationPermissionState = locationPermissionState, modifier = modifier)

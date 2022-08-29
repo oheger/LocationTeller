@@ -128,7 +128,7 @@ typealias ConfigInvalidInputHandler = (Throwable) -> AnnotatedString
  * UI.
  */
 @Composable
-fun ServerConfigUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = Modifier) {
+fun ServerConfigUi(modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
     ServerConfigView(model = model, modifier = modifier)
 }
 
@@ -217,8 +217,8 @@ fun ConfigStringItem(
         value = value,
         update = update,
         updateEdit = updateEdit,
-        renderer = visualTransformation::transform,
         modifier = modifier,
+        renderer = visualTransformation::transform,
         configEditor = configTextFieldEditor(
             tag = ConfigItemElement.EDITOR.tagForItem(item),
             validate = { Result.success(it) },
@@ -253,8 +253,8 @@ fun ConfigIntItem(
         value = value,
         update = update,
         updateEdit = updateEdit,
-        invalidInputHandler = { errorMessage },
         modifier = modifier,
+        invalidInputHandler = { errorMessage },
         configEditor = configEditor
     )
 }
@@ -293,10 +293,10 @@ fun ConfigDoubleItem(
         value = value,
         update = update,
         updateEdit = updateEdit,
-        invalidInputHandler = { errorMessage },
         modifier = modifier,
-        configEditor = configEditor,
-        renderer = renderDoubleAnn
+        renderer = renderDoubleAnn,
+        invalidInputHandler = { errorMessage },
+        configEditor = configEditor
     )
 }
 
@@ -341,10 +341,10 @@ fun ConfigDurationItem(
         value = value,
         update = update,
         updateEdit = updateEdit,
-        invalidInputHandler = invalidInputHandler,
         modifier = modifier,
-        configEditor = configEditor,
-        renderer = renderDuration
+        renderer = renderDuration,
+        invalidInputHandler = invalidInputHandler,
+        configEditor = configEditor
     )
 }
 
@@ -494,9 +494,9 @@ fun <T> ConfigItem(
     value: T,
     update: (T) -> Unit,
     updateEdit: (String?) -> Unit,
+    modifier: Modifier = Modifier,
     renderer: ConfigItemRenderer<T> = { it.toString().toAnnotatedString() },
     invalidInputHandler: ConfigInvalidInputHandler = ::defaultInvalidInputHandler,
-    modifier: Modifier = Modifier,
     configEditor: ConfigEditor<T>
 ) {
     var editorValue by rememberSaveable { mutableStateOf(value) }
@@ -603,7 +603,9 @@ private fun <T> configTextFieldEditor(
             editorText = value
             editUpdate(validate(value))
         },
-        modifier = applyWidth(editModifier, keyboardOptions).testTag(tag),
+        modifier = editModifier
+            .fieldWidth(keyboardOptions)
+            .testTag(tag),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions
     )
@@ -657,13 +659,13 @@ private fun NumberFormat.validateDouble(strValue: String): Result<Double> {
 private val SMALL_FIELD_OPTIONS = setOf(KeyboardType.Decimal, KeyboardType.Number)
 
 /**
- * Apply a width modification to [modifier] based on [keyboardOptions]. Numeric fields are typically smaller than
+ * Apply a width modification to this [Modifier] based on [keyboardOptions]. Numeric fields are typically smaller than
  * others. This is implemented by this function.
  */
-private fun applyWidth(modifier: Modifier, keyboardOptions: KeyboardOptions): Modifier =
-    if(keyboardOptions.keyboardType in SMALL_FIELD_OPTIONS)
-        modifier.width(75.dp)
-else modifier
+private fun Modifier.fieldWidth(keyboardOptions: KeyboardOptions): Modifier =
+    if (keyboardOptions.keyboardType in SMALL_FIELD_OPTIONS)
+        width(75.dp)
+    else this
 
 /**
  * An exception class to report the invalid components of a duration.

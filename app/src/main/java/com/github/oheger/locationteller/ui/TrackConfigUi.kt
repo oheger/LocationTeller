@@ -62,7 +62,7 @@ internal const val CONFIG_ITEM_TRACK_WALKING_SPEED = "config_track_walking_speed
  * Generate the UI for the configuration of the tracking settings. This is the entry point into this configuration UI.
  */
 @Composable
-fun TrackConfigUi(model: TrackViewModelImpl = viewModel(), modifier: Modifier = Modifier) {
+fun TrackConfigUi(modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
     TrackConfigView(model = model, modifier = modifier)
 }
 
