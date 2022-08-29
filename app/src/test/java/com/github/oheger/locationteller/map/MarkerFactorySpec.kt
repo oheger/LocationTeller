@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.map
 
+import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.github.oheger.locationteller.map.LocationTestHelper.createLocationData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
 import com.github.oheger.locationteller.server.TimeData

@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.map
 
+import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.MarkerOptions

@@ -34,7 +34,7 @@ import com.github.oheger.locationteller.map.MapUpdater
 import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.map.TimeDeltaAlphaCalculator
-import com.github.oheger.locationteller.map.TimeDeltaFormatter
+import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.ServerConfig

@@ -38,7 +38,7 @@ import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.map.RangeTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.map.TimeDeltaAlphaCalculator
-import com.github.oheger.locationteller.map.TimeDeltaFormatter
+import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.ServerConfig
@@ -135,7 +135,12 @@ open class MapFragment : androidx.fragment.app.Fragment(), OnMapReadyCallback, C
         Log.i(LOG_TAG, "onCreate()")
         setHasOptionsMenu(true)
         handler = createHandler()
-        deltaFormatter = TimeDeltaFormatter.create(requireContext())
+        deltaFormatter = TimeDeltaFormatter(
+            unitDay = requireContext().getString(R.string.time_days),
+            unitHour = requireContext().getString(R.string.time_hours),
+            unitMin = requireContext().getString(R.string.time_minutes),
+            unitSec = requireContext().getString(R.string.time_secs)
+        )
         markerFactory = createMarkerFactoryForCalculatorId(preferencesHandler.getFadingMode())
         timeService = createTimeService()
         val serverConfig = TrackServerConfig.fromPreferences(preferencesHandler)
