@@ -60,7 +60,6 @@ import com.github.oheger.locationteller.ui.state.rememberDuration
 
 import java.text.NumberFormat
 import java.text.ParsePosition
-import java.util.EnumMap
 
 /** The indent of an editor relative to the label of a configuration item. */
 internal const val EDITOR_INDENT = 10
@@ -122,6 +121,12 @@ typealias ConfigItemRenderer<T> = (T) -> AnnotatedString
  * converted to the target type. The function can then produce a corresponding error message to be displayed.
  */
 typealias ConfigInvalidInputHandler = (Throwable) -> AnnotatedString
+
+/**
+ * Type definition for a list that stores invalid components of a duration together with a corresponding exception.
+ * This is used by the duration editor to generate error messages for fields that are not filled correctly.
+ */
+typealias InvalidDurationComponents = List<Pair<DurationModel.Component, Throwable>>
 
 /**
  * Generate the UI for the configuration of the track server settings. This is the entry point into this configuration
@@ -380,9 +385,7 @@ fun ConfigBooleanItem(
 private fun durationEditor(item: String, maxComponent: DurationModel.Component): ConfigEditor<Int> =
     { duration, durationUpdate, modifier ->
         val durationState by rememberDuration(duration, maxComponent)
-        val errorState by rememberSaveable {
-            mutableStateOf(EnumMap<DurationModel.Component, Throwable>(DurationModel.Component::class.java))
-        }
+        val errorState = rememberSaveable { mutableStateOf<InvalidDurationComponents>(emptyList()) }
 
         val componentLabels = mapOf(
             DurationModel.Component.SECOND to R.string.time_secs,
@@ -394,13 +397,14 @@ private fun durationEditor(item: String, maxComponent: DurationModel.Component):
         fun componentUpdater(component: DurationModel.Component): ConfigUpdater<Int> = { result ->
             result.onSuccess { value ->
                 durationState[component] = value
-                errorState -= component
+                errorState.value = errorState.value - component
             }
             result.onFailure { exception ->
-                errorState[component] = exception
+                errorState.value = (errorState.value - component) + (component to exception)
             }
-            val updateResult = if (errorState.isNotEmpty()) {
-                val invalidComponents = errorState.keys.sortedBy { it.ordinal }.map(componentLabels::getValue)
+            val updateResult = if (errorState.value.isNotEmpty()) {
+                val invalidComponents = errorState.value.map { it.first }.sortedBy { it.ordinal }
+                    .map(componentLabels::getValue)
                 Result.failure(InvalidDurationException(invalidComponents))
             } else {
                 Result.success(durationState.duration())
@@ -666,6 +670,14 @@ private fun Modifier.fieldWidth(keyboardOptions: KeyboardOptions): Modifier =
     if (keyboardOptions.keyboardType in SMALL_FIELD_OPTIONS)
         width(75.dp)
     else this
+
+/**
+ * Remove all entries referencing [component] from this list.
+ */
+private operator fun InvalidDurationComponents.minus(
+    component: DurationModel.Component
+): List<Pair<DurationModel.Component, Throwable>> =
+    filterNot { it.first == component }
 
 /**
  * An exception class to report the invalid components of a duration.
