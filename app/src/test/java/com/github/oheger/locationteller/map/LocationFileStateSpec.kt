@@ -19,65 +19,74 @@ import com.github.oheger.locationteller.map.LocationTestHelper.createFiles
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerDataMap
 import com.github.oheger.locationteller.map.LocationTestHelper.createState
-import io.kotest.core.spec.style.StringSpec
+
+import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 /**
- * Test class for _LocationFileState_.
+ * Test class for [LocationFileState].
  */
-class LocationFileStateSpec : StringSpec() {
+class LocationFileStateSpec : WordSpec() {
     init {
-        "LocationFileState should detect a changed state" {
-            val files1 = createFiles(1..3)
-            val files2 = createFiles(2..4)
-            val state = LocationFileState(files1, emptyMap())
+        "stateChanged" should {
+            "detect a changed state" {
+                val files1 = createFiles(1..3)
+                val files2 = createFiles(2..4)
+                val state = LocationFileState(files1, emptyMap())
 
-            state.stateChanged(files2) shouldBe true
+                state.stateChanged(files2) shouldBe true
+            }
+
+            "detect that the state has not changed" {
+                val files1 = createFiles(3..8)
+                val files2 = createFiles(3..8)
+                val state = LocationFileState(files1, emptyMap())
+
+                state.stateChanged(files2) shouldBe false
+            }
         }
 
-        "LocationFileState should detect that the state has not changed" {
-            val files1 = createFiles(3..8)
-            val files2 = createFiles(3..8)
-            val state = LocationFileState(files1, emptyMap())
+        "filterNewFiles" should {
+            "LocationFilesState should determine the files that are new" {
+                val newFiles = createFiles(2..5)
+                val state = createState(1..3)
 
-            state.stateChanged(files2) shouldBe false
+                state.filterNewFiles(newFiles) shouldContainExactly createFiles(4..5)
+            }
         }
 
-        "LocationFilesState should determine the files that are new" {
-            val newFiles = createFiles(2..5)
-            val state = createState(1..3)
+        "getKnownMarkers" should {
+            "return a map with known marker data" {
+                val state = createState(1..8)
+                val newFiles = createFiles(4..12)
 
-            state.filterNewFiles(newFiles) shouldContainExactly createFiles(4..5)
+                val markerMap = state.getKnownMarkers(newFiles)
+                markerMap shouldBe createMarkerDataMap(4..8)
+            }
+
+            "return an empty map with markers if there is no overlap" {
+                val state = createState(1..8)
+                val newFiles = createFiles(9..16)
+
+                val markerMap = state.getKnownMarkers(newFiles)
+                markerMap.isEmpty() shouldBe true
+            }
         }
 
-        "LocationFilesState should return a map with known marker data" {
-            val state = createState(1..8)
-            val newFiles = createFiles(4..12)
+        "recentMarker" should {
+            "return the most recent marker data" {
+                val state = createState(1..16)
+                val exp = createMarkerData(16)
 
-            val markerMap = state.getKnownMarkers(newFiles)
-            markerMap shouldBe createMarkerDataMap(4..8)
-        }
+                state.recentMarker() shouldBe exp
+            }
 
-        "LocationFilesState should return an empty map with markers if there is no overlap" {
-            val state = createState(1..8)
-            val newFiles = createFiles(9..16)
+            "return null for the recent marker if empty" {
+                val state = LocationFileState(emptyList(), emptyMap())
 
-            val markerMap = state.getKnownMarkers(newFiles)
-            markerMap.isEmpty() shouldBe true
-        }
-
-        "LocationFileState should return the most recent marker data" {
-            val state = createState(1..16)
-            val exp = createMarkerData(16)
-
-            state.recentMarker() shouldBe exp
-        }
-
-        "LocationFileState should return null for the recent marker if empty" {
-            val state = LocationFileState(emptyList(), emptyMap())
-
-            state.recentMarker() shouldBe null
+                state.recentMarker() shouldBe null
+            }
         }
     }
 

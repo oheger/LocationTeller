@@ -16,66 +16,56 @@
 package com.github.oheger.locationteller.map
 
 import com.github.oheger.locationteller.server.LocationData
+
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 
 /**
  * A data class storing information about a marker on a map.
- *
- * @param locationData the _LocationData_ object associated with the marker
- * @param position the position of the marker as _LatLng_ object
  */
-data class MarkerData(val locationData: LocationData, val position: LatLng)
+data class MarkerData(
+    /** The [LocationData] object associated with the marker. */
+    val locationData: LocationData,
+
+  /** The position of the marker as [LatLng] object. */
+    val position: LatLng
+)
 
 /**
- * A class storing information about the location files that are currently
- * available on the server.
+ * A class storing information about the location files that are currently available on the server.
  *
- * This class is used to display a map with the locations recorded and to
- * update this map when new data arrives.
- *
- * @param files the current list of location files on the server
- * @param markerData a map assigning a _MarkerData_ object to a file path
+ * This class is used to display a map with the locations recorded and to update this map when new data arrives.
  */
 data class LocationFileState(
+    /** The current list of location files on the server. */
     val files: List<String>,
+
+    /** A map assigning a [MarkerData] object to a file path. */
     val markerData: Map<String, MarkerData>
 ) {
     /**
-     * Checks this state against the given list of location files and returns a
-     * flag whether the list has changed. If this function returns *true*, the
-     * map view needs to be updated.
-     * @param newFiles a list with the new location files on the server
+     * Check this state against the given list of [new location files][newFiles] and return a flag whether the list
+     * has changed. If this function returns *true*, the map view needs to be updated.
      */
     fun stateChanged(newFiles: List<String>): Boolean = newFiles != files
 
     /**
-     * Returns the most recent _MarkerData_ object. This is the marker that
-     * corresponds to the latest location file uploaded to the server. If the
-     * state is empty, result is *null*.
-     * @return the most recent _MarkerData_ or *null*
+     * Return the most recent [MarkerData] object. This is the marker that corresponds to the latest location file
+     * uploaded to the server. If the state is empty, result is *null*.
      */
-    fun recentMarker(): MarkerData? =
-        if (markerData.isNotEmpty()) markerData[files.last()]
-        else null
+    fun recentMarker(): MarkerData? = files.lastOrNull()?.let(markerData::get)
 
     /**
-     * Returns a list that contains only the newFiles from the passed in list that
-     * are not contained in this state. For these newFiles no location information
-     * is available and has to be retrieved first from the server.
-     * @param newFiles the files to filter
-     * @return a list with the newFiles that are new compared with this state
+     * Return a list that contains only the files from the passed in list that are not contained in this state.
+     * For these [newFiles] no location information is available and has to be retrieved first from the server.
      */
     fun filterNewFiles(newFiles: List<String>): List<String> =
         newFiles.filterNot(markerData::containsKey)
 
     /**
-     * Returns a mutable map that contains all the marker data for the files
-     * specified that are contained in this state object. This function can be
-     * used when an updated state has been retrieved from the server; then the
+     * Return a mutable map that contains all the marker data for the specified [newFiles] that are contained in this
+     * state object. This function can be used when an updated state has been retrieved from the server; then the
      * data for files already known can be reused.
-     * @param newFiles the list with new files
-     * @return a map with all known marker data
      */
     fun getKnownMarkers(newFiles: List<String>): MutableMap<String, MarkerData> {
         val result = mutableMapOf<String, MarkerData>()
@@ -86,18 +76,16 @@ data class LocationFileState(
 }
 
 /**
- * A data class storing information about the markers that have been added to
- * the map view.
+ * A data class storing information about the markers that have been added to the map view.
  *
- * This class is used by [[MapUpdater]] to execute update operations in an
- * efficient and correct way. In addition to information about the location
- * files retrieved from the server, this class also contains data about the own
+ * This class is used by [MapUpdater] to execute update operations in an efficient and correct way. In addition to
+ * information about the location files retrieved from the server, this class also contains data about the own
  * location.
- *
- * @param locations the current _LocationFileState_
- * @param ownMarker the marker that was added for the own location
  */
 data class MapMarkerState(
+    /** The current [LocationFileState]. */
     val locations: LocationFileState,
+
+    /** The optional marker that was added for the own location. */
     val ownMarker: Marker?
 )
