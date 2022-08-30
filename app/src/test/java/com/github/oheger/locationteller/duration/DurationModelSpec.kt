@@ -24,7 +24,9 @@ import io.kotest.matchers.shouldBe
 class DurationModelSpec : WordSpec({
     "create" should {
         "create an instance that populates all supported duration components" {
-            val duration = 3 * SECS_PER_DAY + 15 * SECS_PER_HOUR + 44 * SECS_PER_MINUTE + 11
+            val duration = 3 * DurationModel.Component.DAY.toSeconds() +
+                    15 * DurationModel.Component.HOUR.toSeconds() +
+                    44 * DurationModel.Component.MINUTE.toSeconds() + 11
 
             val model = DurationModel.create(duration, maxComponent = DurationModel.Component.DAY)
 
@@ -35,7 +37,8 @@ class DurationModelSpec : WordSpec({
         }
 
         "create an instance that populates a limited number of duration components" {
-            val duration = 50 * SECS_PER_HOUR + 22 * SECS_PER_MINUTE + 59
+            val duration = 50 * DurationModel.Component.HOUR.toSeconds() +
+                    22 * DurationModel.Component.MINUTE.toSeconds() + 59
 
             val model = DurationModel.create(duration, maxComponent = DurationModel.Component.HOUR)
 
@@ -48,8 +51,12 @@ class DurationModelSpec : WordSpec({
 
     "duration" should {
         "compute the duration in seconds from the current components" {
-            val orgDuration = 3 * SECS_PER_DAY + 15 * SECS_PER_HOUR + 44 * SECS_PER_MINUTE + 11
-            val newDuration = 4 * SECS_PER_DAY + 14 * SECS_PER_HOUR + 45 * SECS_PER_MINUTE + 10
+            val orgDuration = 3 * DurationModel.Component.DAY.toSeconds() +
+                    15 * DurationModel.Component.HOUR.toSeconds() +
+                    44 * DurationModel.Component.MINUTE.toSeconds() + 11
+            val newDuration = 4 * DurationModel.Component.DAY.toSeconds() +
+                    14 * DurationModel.Component.HOUR.toSeconds() +
+                    45 * DurationModel.Component.MINUTE.toSeconds() + 10
             val model = DurationModel.create(orgDuration, DurationModel.Component.DAY)
 
             model[DurationModel.Component.DAY] = model[DurationModel.Component.DAY] + 1
@@ -60,13 +67,27 @@ class DurationModelSpec : WordSpec({
             model.duration() shouldBe newDuration
         }
     }
+
+    "Component" should {
+        "return the milliseconds per second" {
+            DurationModel.Component.SECOND.toMillis() shouldBe 1000L
+        }
+
+        "return the milliseconds per minute" {
+            DurationModel.Component.MINUTE.toMillis() shouldBe 60000L
+        }
+
+        "return the milliseconds per hour" {
+            DurationModel.Component.HOUR.toMillis() shouldBe 60 * 60000L
+        }
+
+        "return the milliseconds per day" {
+            DurationModel.Component.DAY.toMillis() shouldBe 24 * 60 * 60000L
+        }
+    }
 })
 
-/** Constant for the seconds of a minute. */
-private const val SECS_PER_MINUTE = 60
-
-/** Constant for the seconds of an hour. */
-private const val SECS_PER_HOUR = SECS_PER_MINUTE * 60
-
-/** Constant for the seconds of a day. */
-private const val SECS_PER_DAY = SECS_PER_HOUR * 24
+/**
+ * Return the number of seconds contained in this component.
+ */
+fun DurationModel.Component.toSeconds(): Int = (toMillis() / 1000).toInt()

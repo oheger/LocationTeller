@@ -76,7 +76,21 @@ class DurationModel private constructor(
         SECOND(60),
         MINUTE(60),
         HOUR(24),
-        DAY(Int.MAX_VALUE)
+        DAY(Int.MAX_VALUE);
+
+        /**
+         * Return the number of milliseconds contained in this component.
+         */
+        fun toMillis(): Long {
+            fun computeMillis(order: Int): Long =
+                if (order < 1) 1000L
+                else {
+                    val component = values()[order - 1]
+                    component.upperBound * computeMillis(order - 1)
+                }
+
+            return computeMillis(ordinal)
+        }
     }
 }
 

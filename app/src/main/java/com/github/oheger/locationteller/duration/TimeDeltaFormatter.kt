@@ -68,12 +68,7 @@ class TimeDeltaFormatter(
      * have more detailed information for timestamps that are younger.
      */
     fun formatTimeDeltaOrTime(deltaMillis: Long, timeData: TimeData): String =
-        if (deltaMillis < DAY_MILLIS)
+        if (deltaMillis < DurationModel.Component.DAY.toMillis())
             timeData.timeString.substring(0, 5).replace('_', ':')
         else formatTimeDelta(deltaMillis)
-
-    companion object {
-        /** The number of milliseconds of a day. */
-        private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
-    }
 }
