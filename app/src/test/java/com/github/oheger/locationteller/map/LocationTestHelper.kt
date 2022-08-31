@@ -17,6 +17,7 @@ package com.github.oheger.locationteller.map
 
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
+
 import com.google.android.gms.maps.model.LatLng
 
 /**
@@ -25,54 +26,36 @@ import com.google.android.gms.maps.model.LatLng
  */
 object LocationTestHelper {
     /** A prefix for generated test file names.*/
-    private const val filePrefix = "file"
+    private const val FILE_PREFIX = "file"
 
     /**
-     * Generates the name of a test file.
-     * @param index the index of the test file
-     * @return the name of this test file
+     * Generate the name of a test file based on the given [index].
      */
-    fun createFile(index: Int): String = "$filePrefix$index"
+    fun createFile(index: Int): String = "$FILE_PREFIX$index"
 
     /**
-     * Generates a list with test files based on the given range.
-     * @param range defines the indices of the test files
-     * @return a list with the names of all test files
+     * Generate a list with test files based on the given [range].
      */
-    fun createFiles(range: IntRange): List<String> =
-        range.map { createFile(it) }
+    fun createFiles(range: IntRange): List<String> = range.map { createFile(it) }
 
     /**
-     * Creates a test location data object with the given index.
-     * @param index the index of the location data
-     * @return the location data with this index
+     * Create a test location data object based on the given [index].
      */
     fun createLocationData(index: Int): LocationData =
         LocationData(
-            41.0 + index / 10.0, 9.0 - index / 10.0,
-            TimeData(20190716213000L + index)
+            latitude = 41.0 + index / 10.0,
+            longitude = 9.0 - index / 10.0,
+            time = TimeData(20190716213000L + index)
         )
 
     /**
-     * Generates a map from files names to location data in the given range of
-     * indices.
-     * @param range defines the indices for the test data
-     * @return a map with the test data
+     * Generate a map from file names to location data in the given [range] of indices.
      */
-    fun createLocationDataMap(range: IntRange): MutableMap<String, LocationData> {
-        val result = mutableMapOf<String, LocationData>()
-        for (idx in range) {
-            val fileName = createFile(idx)
-            val locData = createLocationData(idx)
-            result[fileName] = locData
-        }
-        return result
-    }
+    fun createLocationDataMap(range: IntRange): MutableMap<String, LocationData> =
+        range.associate { idx -> createFile(idx) to createLocationData(idx) }.toMutableMap()
 
     /**
-     * Creates a test marker data with the given index.
-     * @param index the index of this marker
-     * @return the marker data with this index
+     * Create a test marker data based on the given [index].
      */
     fun createMarkerData(index: Int): MarkerData {
         val locData = createLocationData(index)
@@ -81,26 +64,13 @@ object LocationTestHelper {
     }
 
     /**
-     * Generates a map from file names to marker data in the given range of
-     * indices.
-     * @param range defines the indices for the test data
-     * @return a map with the test data
+     * Generate a map from file names to marker data in the given [range] of indices.
      */
-    fun createMarkerDataMap(range: IntRange): MutableMap<String, MarkerData> {
-        val result = mutableMapOf<String, MarkerData>()
-        for (idx in range) {
-            val fileName = createFile(idx)
-            val marker = createMarkerData(idx)
-            result[fileName] = marker
-        }
-        return result
-    }
+    fun createMarkerDataMap(range: IntRange): MutableMap<String, MarkerData> =
+        range.associate { idx -> createFile(idx) to createMarkerData(idx) }.toMutableMap()
 
     /**
-     * Creates a _LocationFileState_ object that contains data about the
-     * test files in the given range.
-     * @param range defines the indices of the test files in the state
-     * @return the state object containing these test files
+     * Create a [LocationFileState] object that contains data about the test files in the given [range].
      */
     fun createState(range: IntRange): LocationFileState =
         LocationFileState(createFiles(range), createMarkerDataMap(range))
