@@ -26,12 +26,17 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.slot
+import io.mockk.unmockkAll
 import io.mockk.verify
 
 /**
  * Test class for [TrackConfig].
  */
 class TrackConfigSpec : StringSpec({
+    beforeEach {
+        unmockkAll()
+    }
+
     "An instance can be created from shared preferences" {
         val config = TrackConfig(
             minTrackInterval = 120,
