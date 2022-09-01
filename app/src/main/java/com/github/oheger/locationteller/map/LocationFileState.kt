@@ -43,6 +43,13 @@ data class LocationFileState(
     /** A map assigning a [MarkerData] object to a file path. */
     val markerData: Map<String, MarkerData>
 ) {
+    companion object {
+        /**
+         * Constant for an empty state. This constant can be used as initial state when loading data from the server.
+         */
+        val EMPTY = LocationFileState(emptyList(), emptyMap())
+    }
+
     /**
      * Check this state against the given list of [new location files][newFiles] and return a flag whether the list
      * has changed. If this function returns *true*, the map view needs to be updated.

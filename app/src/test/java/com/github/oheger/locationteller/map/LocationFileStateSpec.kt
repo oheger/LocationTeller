@@ -21,7 +21,9 @@ import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerDataM
 import com.github.oheger.locationteller.map.LocationTestHelper.createState
 
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.matchers.collections.beEmpty
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 
 /**
@@ -88,6 +90,12 @@ class LocationFileStateSpec : WordSpec() {
                 state.recentMarker() shouldBe null
             }
         }
-    }
 
+        "EMPTY" should {
+            "contain no data" {
+                LocationFileState.EMPTY.files should beEmpty()
+                LocationFileState.EMPTY.markerData.keys should beEmpty()
+            }
+        }
+    }
 }
