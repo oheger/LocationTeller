@@ -17,11 +17,12 @@ package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
 
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.ReceiverConfig
 import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.duration.TimeDeltaFormatter
@@ -85,22 +86,27 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         )
     }
 
-    /** Stores the shared [PreferencesHandler] instance. */
-    private val preferencesHandler = PreferencesHandler.getInstance(application)
-
     /** Stores the formatter for time deltas. */
     private val timeDeltaFormatter = createTimeDeltaFormatter(application)
 
     /**
      * Holds the current [ReceiverConfig]. The configuration gets updated when the user changes settings.
      */
-    private val currentReceiverConfig = mutableStateOf(ReceiverConfig.fromPreferences(preferencesHandler))
+    private val currentReceiverConfig: MutableState<ReceiverConfig>
 
     /**
      * Stores the current [MarkerFactory]. Everytime the configuration changes, a new factory is created that is
      * configured accordingly.
      */
-    private val currentMarkerFactory = mutableStateOf(createMarkerFactory())
+    private val currentMarkerFactory: MutableState<MarkerFactory>
+
+    init {
+        val configManager = ConfigManager.getInstance()
+        currentReceiverConfig = mutableStateOf(configManager.receiverConfig(application))
+        configManager.addReceiverConfigChangeListener(this::receiverConfigChanged)
+
+        currentMarkerFactory = mutableStateOf(createMarkerFactory())
+    }
 
     override val receiverConfig: ReceiverConfig
         get() = currentReceiverConfig.value
@@ -109,10 +115,11 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         get() = currentMarkerFactory.value
 
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {
-        currentReceiverConfig.value = newConfig
-        newConfig.save(preferencesHandler)
+        ConfigManager.getInstance().updateReceiverConfig(getApplication(), newConfig)
+    }
 
-        currentMarkerFactory.value = createMarkerFactory()
+    override fun onCleared() {
+        ConfigManager.getInstance().removeReceiverConfigChangeListener(this::receiverConfigChanged)
     }
 
     /**
@@ -143,4 +150,12 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
             unitHour = application.getString(R.string.time_hours),
             unitDay = application.getString(R.string.time_days)
         )
+
+    /**
+     * The notification function called by the [ConfigManager] when the [ReceiverConfig] was updated.
+     */
+    private fun receiverConfigChanged(config: ReceiverConfig) {
+        currentReceiverConfig.value = config
+        currentMarkerFactory.value = createMarkerFactory()
+    }
 }

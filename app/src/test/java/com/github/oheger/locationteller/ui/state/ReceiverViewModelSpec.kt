@@ -16,12 +16,13 @@
 package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
-import android.content.SharedPreferences
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.ReceiverConfig
 import com.github.oheger.locationteller.map.DisabledFadeOutAlphaCalculator
+import com.github.oheger.locationteller.track.TrackTestHelper
 
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCase
@@ -45,13 +46,16 @@ class ReceiverViewModelSpec : WordSpec() {
     /** The mock application context. */
     private lateinit var application: Application
 
+    /** The mock for the config manager. */
+    private lateinit var configManager: ConfigManager
+
     override suspend fun beforeAny(testCase: TestCase) {
         mockkObject(PreferencesHandler, ReceiverConfig)
         application = createApplicationMock()
         preferencesHandler = createPreferencesHandlerMock()
+        configManager = createConfigManager()
 
         every { PreferencesHandler.getInstance(application) } returns preferencesHandler
-        every { ReceiverConfig.fromPreferences(preferencesHandler) } returns RECEIVER_CONFIG
     }
 
     init {
@@ -64,7 +68,7 @@ class ReceiverViewModelSpec : WordSpec() {
         }
 
         "updateReceiverConfig" should {
-            "persist the new configuration" {
+            "pass the new configuration to the config manager" {
                 val newConfig = ReceiverConfig(
                     updateInterval = 600,
                     fadeOutEnabled = true,
@@ -72,24 +76,21 @@ class ReceiverViewModelSpec : WordSpec() {
                     fastFadeOut = true,
                     strongFadeOut = false
                 )
+                every { configManager.updateReceiverConfig(application, newConfig) } just runs
                 val model = createModel()
 
                 model.updateReceiverConfig(newConfig)
 
+                verify { configManager.updateReceiverConfig(application, newConfig) }
+            }
+
+            "react on change notifications" {
+                val newConfig = RECEIVER_CONFIG.copy(updateInterval = 222)
+                val model = createModel()
+
+                receiverConfigChangeNotification(newConfig)
+
                 model.receiverConfig shouldBe newConfig
-
-                val slotEditor = slot<SharedPreferences.Editor.() -> Unit>()
-                verify {
-                    preferencesHandler.update(capture(slotEditor))
-                }
-
-                val editor = mockk<SharedPreferences.Editor>()
-                every { editor.putInt(any(), any()) } returns editor
-                every { editor.putBoolean(any(), any()) } returns editor
-                slotEditor.captured(editor)
-                verify {
-                    editor.putInt(ReceiverConfig.PROP_UPDATE_INTERVAL, newConfig.updateInterval)
-                }
             }
         }
 
@@ -97,7 +98,7 @@ class ReceiverViewModelSpec : WordSpec() {
             "be configured with a disabled alpha calculator" {
                 val model = createModel()
 
-                model.updateReceiverConfig(RECEIVER_CONFIG.copy(fadeOutEnabled = false))
+                receiverConfigChangeNotification(RECEIVER_CONFIG.copy(fadeOutEnabled = false))
 
                 model.markerFactory.alphaCalculator shouldBe DisabledFadeOutAlphaCalculator
             }
@@ -111,7 +112,7 @@ class ReceiverViewModelSpec : WordSpec() {
             "be configured with a normal and slow alpha calculator" {
                 val model = createModel()
 
-                model.updateReceiverConfig(RECEIVER_CONFIG.copy(strongFadeOut = false))
+                receiverConfigChangeNotification(RECEIVER_CONFIG.copy(strongFadeOut = false))
 
                 model.markerFactory.alphaCalculator shouldBe ReceiverViewModelImpl.CALCULATOR_SLOW
             }
@@ -119,7 +120,7 @@ class ReceiverViewModelSpec : WordSpec() {
             "be configured with a normal and fast alpha calculator" {
                 val model = createModel()
 
-                model.updateReceiverConfig(RECEIVER_CONFIG.copy(strongFadeOut = false, fastFadeOut = true))
+                receiverConfigChangeNotification(RECEIVER_CONFIG.copy(strongFadeOut = false, fastFadeOut = true))
 
                 model.markerFactory.alphaCalculator shouldBe ReceiverViewModelImpl.CALCULATOR_FAST
             }
@@ -127,7 +128,7 @@ class ReceiverViewModelSpec : WordSpec() {
             "be configured with a strong and fast alpha calculator" {
                 val model = createModel()
 
-                model.updateReceiverConfig(RECEIVER_CONFIG.copy(fastFadeOut = true))
+                receiverConfigChangeNotification(RECEIVER_CONFIG.copy(fastFadeOut = true))
 
                 model.markerFactory.alphaCalculator shouldBe ReceiverViewModelImpl.CALCULATOR_FAST_STRONG
             }
@@ -143,6 +144,25 @@ class ReceiverViewModelSpec : WordSpec() {
                 formatter.unitSec shouldBe UNIT_SECOND
             }
         }
+    }
+
+    /**
+     * Trigger a notification that the [ReceiverConfig] was changed to [newConfig].
+     */
+    private fun receiverConfigChangeNotification(newConfig: ReceiverConfig) {
+        val slotListener = slot<(ReceiverConfig) -> Unit>()
+        verify { configManager.addReceiverConfigChangeListener(capture(slotListener)) }
+        slotListener.captured(newConfig)
+    }
+
+    /**
+     * Create a mock for the [ConfigManager] that is already prepared for some expected interactions.
+     */
+    private fun createConfigManager(): ConfigManager {
+        val configManagerMock = TrackTestHelper.prepareConfigManager(application, receiverConfig = RECEIVER_CONFIG)
+        every { configManagerMock.addReceiverConfigChangeListener(any()) } just runs
+
+        return configManagerMock
     }
 
     /**
