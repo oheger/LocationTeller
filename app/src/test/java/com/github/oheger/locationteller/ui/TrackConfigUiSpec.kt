@@ -28,6 +28,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.track.TrackTestHelper
@@ -54,13 +55,13 @@ class TrackConfigUiSpec {
 
     @Before
     fun navigateToTrackConfig() {
-        composeTestRule.activityRule.scenario.onActivity {
+        composeTestRule.activityRule.scenario.onActivity { activity ->
             // Set a defined value for the auto reset statistics configuration item
-            PreferencesHandler.getInstance(it).update {
-                putBoolean(TrackConfig.PROP_AUTO_RESET_STATS, true)
-            }
+            val configManager = ConfigManager.getInstance()
+            val trackConfig = configManager.trackConfig(activity.application)
+            configManager.updateTrackConfig(activity.application, trackConfig.copy(autoResetStats = true))
 
-            findNavController(it, R.id.nav_host_fragment).navigate(R.id.trackSettingsFragment)
+            findNavController(activity, R.id.nav_host_fragment).navigate(R.id.trackSettingsFragment)
         }
     }
 

@@ -15,7 +15,10 @@
  */
 package com.github.oheger.locationteller.track
 
+import android.content.Context
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
+import com.github.oheger.locationteller.config.ReceiverConfig
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.server.ServerConfig
@@ -79,6 +82,26 @@ object TrackTestHelper {
     ) {
         mockkObject(TrackServerConfig)
         every { TrackServerConfig.fromPreferences(mockHandler) } returns serverConfig
+    }
+
+    /**
+     * Create a [ConfigManager] mock and prepare it to return the given [trackConfig], [serverConfig], and
+     * [receiverConfig].
+     */
+    fun prepareConfigManager(
+        context: Context,
+        trackConfig: TrackConfig = DEFAULT_TRACK_CONFIG,
+        serverConfig: TrackServerConfig = DEFAULT_SERVER_CONFIG,
+        receiverConfig: ReceiverConfig = ReceiverConfig.DEFAULT
+    ): ConfigManager {
+        val configManager = mockk<ConfigManager>()
+        mockkObject(ConfigManager)
+
+        every { ConfigManager.getInstance() } returns configManager
+        every { configManager.trackConfig(context) } returns trackConfig
+        every { configManager.serverConfig(context) } returns serverConfig
+        every { configManager.receiverConfig(context) } returns receiverConfig
+        return configManager
     }
 
     /**

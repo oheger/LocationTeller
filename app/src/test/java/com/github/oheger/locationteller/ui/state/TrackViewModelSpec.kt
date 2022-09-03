@@ -19,6 +19,7 @@ import android.app.Application
 import android.content.Intent
 import android.content.SharedPreferences
 
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.config.TrackServerConfig
@@ -54,7 +55,15 @@ class TrackViewModelSpec : WordSpec() {
     /** A mock formatter that is used by test instances. */
     private lateinit var formatter: TrackStatsFormatter
 
+    /** A mock for the application. */
+    private lateinit var application: Application
+
+    /** A mock for the config manager. */
+    private lateinit var configManager: ConfigManager
+
     override suspend fun beforeAny(testCase: TestCase) {
+        application = mockk(relaxed = true)
+        configManager = createConfigManager()
         val preferencesHandler = mockk<PreferencesHandler>(relaxed = true)
         val prefs = mockk<SharedPreferences>()
         storage = mockk(relaxed = true)
@@ -70,12 +79,9 @@ class TrackViewModelSpec : WordSpec() {
     init {
         "The secondary constructor" should {
             "create a correct TrackStorage instance" {
-                val application = mockk<Application>()
                 val preferencesHandler = storage.preferencesHandler
                 mockkObject(PreferencesHandler)
                 every { PreferencesHandler.getInstance(application) } returns preferencesHandler
-                TrackTestHelper.prepareTrackConfigFromPreferences(preferencesHandler)
-                TrackTestHelper.prepareTrackServerConfigFromPreferences(preferencesHandler)
 
                 val model = TrackViewModelImpl(application)
 
@@ -507,34 +513,61 @@ class TrackViewModelSpec : WordSpec() {
         }
 
         "updateTrackingConfig" should {
-            "replace and persist the tracking configuration" {
+            "pass an updated tracking configuration to the config manager" {
                 val newConfig = mockk<TrackConfig>()
-                every { newConfig.save(storage.preferencesHandler) } just runs
+                every { configManager.updateTrackConfig(application, newConfig) } just runs
                 val model = createModel()
 
                 model.updateTrackConfig(newConfig)
 
-                model.trackConfig shouldBe newConfig
                 verify {
-                    newConfig.save(storage.preferencesHandler)
+                    configManager.updateTrackConfig(application, newConfig)
                 }
+            }
+
+            "react on notifications from the config manager" {
+                val newConfig = mockk<TrackConfig>()
+                val model = createModel()
+
+                trackConfigUpdateNotification(newConfig)
+
+                model.trackConfig shouldBe newConfig
             }
         }
 
         "updateServerConfig" should {
-            "replace and persist the server configuration" {
+            "pass an updated server configuration to the config manager" {
                 val newConfig = mockk<TrackServerConfig>()
-                every { newConfig.save(storage.preferencesHandler) } just runs
+                every { configManager.updateServerConfig(application, newConfig) } just runs
                 val model = createModel()
 
                 model.updateServerConfig(newConfig)
 
-                model.serverConfig shouldBe newConfig
                 verify {
-                    newConfig.save(storage.preferencesHandler)
+                    configManager.updateServerConfig(application, newConfig)
                 }
             }
+
+            "react on notifications from the config manager" {
+                val newConfig = mockk<TrackServerConfig>()
+                val model = createModel()
+
+                serverConfigUpdateNotification(newConfig)
+
+                model.serverConfig shouldBe newConfig
+            }
         }
+    }
+
+    /**
+     * Create a mock for the [ConfigManager] that is already prepared for some expected interactions.
+     */
+    private fun createConfigManager(): ConfigManager {
+        val configManagerMock = TrackTestHelper.prepareConfigManager(application)
+        every { configManagerMock.addTrackConfigChangeListener(any()) } just runs
+        every { configManagerMock.addServerConfigChangeListener(any()) } just runs
+
+        return configManagerMock
     }
 
     /**
@@ -542,13 +575,11 @@ class TrackViewModelSpec : WordSpec() {
      * Prepare the creation of a [TrackConfig] with the given value of [autoReset].
      */
     private fun createModel(autoReset: Boolean = false): TrackViewModelImpl {
-        val prefHandler = storage.preferencesHandler
         val config = TrackConfig.DEFAULT.copy(autoResetStats = autoReset)
-        TrackTestHelper.prepareTrackConfigFromPreferences(prefHandler, config)
-        TrackTestHelper.prepareTrackServerConfigFromPreferences(prefHandler)
+        every { configManager.trackConfig(application) } returns config
 
         val intent = mockk<Intent>()
-        val model = TrackViewModelImpl(storage, mockk(relaxed = true))
+        val model = TrackViewModelImpl(storage, application)
 
         val modelSpy = spyk(model)
         every { modelSpy.serviceIntent() } returns intent
@@ -585,6 +616,24 @@ class TrackViewModelSpec : WordSpec() {
      */
     private fun fetchAndTriggerPreferencesListener(property: String) {
         triggerPreferenceChangedEvent(fetchPreferencesListener(), property)
+    }
+
+    /**
+     * Send a notification to the test model that the [TrackConfig] was changed to [config].
+     */
+    private fun trackConfigUpdateNotification(config: TrackConfig) {
+        val slotListener = slot<(TrackConfig) -> Unit>()
+        verify { configManager.addTrackConfigChangeListener(capture(slotListener)) }
+        slotListener.captured(config)
+    }
+
+    /**
+     * Send a notification to the test model that the [TrackServerConfig] was changed to [config].
+     */
+    private fun serverConfigUpdateNotification(config: TrackServerConfig) {
+        val slotListener = slot<(TrackServerConfig) -> Unit>()
+        verify { configManager.addServerConfigChangeListener(capture(slotListener)) }
+        slotListener.captured(config)
     }
 }
 

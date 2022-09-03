@@ -23,6 +23,7 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
 import com.github.oheger.locationteller.config.TrackServerConfig
@@ -118,8 +119,11 @@ class TrackViewModelImpl(
         trackStorage.setTrackingEnabled(false)
         trackStorage.preferencesHandler.registerListener(this)
 
-        currentTrackConfig.value = TrackConfig.fromPreferences(trackStorage.preferencesHandler)
-        currentServerConfig.value = TrackServerConfig.fromPreferences(trackStorage.preferencesHandler)
+        val configManager = ConfigManager.getInstance()
+        trackConfigChanged(configManager.trackConfig(application))
+        serverConfigChanged(configManager.serverConfig(application))
+        configManager.addTrackConfigChangeListener(this::trackConfigChanged)
+        configManager.addServerConfigChangeListener(this::serverConfigChanged)
 
         initializeFromSharedPreferences()
     }
@@ -164,13 +168,11 @@ class TrackViewModelImpl(
     }
 
     override fun updateTrackConfig(config: TrackConfig) {
-        currentTrackConfig.value = config
-        config.save(trackStorage.preferencesHandler)
+        ConfigManager.getInstance().updateTrackConfig(getApplication(), config)
     }
 
     override fun updateServerConfig(config: TrackServerConfig) {
-        currentServerConfig.value = config
-        config.save(trackStorage.preferencesHandler)
+        ConfigManager.getInstance().updateServerConfig(getApplication(), config)
     }
 
     /**
@@ -187,6 +189,10 @@ class TrackViewModelImpl(
     override fun onCleared() {
         Log.i(TAG, "TrackViewModel is cleared.")
         trackStorage.preferencesHandler.preferences.unregisterOnSharedPreferenceChangeListener(this)
+
+        val configManager = ConfigManager.getInstance()
+        configManager.removeTrackConfigChangeListener(this::updateTrackConfig)
+        configManager.removeServerConfigChangeListener(this::updateServerConfig)
     }
 
     /**
@@ -279,6 +285,20 @@ class TrackViewModelImpl(
                 ?: formatter.timeService.currentTime().currentTime
             endTime - startTime.time
         }?.takeIf { it > 0 }
+
+    /**
+     * The notification function called by the [ConfigManager] when there is a change in the [TrackConfig].
+     */
+    private fun trackConfigChanged(config: TrackConfig) {
+        currentTrackConfig.value = config
+    }
+
+    /**
+     * The notification function called by the [ConfigManager] when there is a change in the [TrackServerConfig].
+     */
+    private fun serverConfigChanged(config: TrackServerConfig) {
+        currentServerConfig.value = config
+    }
 }
 
 /**
