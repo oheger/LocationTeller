@@ -99,6 +99,7 @@ dependencies {
     testImplementation "io.kotest:kotest-assertions-core:$versionKoTest"
     testImplementation "io.kotest:kotest-runner-junit5:$versionKoTest"
     testImplementation "io.mockk:mockk:$versionMockK"
+    testImplementation 'org.jetbrains.kotlin:kotlin-reflect:1.6.21'
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$versionCoroutines"
     testImplementation "org.robolectric:robolectric:$versionRobolectric"
     testImplementation "org.junit.vintage:junit-vintage-engine:$versionJUnit5"

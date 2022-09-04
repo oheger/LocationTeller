@@ -59,6 +59,19 @@ class ReceiverViewModelSpec : WordSpec() {
     }
 
     init {
+        "onCleared" should {
+            "perform cleanup" {
+                val model = createModel()
+                val receiveConfigChangeListener = receiverConfigChangeListener()
+
+                model.clear()
+
+                verify {
+                    configManager.removeReceiverConfigChangeListener(receiveConfigChangeListener)
+                }
+            }
+        }
+
         "receiverConfig" should {
             "return a configuration initialized from preferences" {
                 val model = createModel()
@@ -147,12 +160,20 @@ class ReceiverViewModelSpec : WordSpec() {
     }
 
     /**
+     * Obtain the listener for changes on the [ReceiverConfig] that was registered at the [ConfigManager].
+     */
+    private fun receiverConfigChangeListener(): (ReceiverConfig) -> Unit {
+        val slotListener = slot<(ReceiverConfig) -> Unit>()
+        verify { configManager.addReceiverConfigChangeListener(capture(slotListener)) }
+        return slotListener.captured
+    }
+
+    /**
      * Trigger a notification that the [ReceiverConfig] was changed to [newConfig].
      */
     private fun receiverConfigChangeNotification(newConfig: ReceiverConfig) {
-        val slotListener = slot<(ReceiverConfig) -> Unit>()
-        verify { configManager.addReceiverConfigChangeListener(capture(slotListener)) }
-        slotListener.captured(newConfig)
+        val listener = receiverConfigChangeListener()
+        listener(newConfig)
     }
 
     /**
@@ -161,6 +182,7 @@ class ReceiverViewModelSpec : WordSpec() {
     private fun createConfigManager(): ConfigManager {
         val configManagerMock = TrackTestHelper.prepareConfigManager(application, receiverConfig = RECEIVER_CONFIG)
         every { configManagerMock.addReceiverConfigChangeListener(any()) } just runs
+        every { configManagerMock.removeReceiverConfigChangeListener(any()) } just runs
 
         return configManagerMock
     }
