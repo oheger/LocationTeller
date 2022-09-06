@@ -21,11 +21,21 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.ReceiverConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.map.DisabledFadeOutAlphaCalculator
+import com.github.oheger.locationteller.map.LocationFileState
+import com.github.oheger.locationteller.map.LocationTestHelper
+import com.github.oheger.locationteller.map.MapStateLoader
+import com.github.oheger.locationteller.map.MapStateUpdater
+import com.github.oheger.locationteller.server.TrackService
 import com.github.oheger.locationteller.track.TrackTestHelper
+import com.github.oheger.locationteller.track.TrackTestHelper.asServerConfig
+
+import com.google.maps.android.compose.CameraPositionState
 
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCase
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
@@ -49,13 +59,29 @@ class ReceiverViewModelSpec : WordSpec() {
     /** The mock for the config manager. */
     private lateinit var configManager: ConfigManager
 
+    /** The mock for the [TrackService]. */
+    private lateinit var trackService: TrackService
+
+    /** The mock for the [MapStateUpdater]. */
+    private lateinit var updater: MapStateUpdater
+
+    /** The mock for the receiver camera state. */
+    private lateinit var cameraState: ReceiverCameraState
+
     override suspend fun beforeAny(testCase: TestCase) {
-        mockkObject(PreferencesHandler, ReceiverConfig)
+        mockkObject(PreferencesHandler, TrackService, MapStateUpdater, ReceiverCameraState)
         application = createApplicationMock()
         preferencesHandler = createPreferencesHandlerMock()
         configManager = createConfigManager()
+        trackService = mockk()
+        updater = mockk()
+        cameraState = mockk()
 
         every { PreferencesHandler.getInstance(application) } returns preferencesHandler
+        every { TrackService.create(TrackTestHelper.DEFAULT_SERVER_CONFIG.asServerConfig()) } returns trackService
+        every { MapStateUpdater.create(any(), any(), any(), any()) } returns updater
+        every { updater.close() } just runs
+        every { ReceiverCameraState.create() } returns cameraState
     }
 
     init {
@@ -63,11 +89,14 @@ class ReceiverViewModelSpec : WordSpec() {
             "perform cleanup" {
                 val model = createModel()
                 val receiveConfigChangeListener = receiverConfigChangeListener()
+                val serverConfigChangeListener = serverConfigChangeListener()
 
                 model.clear()
 
                 verify {
                     configManager.removeReceiverConfigChangeListener(receiveConfigChangeListener)
+                    configManager.removeServerConfigChangeListener(serverConfigChangeListener)
+                    updater.close()
                 }
             }
         }
@@ -157,6 +186,176 @@ class ReceiverViewModelSpec : WordSpec() {
                 formatter.unitSec shouldBe UNIT_SECOND
             }
         }
+
+        "the loader provider" should {
+            "return an initial loader" {
+                createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+
+                creation.loader.trackService shouldBe trackService
+            }
+
+            "update the loader when there is a change on the server config" {
+                val newServerConfig = TrackTestHelper.DEFAULT_SERVER_CONFIG.copy(user = "otherUser")
+                val newTrackService = mockk<TrackService>()
+                every { TrackService.create(newServerConfig.asServerConfig()) } returns newTrackService
+                createModel()
+
+                serverConfigChangeNotification(newServerConfig)
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.loader.trackService shouldBe newTrackService
+            }
+        }
+
+        "the camera position state" should {
+            "be obtained from the receiver camera state" {
+                val positionState = mockk<CameraPositionState>()
+                every { cameraState.cameraPositionState } returns positionState
+
+                val model = createModel()
+
+                model.cameraPositionState shouldBe positionState
+            }
+        }
+
+        "the location file state" should {
+            "initially be empty" {
+                val model = createModel()
+
+                model.locationFileState shouldBe LocationFileState.EMPTY
+            }
+
+            "be updated from the updater" {
+                val newLocations = LocationTestHelper.createState(1..4)
+                every { cameraState.zoomToAllMarkers(newLocations) } just runs
+                every { cameraState.centerRecentMarker(newLocations) } just runs
+                val model = createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(newLocations)
+
+                model.locationFileState shouldBe newLocations
+            }
+        }
+
+        "the seconds to the next update" should {
+            "initially be 0" {
+                val model = createModel()
+
+                model.secondsToNextUpdate shouldBe 0
+            }
+
+            "be updated from the updater" {
+                val timeToUpdate = 42
+                val model = createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendCountDown(timeToUpdate)
+
+                model.secondsToNextUpdate shouldBe timeToUpdate
+            }
+        }
+
+        "the formatted seconds to the next update" should {
+            "initially be empty" {
+                val model = createModel()
+
+                model.secondsToNextUpdateString shouldBe ""
+            }
+
+            "be updated from the updater" {
+                val model = createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendCountDown(42)
+
+                model.secondsToNextUpdateString shouldBe "42 $UNIT_SECOND"
+            }
+        }
+
+        "the camera position" should {
+            "be initialized when the first state arrives" {
+                val newLocations = LocationTestHelper.createState(1..2)
+                every { cameraState.zoomToAllMarkers(newLocations) } just runs
+                every { cameraState.centerRecentMarker(newLocations) } just runs
+                createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(newLocations)
+
+                verify {
+                    cameraState.zoomToAllMarkers(newLocations)
+                    cameraState.centerRecentMarker(newLocations)
+                }
+            }
+
+            "be centered to the latest marker if configured" {
+                val newLocations1 = LocationTestHelper.createState(1..2)
+                val newLocations2 = LocationTestHelper.createState(2..3)
+                every { cameraState.zoomToAllMarkers(newLocations1) } just runs
+                every { cameraState.centerRecentMarker(any()) } just runs
+                createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(newLocations1)
+                creation.sendStateUpdate(newLocations2)
+
+                verify {
+                    cameraState.centerRecentMarker(newLocations1)
+                    cameraState.centerRecentMarker(newLocations2)
+                }
+            }
+
+            "not be centered again if there is no change in the recent marker" {
+                val newLocations1 = LocationTestHelper.createState(1..3)
+                val newLocations2 = LocationTestHelper.createState(2..3)
+                every { cameraState.zoomToAllMarkers(newLocations1) } just runs
+                every { cameraState.centerRecentMarker(newLocations1) } just runs
+                createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(newLocations1)
+                creation.sendStateUpdate(newLocations2)
+            }
+
+            "not be centered if this configuration setting is disabled" {
+                val newConfig = RECEIVER_CONFIG.copy(centerNewPosition = false)
+                val newLocations = LocationTestHelper.createState(1..2)
+                every { cameraState.zoomToAllMarkers(newLocations) } just runs
+                createModel()
+
+                receiverConfigChangeNotification(newConfig)
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(newLocations)
+            }
+        }
+
+        "the updater" should {
+            "be recreated on a change of the update interval" {
+                val newConfig = RECEIVER_CONFIG.copy(updateInterval = RECEIVER_CONFIG.updateInterval - 1)
+                val newUpdater = mockk<MapStateUpdater>(relaxed = true)
+                createModel()
+                every { MapStateUpdater.create(any(), any(), any(), any()) } returns newUpdater
+
+                receiverConfigChangeNotification(newConfig)
+
+                MapStateUpdaterCreation.fetch(numberOfCalls = 2, expectedInterval = newConfig.updateInterval)
+                verify {
+                    updater.close()
+                }
+            }
+
+            "not be recreated if the update interval stays the same" {
+                val newConfig = RECEIVER_CONFIG.copy(fadeOutEnabled = true)
+                createModel()
+
+                receiverConfigChangeNotification(newConfig)
+
+                MapStateUpdaterCreation.fetch()
+            }
+        }
     }
 
     /**
@@ -177,12 +376,31 @@ class ReceiverViewModelSpec : WordSpec() {
     }
 
     /**
+     * Obtain the listener for changes on the [TrackServerConfig] that was registered at the [ConfigManager].
+     */
+    private fun serverConfigChangeListener(): (TrackServerConfig) -> Unit {
+        val slotListener = slot<(TrackServerConfig) -> Unit>()
+        verify { configManager.addServerConfigChangeListener(capture(slotListener)) }
+        return slotListener.captured
+    }
+
+    /**
+     * Trigger a notification that the [TrackServerConfig] was changed to [newConfig].
+     */
+    private fun serverConfigChangeNotification(newConfig: TrackServerConfig) {
+        val listener = serverConfigChangeListener()
+        listener(newConfig)
+    }
+
+    /**
      * Create a mock for the [ConfigManager] that is already prepared for some expected interactions.
      */
     private fun createConfigManager(): ConfigManager {
         val configManagerMock = TrackTestHelper.prepareConfigManager(application, receiverConfig = RECEIVER_CONFIG)
         every { configManagerMock.addReceiverConfigChangeListener(any()) } just runs
+        every { configManagerMock.addServerConfigChangeListener(any()) } just runs
         every { configManagerMock.removeReceiverConfigChangeListener(any()) } just runs
+        every { configManagerMock.removeServerConfigChangeListener(any()) } just runs
 
         return configManagerMock
     }
@@ -232,3 +450,64 @@ private fun createApplicationMock(): Application =
         every { getString(R.string.time_hours) } returns UNIT_HOUR
         every { getString(R.string.time_days) } returns UNIT_DAY
     }
+
+/**
+ * A class that stores the complex parameters of a creation of a [MapStateUpdater] object.
+ */
+private class MapStateUpdaterCreation(
+    /** The function to return the [MapStateLoader]. */
+    private val loaderProvider: () -> MapStateLoader,
+
+    /** The function to update the state. */
+    private val updateState: (LocationFileState) -> Unit,
+
+    /** The function to update the count-down value. */
+    private val countDown: (Int) -> Unit
+) {
+    companion object {
+        /**
+         * Return an instance with data obtained from the latest creation of a [MapStateUpdater], expecting that
+         * [expectedInterval] is used as update interval and that the given [numberOfCalls] have been recorded.
+         */
+        fun fetch(
+            expectedInterval: Int = RECEIVER_CONFIG.updateInterval,
+            numberOfCalls: Int = 1
+        ): MapStateUpdaterCreation {
+            val intervals = mutableListOf<Int>()
+            val providers = mutableListOf<() -> MapStateLoader>()
+            val updates = mutableListOf<(LocationFileState) -> Unit>()
+            val countDowns = mutableListOf<(Int) -> Unit>()
+            verify {
+                MapStateUpdater.create(
+                    capture(intervals),
+                    capture(providers),
+                    capture(updates),
+                    capture(countDowns)
+                )
+            }
+
+            providers shouldHaveSize numberOfCalls
+            intervals.last() shouldBe expectedInterval
+
+            return MapStateUpdaterCreation(providers.last(), updates.last(), countDowns.last())
+        }
+    }
+
+    /** The current [MapStateLoader] obtained from the provider. */
+    val loader: MapStateLoader
+        get() = loaderProvider()
+
+    /**
+     * Pass the given [state] to the update state function.
+     */
+    fun sendStateUpdate(state: LocationFileState) {
+        updateState(state)
+    }
+
+    /**
+     * Pass the given [value] to the count-down function.
+     */
+    fun sendCountDown(value: Int) {
+        countDown(value)
+    }
+}

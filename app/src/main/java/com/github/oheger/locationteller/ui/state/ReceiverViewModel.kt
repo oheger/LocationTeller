@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
+import android.util.Log
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -24,12 +25,20 @@ import androidx.lifecycle.AndroidViewModel
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.ReceiverConfig
+import com.github.oheger.locationteller.config.TrackServerConfig
 import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.github.oheger.locationteller.map.AlphaRange
 import com.github.oheger.locationteller.map.DisabledFadeOutAlphaCalculator
+import com.github.oheger.locationteller.map.LocationFileState
+import com.github.oheger.locationteller.map.MapStateLoader
+import com.github.oheger.locationteller.map.MapStateUpdater
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.map.RangeTimeDeltaAlphaCalculator
+import com.github.oheger.locationteller.server.ServerConfig
+import com.github.oheger.locationteller.server.TrackService
+
+import com.google.maps.android.compose.CameraPositionState
 
 /**
  * Definition of an interface that defines the contract of the view model used for the receiver part of the application
@@ -41,6 +50,18 @@ interface ReceiverViewModel {
 
     /** The factory for the markers to be added to the map. */
     val markerFactory: MarkerFactory
+
+    /** The current position state of the camera. */
+    val cameraPositionState: CameraPositionState
+
+    /** The object containing the position files loaded from the server. */
+    val locationFileState: LocationFileState
+
+    /** The number of seconds until the next update from the server. */
+    val secondsToNextUpdate: Int
+
+    /** A formatted string for the time until the next update from the server. */
+    val secondsToNextUpdateString: String
 
     /**
      * Set the current [ReceiverConfig] to [newConfig]. This causes updates on some objects managed by this instance.
@@ -84,6 +105,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
                 AlphaRange(0.7f, 0.5f, 7 * DurationModel.Component.DAY.toMillis())
             ), 0.4f
         )
+
+        /** Tag for logging. */
+        private const val TAG = "ReceiverViewModel"
     }
 
     /** Stores the formatter for time deltas. */
@@ -100,12 +124,58 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
      */
     private val currentMarkerFactory: MutableState<MarkerFactory>
 
+    /**
+     * Stores the object with location files obtained from the server. This property gets updated automatically from
+     * the [MapStateUpdater].
+     */
+    private val currentLocationFileState: MutableState<LocationFileState>
+
+    /**
+     * Stores the count-down value when the next update from the server is scheduled. This property gets updated
+     * automatically from the [MapStateUpdater].
+     */
+    private val currentSecondsToNextUpdate = mutableStateOf(0)
+
+    /**
+     * Stores a formatted string with the count-down value when the next update from the server is scheduled. This
+     * property is updated together with [currentSecondsToNextUpdate].
+     */
+    private val currentSecondsToNextUpdateString = mutableStateOf("")
+
+    /** The helper object managing the camera state. */
+    private val receiverCameraState = ReceiverCameraState.create()
+
+    /**
+     * The object responsible for updating the map state. It depends on the current receiver configuration and is
+     * recreated whenever this configuration changes.
+     */
+    private var mapStateUpdater: MapStateUpdater? = null
+
+    /** Stores the current server configuration. */
+    private var currentServerConfig = TrackServerConfig.EMPTY
+
+    /**
+     * The object responsible for loading the current positions from the server. It depends on the server configuration
+     * and is reset whenever this configuration changes.
+     */
+    private var mapStateLoader: MapStateLoader? = null
+
+    /** A flag to keep track whether the camera has been initialized. */
+    private var cameraInitialized = false
+
     init {
+        Log.i(TAG, "Creating new instance of ReceiverViewModel.")
+
         val configManager = ConfigManager.getInstance()
-        currentReceiverConfig = mutableStateOf(configManager.receiverConfig(application))
+        currentReceiverConfig = mutableStateOf(ReceiverConfig.DEFAULT)
         configManager.addReceiverConfigChangeListener(this::receiverConfigChanged)
+        configManager.addServerConfigChangeListener(this::serverConfigChanged)
 
         currentMarkerFactory = mutableStateOf(createMarkerFactory())
+        currentLocationFileState = mutableStateOf(LocationFileState.EMPTY)
+
+        receiverConfigChanged(configManager.receiverConfig(application))
+        serverConfigChanged(configManager.serverConfig(application))
     }
 
     override val receiverConfig: ReceiverConfig
@@ -114,12 +184,29 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     override val markerFactory: MarkerFactory
         get() = currentMarkerFactory.value
 
+    override val cameraPositionState: CameraPositionState
+        get() = receiverCameraState.cameraPositionState
+
+    override val locationFileState: LocationFileState
+        get() = currentLocationFileState.value
+
+    override val secondsToNextUpdate: Int
+        get() = currentSecondsToNextUpdate.value
+
+    override val secondsToNextUpdateString: String
+        get() = currentSecondsToNextUpdateString.value
+
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {
         ConfigManager.getInstance().updateReceiverConfig(getApplication(), newConfig)
     }
 
     override fun onCleared() {
-        ConfigManager.getInstance().removeReceiverConfigChangeListener(this::receiverConfigChanged)
+        Log.i(TAG, "Clearing ReceiverViewModel.")
+        val configManager = ConfigManager.getInstance()
+        configManager.removeReceiverConfigChangeListener(this::receiverConfigChanged)
+        configManager.removeServerConfigChangeListener(this::serverConfigChanged)
+
+        mapStateUpdater?.close()
     }
 
     /**
@@ -152,10 +239,85 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         )
 
     /**
+     * Create a new [MapStateUpdater] instance and configure it with the given [updateInterval].
+     */
+    private fun createMapStateUpdater(updateInterval: Int): MapStateUpdater =
+        MapStateUpdater.create(
+            updateInterval,
+            this::getOrCreateMapStateLoader,
+            this::locationFileStateChanged,
+            this::onCountDown
+        )
+
+    /**
+     * Create a [MapStateLoader] instance based on the current server configuration.
+     */
+    private fun createMapStateLoader(): MapStateLoader {
+        val serverConfig = ServerConfig(
+            serverUri = currentServerConfig.serverUri,
+            basePath = currentServerConfig.basePath,
+            user = currentServerConfig.user,
+            password = currentServerConfig.password
+        )
+        val trackService = TrackService.create(serverConfig)
+
+        return MapStateLoader(trackService)
+    }
+
+    /**
+     * Return the current [MapStateLoader] instance. If necessary, create a new instance now.
+     */
+    private fun getOrCreateMapStateLoader(): MapStateLoader =
+        mapStateLoader ?: createMapStateLoader().also { mapStateLoader = it }
+
+    /**
      * The notification function called by the [ConfigManager] when the [ReceiverConfig] was updated.
      */
     private fun receiverConfigChanged(config: ReceiverConfig) {
+        if (mapStateUpdater == null || config.updateInterval != receiverConfig.updateInterval) {
+            mapStateUpdater?.close()
+            mapStateUpdater = createMapStateUpdater(config.updateInterval)
+        }
+
         currentReceiverConfig.value = config
         currentMarkerFactory.value = createMarkerFactory()
+    }
+
+    /**
+     * The notification function called by the [ConfigManager] when the [TrackServerConfig] was updated.
+     */
+    private fun serverConfigChanged(config: TrackServerConfig) {
+        currentServerConfig = config
+        mapStateLoader = null
+    }
+
+    /**
+     * The notification function called by [MapStateUpdater] when new data has been retrieved from the server.
+     */
+    private fun locationFileStateChanged(newState: LocationFileState) {
+        updateCamera(newState)
+        currentLocationFileState.value = newState
+    }
+
+    /**
+     * Update the camera state on arrival of [a new LocationFileState][newState].
+     */
+    private fun updateCamera(newState: LocationFileState) {
+        if (!cameraInitialized) {
+            cameraInitialized = true
+            receiverCameraState.zoomToAllMarkers(newState)
+        }
+
+        if (receiverConfig.centerNewPosition && locationFileState.recentMarker() != newState.recentMarker()) {
+            receiverCameraState.centerRecentMarker(newState)
+        }
+    }
+
+    /**
+     * The notification function called by [MapStateUpdater] on each tick of the count-down timer.
+     */
+    private fun onCountDown(value: Int) {
+        currentSecondsToNextUpdate.value = value
+        currentSecondsToNextUpdateString.value = timeDeltaFormatter.formatTimeDelta(value * 1000L)
     }
 }
