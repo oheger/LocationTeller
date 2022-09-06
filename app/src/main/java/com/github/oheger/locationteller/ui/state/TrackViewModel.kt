@@ -188,11 +188,11 @@ class TrackViewModelImpl(
      */
     override fun onCleared() {
         Log.i(TAG, "TrackViewModel is cleared.")
-        trackStorage.preferencesHandler.preferences.unregisterOnSharedPreferenceChangeListener(this)
+        trackStorage.preferencesHandler.unregisterListener(this)
 
         val configManager = ConfigManager.getInstance()
-        configManager.removeTrackConfigChangeListener(this::updateTrackConfig)
-        configManager.removeServerConfigChangeListener(this::updateServerConfig)
+        configManager.removeTrackConfigChangeListener(this::trackConfigChanged)
+        configManager.removeServerConfigChangeListener(this::serverConfigChanged)
     }
 
     /**

@@ -89,6 +89,24 @@ class TrackViewModelSpec : WordSpec() {
             }
         }
 
+        "onCleared" should {
+            "perform cleanup" {
+                val model = createModel()
+                val preferencesHandler = storage.preferencesHandler
+
+                model.clear()
+
+                verify {
+                    preferencesHandler.unregisterListener(model)
+
+                    // Unfortunately, it does not work to check for the real listeners. Obviously, the spy created
+                    // for the model is interfering.
+                    configManager.removeTrackConfigChangeListener(any())
+                    configManager.removeServerConfigChangeListener(any())
+                }
+            }
+        }
+
         "The property change listener" should {
             "watch the tracking start property" {
                 val startTime = Date(20220628215901L)
@@ -565,7 +583,9 @@ class TrackViewModelSpec : WordSpec() {
     private fun createConfigManager(): ConfigManager {
         val configManagerMock = TrackTestHelper.prepareConfigManager(application)
         every { configManagerMock.addTrackConfigChangeListener(any()) } just runs
+        every { configManagerMock.removeTrackConfigChangeListener(any()) } just runs
         every { configManagerMock.addServerConfigChangeListener(any()) } just runs
+        every { configManagerMock.removeServerConfigChangeListener(any()) } just runs
 
         return configManagerMock
     }
@@ -619,21 +639,37 @@ class TrackViewModelSpec : WordSpec() {
     }
 
     /**
+     * Return the listener for changes on the [TrackConfig] registered at the [ConfigManager].
+     */
+    private fun trackConfigChangeListener(): (TrackConfig) -> Unit {
+        val slotListener = slot<(TrackConfig) -> Unit>()
+        verify { configManager.addTrackConfigChangeListener(capture(slotListener)) }
+        return slotListener.captured
+    }
+
+    /**
      * Send a notification to the test model that the [TrackConfig] was changed to [config].
      */
     private fun trackConfigUpdateNotification(config: TrackConfig) {
-        val slotListener = slot<(TrackConfig) -> Unit>()
-        verify { configManager.addTrackConfigChangeListener(capture(slotListener)) }
-        slotListener.captured(config)
+        val listener = trackConfigChangeListener()
+        listener(config)
+    }
+
+    /**
+     * Return the listener for changes on the [TrackServerConfig] registered at the [ConfigManager].
+     */
+    private fun serverConfigChangeListener(): (TrackServerConfig) -> Unit {
+        val slotListener = slot<(TrackServerConfig) -> Unit>()
+        verify { configManager.addServerConfigChangeListener(capture(slotListener)) }
+        return slotListener.captured
     }
 
     /**
      * Send a notification to the test model that the [TrackServerConfig] was changed to [config].
      */
     private fun serverConfigUpdateNotification(config: TrackServerConfig) {
-        val slotListener = slot<(TrackServerConfig) -> Unit>()
-        verify { configManager.addServerConfigChangeListener(capture(slotListener)) }
-        slotListener.captured(config)
+        val listener = serverConfigChangeListener()
+        listener(config)
     }
 }
 
