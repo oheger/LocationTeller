@@ -19,94 +19,99 @@ import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.github.oheger.locationteller.map.LocationTestHelper.createLocationData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
 import com.github.oheger.locationteller.server.TimeData
+
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import io.kotest.core.spec.style.StringSpec
+
+import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.shouldBe
+
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
 
 /**
- * Test class for _MarkerFactory_.
+ * Test class for [MarkerFactory].
  */
-class MarkerFactorySpec : StringSpec() {
+class MarkerFactorySpec : WordSpec() {
     init {
-        "MarkerFactory should set the correct position" {
-            val data = createMarkerData(5)
+        "createMarker" should {
+            "set the correct position" {
+                val data = createMarkerData(5)
 
-            val options = createOptionsForMarker(data)
-            options.position shouldBe data.position
-        }
+                val options = createOptionsForMarker(data)
+                options.position shouldBe data.position
+            }
 
-        "MarkerFactory should set a title using the time formatter" {
-            val delta = 987123L
-            val data = createMarkerDataWithTime(CURRENT_TIME - delta)
-            val factory = createFactory()
-            val options = callFactoryForMarker(data, factory)
+            "set a title using the time formatter" {
+                val delta = 987123L
+                val data = createMarkerDataWithTime(CURRENT_TIME - delta)
+                val factory = createFactory()
+                val options = callFactoryForMarker(data, factory)
 
-            options.title shouldBe TITLE
-            verify { factory.deltaFormatter.formatTimeDeltaOrTime(delta, data.locationData.time) }
-        }
+                options.title shouldBe TITLE
+                verify { factory.deltaFormatter.formatTimeDeltaOrTime(delta, data.locationData.time) }
+            }
 
-        "MarkerFactory should set default values for optional properties" {
-            val data = createMarkerDataWithTime(CURRENT_TIME - 10000)
-            val options = createOptionsForMarker(data)
+            "set default values for optional properties" {
+                val data = createMarkerDataWithTime(CURRENT_TIME - 10000)
+                val options = createOptionsForMarker(data)
 
-            options.icon shouldBe null
-            options.zIndex shouldBe 0f
-            options.snippet shouldBe null
-        }
+                options.icon shouldBe null
+                options.zIndex shouldBe 0f
+                options.snippet shouldBe null
+            }
 
-        "MarkerFactory should set the zIndex when creating a marker" {
-            val zIndex = 11f
-            val data = createMarkerData(1)
-            val factory = createFactory()
+            "set the zIndex when creating a marker" {
+                val zIndex = 11f
+                val data = createMarkerData(1)
+                val factory = createFactory()
 
-            val options = factory.createMarker(data, CURRENT_TIME, recentMarker = false, zIndex = zIndex)
-            options.zIndex shouldBe zIndex
-        }
+                val options = factory.createMarker(data, CURRENT_TIME, recentMarker = false, zIndex = zIndex)
+                options.zIndex shouldBe zIndex
+            }
 
-        "MarkerFactory should set an additional text when creating a marker" {
-            val text = "This is additional information"
-            val data = createMarkerData(2)
-            val factory = createFactory()
+            "set an additional text when creating a marker" {
+                val text = "This is additional information"
+                val data = createMarkerData(2)
+                val factory = createFactory()
 
-            val options = factory.createMarker(data, CURRENT_TIME - 111, recentMarker = false, text = text)
-            options.snippet shouldBe text
-        }
+                val options = factory.createMarker(data, CURRENT_TIME - 111, recentMarker = false, text = text)
+                options.snippet shouldBe text
+            }
 
-        "MarkerFactory should evaluate the color of the marker" {
-            val color = BitmapDescriptorFactory.HUE_GREEN
-            val descriptor = mockk<BitmapDescriptor>()
-            mockkStatic(BitmapDescriptorFactory::class)
-            every { BitmapDescriptorFactory.defaultMarker(color) } returns descriptor
-            val data = createMarkerData(3)
-            val factory = createFactory()
+            "evaluate the color of the marker" {
+                val color = BitmapDescriptorFactory.HUE_GREEN
+                val descriptor = mockk<BitmapDescriptor>()
+                mockkStatic(BitmapDescriptorFactory::class)
+                every { BitmapDescriptorFactory.defaultMarker(color) } returns descriptor
+                val data = createMarkerData(3)
+                val factory = createFactory()
 
-            val options = factory.createMarker(data, CURRENT_TIME - 22, recentMarker = false, color = color)
-            options.icon shouldBe descriptor
-        }
+                val options = factory.createMarker(data, CURRENT_TIME - 22, recentMarker = false, color = color)
+                options.icon shouldBe descriptor
+            }
 
-        "MarkerFactory should set the alpha of the most recent marker to 1" {
-            val marker = createMarkerDataWithTime(CURRENT_TIME - 5 * 24 * 60 * 60 * 1000)
-            val options = createOptionsForMarker(marker, recentMarker = true)
+            "set the alpha of the most recent marker to 1" {
+                val marker = createMarkerDataWithTime(CURRENT_TIME - 5 * 24 * 60 * 60 * 1000)
+                val options = createOptionsForMarker(marker, recentMarker = true)
 
-            options.alpha shouldBe 1f
-        }
+                options.alpha shouldBe 1f
+            }
 
-        "MarkerFactory should call the alpha calculator to determine the alpha value" {
-            val delta = 3 * 60 * 1000L
-            val marker = createMarkerDataWithTime(CURRENT_TIME - delta)
-            val factory = createFactory()
+            "call the alpha calculator to determine the alpha value" {
+                val delta = 3 * 60 * 1000L
+                val marker = createMarkerDataWithTime(CURRENT_TIME - delta)
+                val factory = createFactory()
 
-            val options = factory.createMarker(marker, CURRENT_TIME, recentMarker = false)
-            options.alpha shouldBe ALPHA
-            verify {
-                factory.alphaCalculator.calculateAlpha(delta)
+                val options = factory.createMarker(marker, CURRENT_TIME, recentMarker = false)
+                options.alpha shouldBe ALPHA
+                verify {
+                    factory.alphaCalculator.calculateAlpha(delta)
+                }
             }
         }
     }
@@ -122,9 +127,7 @@ class MarkerFactorySpec : StringSpec() {
         private const val ALPHA = 0.75f
 
         /**
-         * Creates a _MarkerData_ object with the given timestamp.
-         * @param time the time of the marker
-         * @return the _MarkerData_ with this time
+         * Create a [MarkerData] object and associate it with the given [time].
          */
         private fun createMarkerDataWithTime(time: Long): MarkerData {
             val locData = createLocationData(1).copy(time = TimeData(time))
@@ -132,34 +135,25 @@ class MarkerFactorySpec : StringSpec() {
         }
 
         /**
-         * Invokes the factory to create marker options for the given marker
-         * data. Creates a state that contains only this data. Then creates a
-         * test factory and invokes it.
-         * @param data the test _MarkerData_
-         * @param recentMarker flag whether this is the most recent marker
-         * @return the options created for this data
+         * Invoke the factory to create [MarkerOptions] for the given [data]. [Optionally][recentMarker], assume that
+         * this is the recent marker. This function creates a state that contains only this [data]. Then it creates a
+         * test [MarkerFactory] and invokes it.
          */
         private fun createOptionsForMarker(data: MarkerData, recentMarker: Boolean = false): MarkerOptions =
             callFactoryForMarker(data, createFactory(), recentMarker)
 
         /**
-         * Invokes the given factory on a specific marker data object and
-         * returns the result.
-         * @param data the _MarkerData_
-         * @param factory the test factory
-         * @return the result produced by the factory
+         * Invoke the given [factory] on a specific marker [data] object and return the result.
+         * [Optionally][recentMarker], assume that this is the recent marker.
          */
         private fun callFactoryForMarker(
             data: MarkerData,
             factory: MarkerFactory,
             recentMarker: Boolean = false
-        ): MarkerOptions {
-            return factory.createMarker(data, CURRENT_TIME, recentMarker)
-        }
+        ): MarkerOptions = factory.createMarker(data, CURRENT_TIME, recentMarker)
 
         /**
-         * Creates a marker factory with mock dependencies.
-         * @return the marker factory
+         * Create a [MarkerFactory] with mock dependencies.
          */
         private fun createFactory(): MarkerFactory {
             val formatter = mockk<TimeDeltaFormatter>()

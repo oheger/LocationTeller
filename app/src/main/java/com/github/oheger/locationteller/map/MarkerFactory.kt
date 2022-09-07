@@ -16,15 +16,15 @@
 package com.github.oheger.locationteller.map
 
 import com.github.oheger.locationteller.duration.TimeDeltaFormatter
+
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.MarkerOptions
 
 /**
- * A class for creating map markers from _MarkerData_ objects.
+ * A class for creating map markers from [MarkerData] objects.
  *
- * This class is used by [MapUpdater] to generate the markers that are to be
- * added to the map.
+ * This class is used by the receiver UI to generate the markers that are to be added to the map.
  */
 class MarkerFactory(
     /** The formatter for time deltas to generate labels. */
@@ -34,35 +34,30 @@ class MarkerFactory(
     val alphaCalculator: TimeDeltaAlphaCalculator
 ) {
     /**
-     * Creates a _MarkerOptions_ object that corresponds to the given input
-     * parameters.
-     * @param data the _MarkerData_ for which a marker is to be created
-     * @param time the current time
-     * @param recentMarker flag whether this is the most recent marker
-     * @param zIndex a Z-index for the marker; markers with a high Z-index are
-     * drawn on top of markers with a low index
-     * @param text optional additional text for the marker
-     * @param color an optional marker color
+     * Create a [MarkerOptions] object for the given [data]. Use the given [zIndex] to determine the Z-order. With
+     * [text] an additional text for the marker can be provided. Also, a [color] for the marker can be set. The
+     * recent marker available is handled differently, since it is always assigned an alpha value of 1.0. Use the given
+     * [recentMarker] flag to determine whether this is the recent marker. Consider the given [time] as the current
+     * time; based on this, some properties of the marker are computed.
      */
     fun createMarker(
-        data: MarkerData, time: Long, recentMarker: Boolean, zIndex: Float = 0f,
-        text: String? = null, color: Float? = null
-    ): MarkerOptions {
-        return MarkerOptions()
-            .position(data.position)
-            .title(createTitle(data, time))
-            .snippet(text)
-            .zIndex(zIndex)
-            .alpha(calcAlpha(data, time, recentMarker))
-            .icon(iconForColor(color))
-    }
+        data: MarkerData,
+        time: Long,
+        recentMarker: Boolean,
+        zIndex: Float = 0f,
+        text: String? = null,
+        color: Float? = null
+    ): MarkerOptions = MarkerOptions()
+        .position(data.position)
+        .title(createTitle(data, time))
+        .snippet(text)
+        .zIndex(zIndex)
+        .alpha(calcAlpha(data, time, recentMarker))
+        .icon(iconForColor(color))
 
     /**
-     * Generates a title for the given _MarkerData_ object based on the age of
-     * this marker. Uses a suitable time unit.
-     * @param data the _MarkerData_
-     * @param time the reference time
-     * @return a title for the marker
+     * Generate a title for the given [data] based on the age of this marker compared to the specified [time]. Use a
+     * suitable time unit.
      */
     private fun createTitle(data: MarkerData, time: Long): String =
         deltaFormatter.formatTimeDeltaOrTime(
@@ -71,13 +66,9 @@ class MarkerFactory(
         )
 
     /**
-     * Calculates an alpha value for a marker based on its age. There are
-     * different areas of alpha values corresponding to the time units. The
-     * most recent marker is always assigned an alpha value of 1.0.
-     * @param data the _MarkerData_
-     * @param time the reference time
-     * @param isRecent flag whether this is the most recent marker
-     * @return an alpha value for this marker
+     * Calculate an alpha value for the given [data] based on its age compared to the specified [time]. There are
+     * different areas of alpha values corresponding to the time units. The most recent marker is always assigned an
+     * alpha value of 1.0. Use the [isRecent] flag to determine whether this is the recent marker.
      */
     private fun calcAlpha(data: MarkerData, time: Long, isRecent: Boolean): Float =
         if (isRecent) 1f
@@ -88,9 +79,7 @@ class MarkerFactory(
 
     companion object {
         /**
-         * Obtains a special marker icon if a color has been provided.
-         * @param color the optional color of the marker
-         * @return the icon to be used for the marker
+         * Obtain a special marker icon if a [color] has been provided.
          */
         private fun iconForColor(color: Float?): BitmapDescriptor? =
             color?.let { BitmapDescriptorFactory.defaultMarker(it) }
