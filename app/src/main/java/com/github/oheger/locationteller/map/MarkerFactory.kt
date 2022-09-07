@@ -16,6 +16,8 @@
 package com.github.oheger.locationteller.map
 
 import com.github.oheger.locationteller.duration.TimeDeltaFormatter
+import com.github.oheger.locationteller.server.CurrentTimeService
+import com.github.oheger.locationteller.server.TimeService
 
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -31,7 +33,13 @@ class MarkerFactory(
     val deltaFormatter: TimeDeltaFormatter,
 
     /** The calculator for the alpha values of position markers. */
-    val alphaCalculator: TimeDeltaAlphaCalculator
+    val alphaCalculator: TimeDeltaAlphaCalculator,
+
+    /**
+     * The [TimeService] to determine the current time. This is needed to compute some properties of generated markers,
+     * such as the alpha value (which is based on the marker's age).
+     */
+    val timeService: TimeService = CurrentTimeService
 ) {
     /**
      * Create a [MarkerOptions] object for the given [data]. Use the given [zIndex] to determine the Z-order. With
@@ -54,6 +62,21 @@ class MarkerFactory(
         .zIndex(zIndex)
         .alpha(calcAlpha(data, time, recentMarker))
         .icon(iconForColor(color))
+
+    /**
+     * Create a [MarkerOptions] object for the given [data]. Use the given [zIndex] to determine the Z-order. With
+     * [text] an additional text for the marker can be provided. Also, a [color] for the marker can be set. The
+     * recent marker available is handled differently, since it is always assigned an alpha value of 1.0. Use the given
+     * [recentMarker] flag to determine whether this is the recent marker. In order to determine the age of [data],
+     * obtain the current time from the associated [TimeService].
+     */
+    fun createMarker(
+        data: MarkerData,
+        recentMarker: Boolean,
+        zIndex: Float = 0f,
+        text: String? = null,
+        color: Float? = null
+    ): MarkerOptions = createMarker(data, timeService.currentTime().currentTime, recentMarker, zIndex, text, color)
 
     /**
      * Generate a title for the given [data] based on the age of this marker compared to the specified [time]. Use a

@@ -18,7 +18,9 @@ package com.github.oheger.locationteller.map
 import com.github.oheger.locationteller.duration.TimeDeltaFormatter
 import com.github.oheger.locationteller.map.LocationTestHelper.createLocationData
 import com.github.oheger.locationteller.map.LocationTestHelper.createMarkerData
+import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeData
+import com.github.oheger.locationteller.server.TimeService
 
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -38,6 +40,14 @@ import io.mockk.verify
  */
 class MarkerFactorySpec : WordSpec() {
     init {
+        "the constructor" should {
+            "create a default time service" {
+                val factory = MarkerFactory(mockk(), DisabledFadeOutAlphaCalculator)
+
+                factory.timeService shouldBe CurrentTimeService
+            }
+        }
+
         "createMarker" should {
             "set the correct position" {
                 val data = createMarkerData(5)
@@ -150,7 +160,7 @@ class MarkerFactorySpec : WordSpec() {
             data: MarkerData,
             factory: MarkerFactory,
             recentMarker: Boolean = false
-        ): MarkerOptions = factory.createMarker(data, CURRENT_TIME, recentMarker)
+        ): MarkerOptions = factory.createMarker(data, recentMarker)
 
         /**
          * Create a [MarkerFactory] with mock dependencies.
@@ -158,9 +168,12 @@ class MarkerFactorySpec : WordSpec() {
         private fun createFactory(): MarkerFactory {
             val formatter = mockk<TimeDeltaFormatter>()
             val calculator = mockk<TimeDeltaAlphaCalculator>()
+            val timeService = mockk<TimeService>()
             every { formatter.formatTimeDeltaOrTime(any(), any()) } returns TITLE
             every { calculator.calculateAlpha(any()) } returns ALPHA
-            return MarkerFactory(formatter, calculator)
+            every { timeService.currentTime() } returns TimeData(CURRENT_TIME)
+
+            return MarkerFactory(formatter, calculator, timeService)
         }
     }
 }
