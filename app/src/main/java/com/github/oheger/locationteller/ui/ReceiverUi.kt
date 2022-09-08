@@ -15,16 +15,27 @@
  */
 package com.github.oheger.locationteller.ui
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.oheger.locationteller.R
 
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MarkerFactory
@@ -37,6 +48,8 @@ import com.google.maps.android.compose.MarkerInfoWindow
 import com.google.maps.android.compose.MarkerState
 
 internal const val TAG_REC_MAP_VIEW = "rec_map_view"
+internal const val TAG_REC_UPDATE_INDICATOR = "rec_update_indicator"
+internal const val TAG_REC_UPDATE_STATUS_TEXT = "rec_update_status_text"
 
 /**
  * Generate the whole receiver UI. This is the entry point into this UI.
@@ -61,7 +74,7 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
             )
         }
         Box(modifier = modifier) {
-            Text(text = "The status line")
+            UpdateStatus(updateInProgress = model.isUpdating(), countDown = model.secondsToNextUpdateString, modifier)
         }
     }
 }
@@ -100,6 +113,37 @@ fun MapView(
                     snippet = options.snippet
                 )
             }
+    }
+}
+
+/**
+ * Generate the part of the status line that displays the update status. If [updateInProgress] is *true*, a progress
+ * indicator is displayed. Otherwise, show the time to the next update based on [countDown].
+ */
+@Composable
+internal fun UpdateStatus(updateInProgress: Boolean, countDown: String, modifier: Modifier = Modifier) {
+    val statusText = if (updateInProgress) stringResource(id = R.string.map_status_updating)
+    else stringResource(id = R.string.map_status_update_scheduled, countDown)
+
+    Row(modifier = modifier) {
+        if (updateInProgress) {
+            val infiniteTransition = rememberInfiniteTransition()
+            val progressAnimationValue by infiniteTransition.animateFloat(
+                initialValue = 0.0f,
+                targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(animation = tween(900))
+            )
+            CircularProgressIndicator(
+                progress = progressAnimationValue,
+                modifier = modifier
+                    .size(16.dp)
+                    .testTag(TAG_REC_UPDATE_INDICATOR)
+            )
+        }
+
+        Text(
+            text = statusText, modifier = modifier.testTag(TAG_REC_UPDATE_STATUS_TEXT)
+        )
     }
 }
 
