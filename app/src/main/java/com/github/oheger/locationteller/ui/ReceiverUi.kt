@@ -50,6 +50,7 @@ import com.google.maps.android.compose.MarkerState
 internal const val TAG_REC_MAP_VIEW = "rec_map_view"
 internal const val TAG_REC_UPDATE_INDICATOR = "rec_update_indicator"
 internal const val TAG_REC_UPDATE_STATUS_TEXT = "rec_update_status_text"
+internal const val TAG_REC_LOCATION_STATUS_TEXT = "rec_location_status_text"
 
 /**
  * Generate the whole receiver UI. This is the entry point into this UI.
@@ -145,6 +146,23 @@ internal fun UpdateStatus(updateInProgress: Boolean, countDown: String, modifier
             text = statusText, modifier = modifier.testTag(TAG_REC_UPDATE_STATUS_TEXT)
         )
     }
+}
+
+/**
+ * Generate the part of the status line that displays information about the number and age of the locations obtained
+ * from the server based on the passed in [numberOfLocations] and [recentLocationTime]. If the latter is *null*,
+ * assume that no locations are available and generate a corresponding message.
+ */
+@Composable
+internal fun LocationStatus(numberOfLocations: Int, recentLocationTime: String?, modifier: Modifier = Modifier) {
+    val statusText = recentLocationTime?.let { time ->
+        stringResource(id = R.string.map_status, numberOfLocations, time)
+    } ?: stringResource(id = R.string.map_status_empty)
+
+    Text(
+        text = statusText,
+        modifier = modifier.testTag(TAG_REC_LOCATION_STATUS_TEXT)
+    )
 }
 
 // Note: This preview cannot be displayed in Android Studio.

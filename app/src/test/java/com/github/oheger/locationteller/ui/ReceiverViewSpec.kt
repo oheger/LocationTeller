@@ -68,6 +68,28 @@ class ReceiverViewSpec {
     }
 
     @Test
+    fun `LocationStatus displays a message if no locations are available`() {
+        composeTestRule.setContent {
+            LocationStatus(numberOfLocations = 42, recentLocationTime = null)
+        }
+
+        composeTestRule.onNodeWithTag(TAG_REC_LOCATION_STATUS_TEXT)
+            .assertTextEquals(stringResource(R.string.map_status_empty))
+    }
+
+    @Test
+    fun `LocationStatus displays the number and age of locations`() {
+        val numberOfLocations = 16
+        val recentLocationTime = "20 m"
+        composeTestRule.setContent {
+            LocationStatus(numberOfLocations = numberOfLocations, recentLocationTime = recentLocationTime)
+        }
+
+        composeTestRule.onNodeWithTag(TAG_REC_LOCATION_STATUS_TEXT)
+            .assertTextEquals(stringResource(R.string.map_status, numberOfLocations, recentLocationTime))
+    }
+
+    @Test
     fun `ReceiverView displays the status line`() {
         val model = PreviewReceiverViewModel()
         composeTestRule.setContent {
