@@ -6,6 +6,7 @@
     <string name="close_drawer">Schließen</string>
     <string name="trackView">Verfolgen</string>
     <string name="mapView">Karte</string>
+    <string name="receiverView">Empfänger</string>
     <string name="trackSettingsView">Verfolgungseinstellungen</string>
     <string name="serverSettingsView">Servereinstellungen</string>
     <string name="pref_track_basic">Grundlegend</string>

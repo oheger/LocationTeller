@@ -10,6 +10,10 @@
           android:title="@string/mapView"
           android:orderInCategory="100"
           app:showAsAction="never"/>
+    <item android:id="@+id/receiverView"
+          android:title="@string/receiverView"
+          android:orderInCategory="100"
+          app:showAsAction="never"/>
     <item android:id="@+id/trackSettingsFragment"
           android:title="@string/track_settings"
           android:orderInCategory="100"

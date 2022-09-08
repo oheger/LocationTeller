@@ -24,10 +24,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
+import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
 
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
@@ -35,6 +37,14 @@ import com.google.maps.android.compose.MarkerInfoWindow
 import com.google.maps.android.compose.MarkerState
 
 internal const val TAG_REC_MAP_VIEW = "rec_map_view"
+
+/**
+ * Generate the whole receiver UI. This is the entry point into this UI.
+ */
+@Composable
+fun ReceiverUi(modifier: Modifier = Modifier, model: ReceiverViewModelImpl = viewModel()) {
+    ReceiverView(model = model, modifier = modifier)
+}
 
 /**
  * Generate the view for the receiver part of the application based on the given [model].
