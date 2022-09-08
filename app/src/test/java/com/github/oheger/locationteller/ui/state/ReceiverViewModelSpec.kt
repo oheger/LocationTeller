@@ -356,6 +356,23 @@ class ReceiverViewModelSpec : WordSpec() {
                 MapStateUpdaterCreation.fetch()
             }
         }
+
+        "isUpdating" should {
+            "return true if an update is in progress" {
+                val model = createModel()
+
+                model.isUpdating() shouldBe true
+            }
+
+            "return false if no update is in progress" {
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+
+                creation.sendCountDown(1)
+
+                model.isUpdating() shouldBe false
+            }
+        }
     }
 
     /**

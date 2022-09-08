@@ -67,6 +67,12 @@ interface ReceiverViewModel {
      * Set the current [ReceiverConfig] to [newConfig]. This causes updates on some objects managed by this instance.
      */
     fun updateReceiverConfig(newConfig: ReceiverConfig)
+
+    /**
+     * Return a flag whether currently an update of the locations from the server is in progress. This information can
+     * be used to display an indicator in the UI.
+     */
+    fun isUpdating(): Boolean = secondsToNextUpdate == 0
 }
 
 /**
