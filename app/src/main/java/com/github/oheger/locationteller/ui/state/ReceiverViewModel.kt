@@ -69,6 +69,12 @@ interface ReceiverViewModel {
     fun updateReceiverConfig(newConfig: ReceiverConfig)
 
     /**
+     * Generate a formatted text with the time (or age) of the recent location retrieved from the server. Return
+     * *null* if there are no locations available.
+     */
+    fun recentLocationTime(): String?
+
+    /**
      * Return a flag whether currently an update of the locations from the server is in progress. This information can
      * be used to display an indicator in the UI.
      */
@@ -204,6 +210,12 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
 
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {
         ConfigManager.getInstance().updateReceiverConfig(getApplication(), newConfig)
+    }
+
+    override fun recentLocationTime(): String? {
+        return locationFileState.recentMarker()?.locationData?.time?.currentTime?.let { time ->
+            markerFactory.deltaFormatter.formatTimeDelta(markerFactory.timeService.currentTime().currentTime - time)
+        }
     }
 
     override fun onCleared() {

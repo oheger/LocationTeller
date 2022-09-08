@@ -65,6 +65,8 @@ internal data class PreviewReceiverViewModel(
 
 ) : ReceiverViewModel {
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {}
+
+    override fun recentLocationTime(): String = "42 s"
 }
 
 /** A test server configuration used by the model for the preview. */

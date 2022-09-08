@@ -27,6 +27,7 @@ import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.LocationTestHelper
 import com.github.oheger.locationteller.map.MapStateLoader
 import com.github.oheger.locationteller.map.MapStateUpdater
+import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.github.oheger.locationteller.track.TrackTestHelper.asServerConfig
@@ -36,6 +37,8 @@ import com.google.maps.android.compose.CameraPositionState
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCase
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.beNull
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
@@ -371,6 +374,32 @@ class ReceiverViewModelSpec : WordSpec() {
                 creation.sendCountDown(1)
 
                 model.isUpdating() shouldBe false
+            }
+        }
+
+        "recentLocationTime" should {
+            "return null if no locations are available" {
+                val model = createModel()
+
+                model.recentLocationTime() should beNull()
+            }
+
+            "return the age of the recent location" {
+                val markerData = LocationTestHelper.createMarkerData(1)
+                val markerTime = System.currentTimeMillis() - 10 * 60 * 1000
+                val timedMarkerData =
+                    markerData.copy(locationData = markerData.locationData.copy(time = TimeData(markerTime)))
+                val locationFile = LocationTestHelper.createFile(1)
+                val locationFileState =
+                    LocationFileState(files = listOf(locationFile), mapOf(locationFile to timedMarkerData))
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                every { cameraState.centerRecentMarker(any()) } just runs
+                val model = createModel()
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locationFileState)
+
+                model.recentLocationTime() shouldBe "10 $UNIT_MINUTE"
             }
         }
     }
