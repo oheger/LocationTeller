@@ -17,21 +17,27 @@ package com.github.oheger.locationteller.ui
 
 import android.app.Application
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.locationteller.R
+
+import io.kotest.matchers.shouldBe
 
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 import org.robolectric.annotation.Config
+
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Test class for Composable functions related to the receiver UI.
@@ -87,6 +93,63 @@ class ReceiverViewSpec {
 
         composeTestRule.onNodeWithTag(TAG_REC_LOCATION_STATUS_TEXT)
             .assertTextEquals(stringResource(R.string.map_status, numberOfLocations, recentLocationTime))
+    }
+
+    @Test
+    fun `ExpandableHeader is correctly displayed in folded state`() {
+        val tag = "test"
+        val expContentDesc = stringResource(R.string.exp_header_expand, stringResource(R.string.receiverView))
+        composeTestRule.setContent {
+            ExpandableHeader(headerRes = R.string.receiverView, tag = tag, expanded = false, onChanged = {})
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(tag))
+            .assertTextEquals(stringResource(R.string.receiverView))
+        composeTestRule.onNodeWithTag(expandableHeaderIconTag(tag)).assertContentDescriptionEquals(expContentDesc)
+    }
+
+    @Test
+    fun `ExpandableHeader is correctly displayed in expanded state`() {
+        val tag = "test"
+        val expContentDesc = stringResource(R.string.exp_header_hide, stringResource(R.string.receiverView))
+        composeTestRule.setContent {
+            ExpandableHeader(headerRes = R.string.receiverView, tag = tag, expanded = true, onChanged = {})
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(tag))
+            .assertTextEquals(stringResource(R.string.receiverView))
+        composeTestRule.onNodeWithTag(expandableHeaderIconTag(tag)).assertContentDescriptionEquals(expContentDesc)
+    }
+
+    @Test
+    fun `ExpandableHeader should react on clicks on the icon`() {
+        val tag = "clickableIcon"
+        val refStatus = AtomicBoolean(false)
+        composeTestRule.setContent {
+            ExpandableHeader(
+                headerRes = R.string.receiverView,
+                tag = tag,
+                expanded = false,
+                onChanged = refStatus::set
+            )
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderIconTag(tag)).performClick()
+
+        refStatus.get() shouldBe true
+    }
+
+    @Test
+    fun `ExpandableHeader should react on clicks on the header text`() {
+        val tag = "clickableHeader"
+        val refStatus = AtomicBoolean(true)
+        composeTestRule.setContent {
+            ExpandableHeader(headerRes = R.string.receiverView, tag = tag, expanded = true, onChanged = refStatus::set)
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(tag)).performClick()
+
+        refStatus.get() shouldBe false
     }
 
     @Test

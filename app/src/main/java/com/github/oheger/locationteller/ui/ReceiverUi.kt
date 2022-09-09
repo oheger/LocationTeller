@@ -19,6 +19,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,18 +28,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.oheger.locationteller.R
 
+import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
@@ -53,6 +58,19 @@ internal const val TAG_REC_MAP_VIEW = "rec_map_view"
 internal const val TAG_REC_UPDATE_INDICATOR = "rec_update_indicator"
 internal const val TAG_REC_UPDATE_STATUS_TEXT = "rec_update_status_text"
 internal const val TAG_REC_LOCATION_STATUS_TEXT = "rec_location_status_text"
+
+/** Prefix used for tags generated for the elements of an expandable header. */
+private const val TAG_REC_EXPANDABLE_HEADER_PREFIX = "rec_expandable_header_"
+
+/**
+ * Generate a help tag for the icon of an expandable header with the given [tag].
+ */
+internal fun expandableHeaderIconTag(tag: String): String = "$TAG_REC_EXPANDABLE_HEADER_PREFIX${tag}_icon"
+
+/**
+ * Generate a help tag for the text of an expandable header with the given [tag].
+ */
+internal fun expandableHeaderTextTag(tag: String): String = "$TAG_REC_EXPANDABLE_HEADER_PREFIX${tag}_caption"
 
 /**
  * Generate the whole receiver UI. This is the entry point into this UI.
@@ -77,13 +95,16 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
             )
         }
         Box(modifier = modifier) {
-            StatusLine(
-                updateInProgress = model.isUpdating(),
-                countDown = model.secondsToNextUpdateString,
-                numberOfLocations = model.locationFileState.files.size,
-                recentLocationTime = model.recentLocationTime(),
-                modifier
-            )
+            Column(modifier = modifier) {
+                ExpandableHeader(headerRes = R.string.receiverView, tag = "receiver", expanded = false, onChanged = {})
+                StatusLine(
+                    updateInProgress = model.isUpdating(),
+                    countDown = model.secondsToNextUpdateString,
+                    numberOfLocations = model.locationFileState.files.size,
+                    recentLocationTime = model.recentLocationTime(),
+                    modifier
+                )
+            }
         }
     }
 }
@@ -203,6 +224,46 @@ internal fun LocationStatus(numberOfLocations: Int, recentLocationTime: String?,
         text = statusText,
         modifier = modifier.testTag(TAG_REC_LOCATION_STATUS_TEXT)
     )
+}
+
+/**
+ * Generate the header of a UI fragment that can be expanded or folded. If [expanded] is *true*, the fragment should be
+ * displayed; otherwise, only the header is visible. Use [headerRes] for the text of the header and [tag] to generate
+ * unique tags for the generated elements. Report changes on the [expanded] status via the [onChanged] function.
+ */
+@Composable
+internal fun ExpandableHeader(
+    headerRes: Int,
+    tag: String,
+    expanded: Boolean,
+    onChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val (iconRes, contentRes) = if (expanded) android.R.drawable.arrow_down_float to R.string.exp_header_hide
+    else android.R.drawable.arrow_up_float to R.string.exp_header_expand
+
+    val headerText = stringResource(id = headerRes)
+    val contentDesc = stringResource(contentRes, headerText)
+    val onClick: () -> Unit = { onChanged(!expanded) }
+
+    Row(modifier = modifier) {
+        Icon(
+            contentDescription = contentDesc,
+            painter = painterResource(id = iconRes),
+            modifier = modifier
+                .clickable(onClick = onClick)
+                .align(Alignment.CenterVertically)
+                .testTag(
+                    expandableHeaderIconTag(tag)
+                )
+        )
+        Spacer(modifier = modifier.width(5.dp))
+        Text(
+            text = headerText, modifier = modifier
+                .clickable(onClick = onClick)
+                .testTag(expandableHeaderTextTag(tag))
+        )
+    }
 }
 
 // Note: This preview cannot be displayed in Android Studio.

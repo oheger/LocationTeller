@@ -86,4 +86,6 @@
     <string name="perm_button_cancel">Abbrechen</string>
     <string name="perm_location_title">Berechtigung zum Zugriff auf Standort benötigt</string>
     <string name="perm_location_request">Berechtigung anfordern</string>
+    <string name="exp_header_expand">Expandiere %1$s</string>
+    <string name="exp_header_hide">Verberge %1$s</string>
 </resources>

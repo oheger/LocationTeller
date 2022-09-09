@@ -90,4 +90,6 @@
     <string name="perm_button_cancel">Cancel</string>
     <string name="perm_location_title">Required Location Permission</string>
     <string name="perm_location_request">Request permission</string>
+    <string name="exp_header_expand">Expand %1$s</string>
+    <string name="exp_header_hide">Hide %1$s</string>
 </resources>
