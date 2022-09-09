@@ -22,8 +22,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
@@ -75,7 +77,13 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
             )
         }
         Box(modifier = modifier) {
-            UpdateStatus(updateInProgress = model.isUpdating(), countDown = model.secondsToNextUpdateString, modifier)
+            StatusLine(
+                updateInProgress = model.isUpdating(),
+                countDown = model.secondsToNextUpdateString,
+                numberOfLocations = model.locationFileState.files.size,
+                recentLocationTime = model.recentLocationTime(),
+                modifier
+            )
         }
     }
 }
@@ -114,6 +122,38 @@ fun MapView(
                     snippet = options.snippet
                 )
             }
+    }
+}
+
+/**
+ * Generate the whole status line, consisting of information about an ongoing or scheduled update (defined by
+ * [updateInProgress] and [countDown]), and about the locations retrieved from the server (defined by
+ * [numberOfLocations] and [recentLocationTime]).
+ */
+@Composable
+internal fun StatusLine(
+    updateInProgress: Boolean,
+    countDown: String,
+    numberOfLocations: Int,
+    recentLocationTime: String?,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(5.dp)
+    ) {
+        Box(modifier = modifier) {
+            UpdateStatus(updateInProgress = updateInProgress, countDown = countDown, modifier = modifier)
+        }
+        Spacer(modifier = modifier.weight(1.0f))
+        Box(modifier = modifier) {
+            LocationStatus(
+                numberOfLocations = numberOfLocations,
+                recentLocationTime = recentLocationTime,
+                modifier = modifier
+            )
+        }
     }
 }
 

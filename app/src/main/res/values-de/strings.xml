@@ -44,7 +44,7 @@
     <string name="item_update_map">Aktualisieren</string>
     <string name="map_status_updating">Aktualisiere…</string>
     <string name="map_status_update_scheduled">Aktualisiere in %1$s</string>
-    <string name="map_status">%1$d Positionen, neueste %2$s</string>
+    <string name="map_status">%1$d Pos., Alter %2$s</string>
     <string name="map_status_empty">Keine Positionen</string>
     <string name="track_settings">Verfolgungseinstellungen</string>
     <string name="track_channel_desc">Benachrichtigung über aktive Verfolgung von LocationTeller</string>

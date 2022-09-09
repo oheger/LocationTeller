@@ -98,6 +98,8 @@ class ReceiverViewSpec {
 
         composeTestRule.onNodeWithTag(TAG_REC_UPDATE_STATUS_TEXT)
             .assertTextContains(model.secondsToNextUpdateString, substring = true)
+        composeTestRule.onNodeWithTag(TAG_REC_LOCATION_STATUS_TEXT)
+            .assertTextContains(model.recentLocationTime(), substring = true)
     }
 }
 
