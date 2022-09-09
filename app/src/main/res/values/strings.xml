@@ -92,4 +92,6 @@
     <string name="perm_location_request">Request permission</string>
     <string name="exp_header_expand">Expand %1$s</string>
     <string name="exp_header_hide">Hide %1$s</string>
+    <string name="rec_header_settings">Settings</string>
+    <string name="rec_header_actions">Actions</string>
 </resources>

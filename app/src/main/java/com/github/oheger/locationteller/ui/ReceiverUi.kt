@@ -34,6 +34,9 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -58,6 +61,9 @@ internal const val TAG_REC_MAP_VIEW = "rec_map_view"
 internal const val TAG_REC_UPDATE_INDICATOR = "rec_update_indicator"
 internal const val TAG_REC_UPDATE_STATUS_TEXT = "rec_update_status_text"
 internal const val TAG_REC_LOCATION_STATUS_TEXT = "rec_location_status_text"
+
+internal const val TAG_REC_HEADER_ACTIONS = "actions"
+internal const val TAG_REC_HEADER_SETTINGS = "settings"
 
 /** Prefix used for tags generated for the elements of an expandable header. */
 private const val TAG_REC_EXPANDABLE_HEADER_PREFIX = "rec_expandable_header_"
@@ -95,16 +101,13 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
             )
         }
         Box(modifier = modifier) {
-            Column(modifier = modifier) {
-                ExpandableHeader(headerRes = R.string.receiverView, tag = "receiver", expanded = false, onChanged = {})
-                StatusLine(
-                    updateInProgress = model.isUpdating(),
-                    countDown = model.secondsToNextUpdateString,
-                    numberOfLocations = model.locationFileState.files.size,
-                    recentLocationTime = model.recentLocationTime(),
-                    modifier
-                )
-            }
+            ControlView(
+                updateInProgress = model.isUpdating(),
+                countDown = model.secondsToNextUpdateString,
+                numberOfLocations = model.locationFileState.files.size,
+                recentLocationTime = model.recentLocationTime(),
+                modifier
+            )
         }
     }
 }
@@ -143,6 +146,47 @@ fun MapView(
                     snippet = options.snippet
                 )
             }
+    }
+}
+
+/**
+ * Generate the part of the receiver UI that allows controlling the map view. Here some status information is
+ * displayed, and the user can manipulate the map. Pass [updateInProgress], [countDown], [numberOfLocations], and
+ * [recentLocationTime] to the [StatusLine] function.
+ */
+@Composable
+internal fun ControlView(
+    updateInProgress: Boolean,
+    countDown: String,
+    numberOfLocations: Int,
+    recentLocationTime: String?,
+    modifier: Modifier = Modifier
+) {
+    var actionsExpanded by rememberSaveable { mutableStateOf(false) }
+    var settingsExpanded by rememberSaveable { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        ExpandableHeader(
+            headerRes = R.string.rec_header_actions,
+            tag = TAG_REC_HEADER_ACTIONS,
+            expanded = actionsExpanded,
+            onChanged = { actionsExpanded = it }
+        )
+
+        ExpandableHeader(
+            headerRes = R.string.rec_header_settings,
+            tag = TAG_REC_HEADER_SETTINGS,
+            expanded = settingsExpanded,
+            onChanged = { settingsExpanded = it }
+        )
+
+        StatusLine(
+            updateInProgress = updateInProgress,
+            countDown = countDown,
+            numberOfLocations = numberOfLocations,
+            recentLocationTime = recentLocationTime,
+            modifier
+        )
     }
 }
 
