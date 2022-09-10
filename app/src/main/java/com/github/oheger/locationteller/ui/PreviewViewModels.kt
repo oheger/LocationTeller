@@ -26,7 +26,6 @@ import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
-import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 
@@ -41,8 +40,7 @@ internal data class PreviewTrackViewModel(
     override val trackStatistics: TrackStatsState = TrackStatsState(),
     override var trackingEnabled: Boolean = false,
     override val trackConfig: TrackConfig = TrackConfig.DEFAULT,
-    override val serverConfig: TrackServerConfig = TEST_SERVER_CONFIG,
-    override val formatter: TrackStatsFormatter = TrackStatsFormatter.create()
+    override val serverConfig: TrackServerConfig = TEST_SERVER_CONFIG
 ) : TrackViewModel {
     override fun updateTrackingState(enabled: Boolean) {
         trackingEnabled = enabled

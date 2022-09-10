@@ -686,7 +686,7 @@ private fun mockFormatter(): TrackStatsFormatter {
     every { formatter.timeService } returns timeService
 
     mockkObject(TrackStatsFormatter)
-    every { TrackStatsFormatter.create() } returns formatter
+    every { TrackStatsFormatter.INSTANCE } returns formatter
 
     return formatter
 }

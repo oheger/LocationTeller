@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui.state
 
+import com.github.oheger.locationteller.server.CurrentTimeService
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
 
@@ -45,6 +46,12 @@ class TrackStatsFormatterSpec : WordSpec({
             val currentTime = formatter.timeService.currentTime().currentTime
             val deltaT = abs(System.currentTimeMillis() - currentTime)
             deltaT shouldBeLessThanOrEqual 3000
+        }
+    }
+
+    "the default instance" should {
+        "use the correct time service" {
+            TrackStatsFormatter.INSTANCE.timeService shouldBe CurrentTimeService
         }
     }
 

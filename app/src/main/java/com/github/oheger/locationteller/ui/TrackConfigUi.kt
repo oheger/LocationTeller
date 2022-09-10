@@ -93,14 +93,14 @@ fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
             AdvancedTrackConfig(
                 trackConfig = model.trackConfig,
                 update = { model.updateTrackConfig(it) },
-                formatter = model.formatter,
+                formatter = TrackStatsFormatter.INSTANCE,
                 modifier = modifier
             )
         } else {
             BasicTrackConfig(
                 trackConfig = model.trackConfig,
                 update = { model.updateTrackConfig(it) },
-                formatter = model.formatter,
+                formatter = TrackStatsFormatter.INSTANCE,
                 modifier = modifier
             )
         }
@@ -307,5 +307,10 @@ fun TrackConfigPreview() {
 fun TrackConfigAdvancedPreview() {
     val model = PreviewTrackViewModel()
 
-    AdvancedTrackConfig(trackConfig = model.trackConfig, update = {}, formatter = model.formatter, modifier = Modifier)
+    AdvancedTrackConfig(
+        trackConfig = model.trackConfig,
+        update = {},
+        modifier = Modifier,
+        formatter = TrackStatsFormatter.INSTANCE
+    )
 }

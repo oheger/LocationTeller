@@ -54,12 +54,6 @@ interface TrackViewModel {
     val serverConfig: TrackServerConfig
 
     /**
-     * The formatter object used to format tracking statistics. Since formatting is needed at multiple places, this
-     * object is made available via this property, so that numbers, durations, etc. are formatted in the same way.
-     */
-    val formatter: TrackStatsFormatter
-
-    /**
      * Set the tracking state to [enabled].
      */
     fun updateTrackingState(enabled: Boolean)
@@ -113,7 +107,7 @@ class TrackViewModelImpl(
     private val currentServerConfig = mutableStateOf(TrackServerConfig.EMPTY)
 
     /** The formatter for statistics data. */
-    override val formatter = TrackStatsFormatter.create()
+    private val formatter = TrackStatsFormatter.INSTANCE
 
     init {
         trackStorage.setTrackingEnabled(false)

@@ -32,10 +32,11 @@ import kotlin.text.StringBuilder
  *
  * The class is used by the UI to display tracking statistics. It manages
  * formatter objects to handle the locale-dependent formatting.
- *
- * @param timeService the object to query the current time
  */
-class TrackStatsFormatter private constructor(val timeService: TimeService) {
+class TrackStatsFormatter private constructor(
+    /** The object to query the current time. */
+    val timeService: TimeService
+) {
     /** An object to format numbers.*/
     val numberFormat = createNumberFormat()
 
@@ -101,6 +102,12 @@ class TrackStatsFormatter private constructor(val timeService: TimeService) {
 
         /** The number of seconds per day.*/
         private const val SECS_PER_DAY = 24 * SECS_PER_HOUR
+
+        /**
+         * A default instance that is configured with [CurrentTimeService]. _Note:_ This instance must only be used
+         * from the main thread, since formatter objects are not thread-safe.
+         */
+        val INSTANCE = create()
 
         /**
          * Create a new instance of [TrackStatsFormatter]. Use the provided [timeService] or fall back to a default
