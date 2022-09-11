@@ -34,13 +34,11 @@ import io.mockk.verify
 class TrackServerConfigSpec : WordSpec({
     "fromPreferences" should {
         "create a new instance" {
-            val prefs = mockk<SharedPreferences>()
-            every { prefs.getString(TrackServerConfig.PROP_SERVER_URI, null) } returns TEST_CONFIG.serverUri
-            every { prefs.getString(TrackServerConfig.PROP_BASE_PATH, null) } returns TEST_CONFIG.basePath
-            every { prefs.getString(TrackServerConfig.PROP_USER, null) } returns TEST_CONFIG.user
-            every { prefs.getString(TrackServerConfig.PROP_PASSWORD, null) } returns TEST_CONFIG.password
             val preferencesHandler = mockk<PreferencesHandler>()
-            every { preferencesHandler.preferences } returns prefs
+            every { preferencesHandler.getString(TrackServerConfig.PROP_SERVER_URI) } returns TEST_CONFIG.serverUri
+            every { preferencesHandler.getString(TrackServerConfig.PROP_BASE_PATH) } returns TEST_CONFIG.basePath
+            every { preferencesHandler.getString(TrackServerConfig.PROP_USER) } returns TEST_CONFIG.user
+            every { preferencesHandler.getString(TrackServerConfig.PROP_PASSWORD) } returns TEST_CONFIG.password
 
             val config = TrackServerConfig.fromPreferences(preferencesHandler)
 
@@ -48,15 +46,12 @@ class TrackServerConfigSpec : WordSpec({
         }
 
         "handle undefined properties" {
-            val expectedConfig = TrackServerConfig("", "", "", "")
-            val prefs = mockk<SharedPreferences>()
-            every { prefs.getString(any(), null) } returns null
             val preferencesHandler = mockk<PreferencesHandler>()
-            every { preferencesHandler.preferences } returns prefs
+            every { preferencesHandler.getString(any()) } returns ""
 
             val config = TrackServerConfig.fromPreferences(preferencesHandler)
 
-            config shouldBe expectedConfig
+            config shouldBe TrackServerConfig.EMPTY
         }
     }
 

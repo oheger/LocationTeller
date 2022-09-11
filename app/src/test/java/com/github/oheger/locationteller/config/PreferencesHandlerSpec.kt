@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.matchers.doubles.beLessThan
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.should
@@ -36,14 +37,16 @@ class PreferencesHandlerSpec : WordSpec() {
     init {
         "create" should {
             "obtain an instance from PreferenceManager" {
+                val value = "test"
                 val context = mockk<Context>()
                 val sharedPreferences = mockk<SharedPreferences>()
+                every { sharedPreferences.getString(PROPERTY, null) } returns value
                 mockkStatic(PreferenceManager::class)
                 every { PreferenceManager.getDefaultSharedPreferences(context) } returns sharedPreferences
 
                 val handler = PreferencesHandler.getInstance(context)
 
-                handler.preferences shouldBe sharedPreferences
+                handler.getString(PROPERTY) shouldBe value
             }
 
             "return a singleton instance of PreferencesHandler" {
@@ -91,67 +94,91 @@ class PreferencesHandlerSpec : WordSpec() {
             }
         }
 
-        "getNumeric" should {
-            "return the value of an existing property" {
+        "getInt" should {
+            "delegate to the shared preferences" {
                 val value = 42
-                val pref = mockk<SharedPreferences>()
-                every { pref.getString(PROPERTY, "-1") } returns value.toString()
-
-                val handler = PreferencesHandler(pref)
-
-                handler.getNumeric(PROPERTY) shouldBe value
-            }
-
-            "return the default value for a missing property" {
                 val defaultValue = 11
                 val pref = mockk<SharedPreferences>()
-                every { pref.getString(PROPERTY, "-1") } returns null
+                every { pref.getInt(PROPERTY, defaultValue) } returns value
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getNumeric(PROPERTY, defaultValue) shouldBe defaultValue
-            }
-
-            "return the default value for a property with an undefined value" {
-                val defaultValue = 100
-                val pref = mockk<SharedPreferences>()
-                every { pref.getString(PROPERTY, "-1") } returns "-1"
-
-                val handler = PreferencesHandler(pref)
-
-                handler.getNumeric(PROPERTY, defaultValue) shouldBe defaultValue
+                handler.getInt(PROPERTY, defaultValue) shouldBe value
             }
         }
 
         "getDouble" should {
-            "return the value of an existing property" {
+            "delegate to the shared preferences" {
                 val value = 3.1415
+                val defaultValue = 11.123
                 val pref = mockk<SharedPreferences>()
-                every { pref.getString(PROPERTY, "-1") } returns value.toString()
+                every { pref.getFloat(PROPERTY, defaultValue.toFloat()) } returns value.toFloat()
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getDouble(PROPERTY, defaultValue = 1.0) shouldBe value
+                abs(handler.getDouble(PROPERTY, defaultValue) - value) should beLessThan(0.1)
+            }
+        }
+
+        "getString" should {
+            "return the value of an existing property" {
+                val value = "theValue"
+                val pref = mockk<SharedPreferences>()
+                every { pref.getString(PROPERTY, null) } returns value
+
+                val handler = PreferencesHandler(pref)
+
+                handler.getString(PROPERTY) shouldBe value
             }
 
             "return the default value for a missing property" {
-                val defaultValue = 11.123
+                val defaultValue = "theDefaultValue"
                 val pref = mockk<SharedPreferences>()
-                every { pref.getString(PROPERTY, "-1") } returns null
+                every { pref.getString(PROPERTY, null) } returns null
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getDouble(PROPERTY, defaultValue) shouldBe defaultValue
+                handler.getString(PROPERTY, defaultValue) shouldBe defaultValue
             }
+        }
 
-            "return the default value for a property with an undefined value" {
-                val defaultValue = 100.01
+        "getBoolean" should {
+            "delegate to the shared preferences" {
                 val pref = mockk<SharedPreferences>()
-                every { pref.getString(PROPERTY, "-1") } returns "-1"
+                every { pref.getBoolean(PROPERTY, false) } returns false
+                every { pref.getBoolean(PROPERTY, true) } returns true
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getDouble(PROPERTY, defaultValue) shouldBe defaultValue
+                handler.getBoolean(PROPERTY) shouldBe false
+                handler.getBoolean(PROPERTY, true) shouldBe true
+            }
+        }
+
+        "getLong" should {
+            "delegate to the shared preferences" {
+                val value = 20220911211221L
+                val defaultValue = 1234567890L
+                val pref = mockk<SharedPreferences>()
+                every { pref.getLong(PROPERTY, defaultValue) } returns value
+
+                val handler = PreferencesHandler(pref)
+
+                handler.getLong(PROPERTY, defaultValue) shouldBe value
+            }
+        }
+
+        "contains" should {
+            "delegate to the shared preferences" {
+                val property2 = "$PROPERTY.other"
+                val pref = mockk<SharedPreferences>()
+                every { pref.contains(PROPERTY) } returns true
+                every { pref.contains(property2) } returns false
+
+                val handler = PreferencesHandler(pref)
+
+                (PROPERTY in handler) shouldBe true
+                (property2 in handler) shouldBe false
             }
         }
 

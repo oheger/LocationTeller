@@ -33,17 +33,22 @@ import io.mockk.verify
 class ReceiverConfigSpec : WordSpec({
     "fromPreferences" should {
         "create an instance from preferences" {
-            val prefs = mockk<SharedPreferences>()
-            every { prefs.getBoolean(ReceiverConfig.PROP_FADE_OUT_ENABLED, false) } returns TEST_CONFIG.fadeOutEnabled
-            every { prefs.getBoolean(ReceiverConfig.PROP_FADE_OUT_FAST, false) } returns TEST_CONFIG.fastFadeOut
-            every { prefs.getBoolean(ReceiverConfig.PROP_FADE_OUT_STRONG, false) } returns TEST_CONFIG.strongFadeOut
-            every { prefs.getBoolean(ReceiverConfig.PROP_AUTO_CENTER, false) } returns TEST_CONFIG.centerNewPosition
-
             val preferencesHandler = mockk<PreferencesHandler>()
             every {
-                preferencesHandler.getNumeric(ReceiverConfig.PROP_UPDATE_INTERVAL, defaultValue = 180)
+                preferencesHandler.getBoolean(ReceiverConfig.PROP_FADE_OUT_ENABLED)
+            } returns TEST_CONFIG.fadeOutEnabled
+            every {
+                preferencesHandler.getBoolean(ReceiverConfig.PROP_FADE_OUT_FAST)
+            } returns TEST_CONFIG.fastFadeOut
+            every {
+                preferencesHandler.getBoolean(ReceiverConfig.PROP_FADE_OUT_STRONG)
+            } returns TEST_CONFIG.strongFadeOut
+            every {
+                preferencesHandler.getBoolean(ReceiverConfig.PROP_AUTO_CENTER)
+            } returns TEST_CONFIG.centerNewPosition
+            every {
+                preferencesHandler.getInt(ReceiverConfig.PROP_UPDATE_INTERVAL, defaultValue = 180)
             } returns TEST_CONFIG.updateInterval
-            every { preferencesHandler.preferences } returns prefs
 
             val config = ReceiverConfig.fromPreferences(preferencesHandler)
 

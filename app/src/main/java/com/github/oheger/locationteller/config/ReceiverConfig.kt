@@ -68,17 +68,11 @@ data class ReceiverConfig(
          */
         fun fromPreferences(preferencesHandler: PreferencesHandler): ReceiverConfig =
             ReceiverConfig(
-                updateInterval = preferencesHandler.getNumeric(PROP_UPDATE_INTERVAL, DEFAULT.updateInterval),
-                fadeOutEnabled = preferencesHandler.preferences.getBoolean(
-                    PROP_FADE_OUT_ENABLED,
-                    DEFAULT.fadeOutEnabled
-                ),
-                fastFadeOut = preferencesHandler.preferences.getBoolean(PROP_FADE_OUT_FAST, DEFAULT.fastFadeOut),
-                strongFadeOut = preferencesHandler.preferences.getBoolean(PROP_FADE_OUT_STRONG, DEFAULT.strongFadeOut),
-                centerNewPosition = preferencesHandler.preferences.getBoolean(
-                    PROP_AUTO_CENTER,
-                    DEFAULT.centerNewPosition
-                )
+                updateInterval = preferencesHandler.getInt(PROP_UPDATE_INTERVAL, DEFAULT.updateInterval),
+                fadeOutEnabled = preferencesHandler.getBoolean(PROP_FADE_OUT_ENABLED, DEFAULT.fadeOutEnabled),
+                fastFadeOut = preferencesHandler.getBoolean(PROP_FADE_OUT_FAST, DEFAULT.fastFadeOut),
+                strongFadeOut = preferencesHandler.getBoolean(PROP_FADE_OUT_STRONG, DEFAULT.strongFadeOut),
+                centerNewPosition = preferencesHandler.getBoolean(PROP_AUTO_CENTER, DEFAULT.centerNewPosition)
             )
     }
 

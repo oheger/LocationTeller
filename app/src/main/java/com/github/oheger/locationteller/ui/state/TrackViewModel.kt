@@ -247,7 +247,7 @@ class TrackViewModelImpl(
             TrackStorage.PROP_TRACKING_START,
             TrackStorage.PROP_TRACKING_END,
             TrackStorage.PROP_UPDATE_COUNT,
-        ).filter { it in trackStorage.preferencesHandler.preferences }
+        ).filter { it in trackStorage.preferencesHandler }
             .forEach(this::propertyChanged)
     }
 

@@ -146,17 +146,17 @@ class TrackStorage(
     /**
      * Return the number of errors that have been encountered since the statistics have been reset.
      */
-    fun errorCount(): Int = preferencesHandler.preferences.getInt(PROP_ERROR_COUNT, 0)
+    fun errorCount(): Int = preferencesHandler.getInt(PROP_ERROR_COUNT, 0)
 
     /**
      * Return the number of checks that have been performed since the statistics have been reset.
      */
-    fun checkCount(): Int = preferencesHandler.preferences.getInt(PROP_CHECK_COUNT, 0)
+    fun checkCount(): Int = preferencesHandler.getInt(PROP_CHECK_COUNT, 0)
 
     /**
      * Return the number of updates that have been performed since the statistics have been reset.
      */
-    fun updateCount(): Int = preferencesHandler.preferences.getInt(PROP_UPDATE_COUNT, 0)
+    fun updateCount(): Int = preferencesHandler.getInt(PROP_UPDATE_COUNT, 0)
 
     /**
      * Return the [Date] when the last update took place or *null* if no update has been recorded so far.
@@ -172,12 +172,12 @@ class TrackStorage(
     /**
      * Return the distance of the last location update in meters.
      */
-    fun lastDistance(): Int = preferencesHandler.preferences.getInt(PROP_LAST_DISTANCE, 0)
+    fun lastDistance(): Int = preferencesHandler.getInt(PROP_LAST_DISTANCE, 0)
 
     /**
      * Return the total distance of all checks that have been recorded for the current tracking operation (in meters).
      */
-    fun totalDistance(): Long = preferencesHandler.preferences.getLong(PROP_TOTAL_DISTANCE, 0)
+    fun totalDistance(): Long = preferencesHandler.getLong(PROP_TOTAL_DISTANCE, 0)
 
     /**
      * Return the last recorded start date of a tracking operation or *null* if tracking has never been started.
@@ -202,7 +202,7 @@ class TrackStorage(
     /**
      * Check whether tracking is currently active by querying the property dedicated for this purpose.
      */
-    fun isTrackingEnabled(): Boolean = preferencesHandler.preferences.getBoolean(PROP_TRACK_STATE, false)
+    fun isTrackingEnabled(): Boolean = preferencesHandler.getBoolean(PROP_TRACK_STATE, false)
 
     /**
      * Update and persist the tracking state according to [flag].

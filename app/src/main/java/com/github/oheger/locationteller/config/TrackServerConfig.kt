@@ -61,10 +61,10 @@ data class TrackServerConfig(
          */
         fun fromPreferences(preferencesHandler: PreferencesHandler): TrackServerConfig =
             TrackServerConfig(
-                serverUri = preferencesHandler.stringProperty(PROP_SERVER_URI),
-                basePath = preferencesHandler.stringProperty(PROP_BASE_PATH),
-                user = preferencesHandler.stringProperty(PROP_USER),
-                password = preferencesHandler.stringProperty(PROP_PASSWORD)
+                serverUri = preferencesHandler.getString(PROP_SERVER_URI),
+                basePath = preferencesHandler.getString(PROP_BASE_PATH),
+                user = preferencesHandler.getString(PROP_USER),
+                password = preferencesHandler.getString(PROP_PASSWORD)
             )
     }
 
@@ -86,10 +86,3 @@ data class TrackServerConfig(
         }
     }
 }
-
-/**
- * Return the value of the property with the given [name] from the managed preferences or an empty string if the
- * property does not exist.
- */
-private fun PreferencesHandler.stringProperty(name: String): String =
-    preferences.getString(name, null).orEmpty()

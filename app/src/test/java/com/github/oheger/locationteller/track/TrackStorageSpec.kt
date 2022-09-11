@@ -137,8 +137,7 @@ class TrackStorageSpec : StringSpec({
     "The distance of the last location update can be queried" {
         val distance = 157
         val handler = mockk<PreferencesHandler>()
-        val preferences = handler.mockPreferences()
-        every { preferences.getInt(TrackStorage.PROP_LAST_DISTANCE, 0) } returns distance
+        every { handler.getInt(TrackStorage.PROP_LAST_DISTANCE, 0) } returns distance
 
         val storage = TrackStorage(handler)
 
@@ -148,8 +147,7 @@ class TrackStorageSpec : StringSpec({
     "The total tracking distance can be queried" {
         val distance = 20200118160148L
         val handler = mockk<PreferencesHandler>()
-        val preferences = handler.mockPreferences()
-        every { preferences.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns distance
+        every { handler.getLong(TrackStorage.PROP_TOTAL_DISTANCE, 0) } returns distance
 
         val storage = TrackStorage(handler)
         val totalDistance = storage.totalDistance()
@@ -160,8 +158,7 @@ class TrackStorageSpec : StringSpec({
     "The error count can be queried" {
         val count = 61
         val handler = mockk<PreferencesHandler>()
-        val preferences = handler.mockPreferences()
-        every { preferences.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns count
+        every { handler.getInt(TrackStorage.PROP_ERROR_COUNT, 0) } returns count
 
         val storage = TrackStorage(handler)
         val errorCount = storage.errorCount()
@@ -172,8 +169,7 @@ class TrackStorageSpec : StringSpec({
     "The check count can be queried" {
         val count = 77
         val handler = mockk<PreferencesHandler>()
-        val preferences = handler.mockPreferences()
-        every { preferences.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns count
+        every { handler.getInt(TrackStorage.PROP_CHECK_COUNT, 0) } returns count
 
         val storage = TrackStorage(handler)
         val checkCount = storage.checkCount()
@@ -184,8 +180,7 @@ class TrackStorageSpec : StringSpec({
     "The update count can be queried" {
         val count = 99
         val handler = mockk<PreferencesHandler>()
-        val preferences = handler.mockPreferences()
-        every { preferences.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns count
+        every { handler.getInt(TrackStorage.PROP_UPDATE_COUNT, 0) } returns count
 
         val storage = TrackStorage(handler)
         val updateCount = storage.updateCount()
@@ -212,8 +207,7 @@ class TrackStorageSpec : StringSpec({
 
     "The tracking state can be queried" {
         val handler = mockk<PreferencesHandler>()
-        val preferences = handler.mockPreferences()
-        every { preferences.getBoolean(TrackStorage.PROP_TRACK_STATE, false) } returnsMany listOf(true, false)
+        every { handler.getBoolean(TrackStorage.PROP_TRACK_STATE, false) } returnsMany listOf(true, false)
 
         val storage = TrackStorage(handler)
 
@@ -271,12 +265,3 @@ private fun checkPreferencesUpdate(block: (PreferencesHandler) -> Unit): SharedP
     slotUpdater.captured(editor)
     return editor
 }
-
-/**
- * Prepare this mock of a [PreferencesHandler] to return its [SharedPreferences]. Create mock [SharedPreferences] for
- * this purpose.
- */
-private fun PreferencesHandler.mockPreferences(): SharedPreferences =
-    mockk<SharedPreferences>().also {
-        every { preferences } returns it
-    }

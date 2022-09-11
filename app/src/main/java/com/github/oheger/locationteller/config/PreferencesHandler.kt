@@ -18,15 +18,16 @@ package com.github.oheger.locationteller.config
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+
 import androidx.preference.PreferenceManager
+
 import java.util.Date
 
 /**
  * A class managing access to the preferences for the location teller
  * application.
  *
- * This class defines constants for all the properties supported and offers
- * some helper functions for accessing specific settings.
+ * This class is a thin wrapper that offers an abstraction over the direct access to shared preferences.
  *
  * Clients obtain an instance via the [getInstance] function of the companion object. Here a single, shared instance is
  * managed. This yields the optimum performance, but also ensures that change listeners registered at the instance
@@ -34,7 +35,7 @@ import java.util.Date
  */
 class PreferencesHandler internal constructor(
     /** The managed [SharedPreferences] instance. */
-    val preferences: SharedPreferences
+    private val preferences: SharedPreferences
 ) {
     /**
      * Return the value of the [Date] property with the given [key] from the managed preferences object. The actual
@@ -47,23 +48,41 @@ class PreferencesHandler internal constructor(
         } else null
 
     /**
-     * Return the numeric value of the property with the given [key] from the managed preferences object. From the
-     * settings screen, the properties are stored as strings. Therefore, a conversion has to be done. A [defaultValue]
-     * can be provided to deal with undefined properties.
+     * Return the [Int] value of the property with the given [key] from the managed preferences object or
+     * [defaultValue] if this property is undefined.
      */
-    fun getNumeric(key: String, defaultValue: Int = UNDEFINED_NUMBER): Int {
-        val value = preferences.getString(key, UNDEFINED_NUMBER_STR)?.toInt() ?: UNDEFINED_NUMBER
-        return if (value == UNDEFINED_NUMBER) defaultValue else value
-    }
+    fun getInt(key: String, defaultValue: Int = UNDEFINED_NUMBER): Int = preferences.getInt(key, defaultValue)
 
     /**
-     * Return the [Double] value of the property with the given [key] from the managed preference object. This is
-     * analogous to [getNumeric], but for [Double] properties.
+     * Return the [Double] value of the property with the given [key] from the managed preference object or
+     * [defaultValue] if this property is undefined.
      */
-    fun getDouble(key: String, defaultValue: Double): Double {
-        val value = preferences.getString(key, UNDEFINED_NUMBER_STR) ?: UNDEFINED_NUMBER_STR
-        return if (value == UNDEFINED_NUMBER_STR) defaultValue else value.toDouble()
-    }
+    fun getDouble(key: String, defaultValue: Double): Double =
+        preferences.getFloat(key, defaultValue.toFloat()).toDouble()
+
+    /**
+     * Return the [String] value of the property with the given [key] from the managed preferences object or
+     * [defaultValue] if this property is undefined.
+     */
+    fun getString(key: String, defaultValue: String = ""): String =
+        preferences.getString(key, null) ?: defaultValue
+
+    /**
+     * Return the [Long] value of the property with the given [key] from the managed preferences object or
+     * [defaultValue] if this property is undefined.
+     */
+    fun getLong(key: String, defaultValue: Long): Long = preferences.getLong(key, defaultValue)
+
+    /**
+     * Return the [Boolean] value of the property with the given [key] from the managed preferences object or
+     * [defaultValue] if this property is undefined.
+     */
+    fun getBoolean(key: String, defaultValue: Boolean = false): Boolean = preferences.getBoolean(key, defaultValue)
+
+    /**
+     * Return a flag whether the managed preferences contain the given [key].
+     */
+    operator fun contains(key: String): Boolean = key in preferences
 
     /**
      * Updates a _SharedPreferences_ object. This function obtains an editor
@@ -171,9 +190,6 @@ class PreferencesHandler internal constructor(
 
         /** Constant for an undefined numeric property.*/
         private const val UNDEFINED_NUMBER = -1
-
-        /** String value of an undefined numeric property.*/
-        private const val UNDEFINED_NUMBER_STR = UNDEFINED_NUMBER.toString()
 
         /** A set with all properties related to configuration (not managed by other classes). */
         private val CONFIG_PROPS = setOf(PROP_SERVER_URI, PROP_BASE_PATH, PROP_USER, PROP_PASSWORD)

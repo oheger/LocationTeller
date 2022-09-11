@@ -65,13 +65,11 @@ class TrackViewModelSpec : WordSpec() {
         application = mockk(relaxed = true)
         configManager = createConfigManager()
         val preferencesHandler = mockk<PreferencesHandler>(relaxed = true)
-        val prefs = mockk<SharedPreferences>()
         storage = mockk(relaxed = true)
 
         every { storage.preferencesHandler } returns preferencesHandler
-        every { preferencesHandler.preferences } returns prefs
         every { preferencesHandler.registerListener(any()) } just runs
-        every { prefs.contains(any()) } returns false
+        every { preferencesHandler.contains(any()) } returns false
 
         formatter = mockFormatter()
     }
@@ -388,10 +386,8 @@ class TrackViewModelSpec : WordSpec() {
                 val lastError = Date(20220703215116L)
 
                 val preferencesHandler = storage.preferencesHandler
-                val prefs = preferencesHandler.preferences
-                every { preferencesHandler.preferences } returns prefs
                 properties.forEach {
-                    every { prefs.contains(it) } returns true
+                    every { preferencesHandler.contains(it) } returns true
                 }
                 every { storage.preferencesHandler } returns preferencesHandler
                 every { storage.checkCount() } returns 28
@@ -627,7 +623,7 @@ class TrackViewModelSpec : WordSpec() {
         listener: SharedPreferences.OnSharedPreferenceChangeListener,
         property: String
     ) {
-        listener.onSharedPreferenceChanged(storage.preferencesHandler.preferences, property)
+        listener.onSharedPreferenceChanged(mockk(), property)
     }
 
     /**
