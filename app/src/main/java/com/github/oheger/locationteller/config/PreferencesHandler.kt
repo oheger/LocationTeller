@@ -48,23 +48,21 @@ class PreferencesHandler internal constructor(
 
     /**
      * Return the numeric value of the property with the given [key] from the managed preferences object. From the
-     * settings screen, the properties are stored as strings. Therefore, a conversion has to be done. Sometimes the
-     * config UI uses a different unit than the logic. This is handled by allowing a [factor] to be specified. A
-     * [defaultValue] can be provided to deal with undefined properties. (Note that the [factor] is not applied to the
-     * [defaultValue].
+     * settings screen, the properties are stored as strings. Therefore, a conversion has to be done. A [defaultValue]
+     * can be provided to deal with undefined properties.
      */
-    fun getNumeric(key: String, factor: Int = 1, defaultValue: Int = UNDEFINED_NUMBER): Int {
+    fun getNumeric(key: String, defaultValue: Int = UNDEFINED_NUMBER): Int {
         val value = preferences.getString(key, UNDEFINED_NUMBER_STR)?.toInt() ?: UNDEFINED_NUMBER
-        return if (value == UNDEFINED_NUMBER) defaultValue else value * factor
+        return if (value == UNDEFINED_NUMBER) defaultValue else value
     }
 
     /**
      * Return the [Double] value of the property with the given [key] from the managed preference object. This is
      * analogous to [getNumeric], but for [Double] properties.
      */
-    fun getDouble(key: String, factor: Double = 1.0, defaultValue: Double): Double {
+    fun getDouble(key: String, defaultValue: Double): Double {
         val value = preferences.getString(key, UNDEFINED_NUMBER_STR) ?: UNDEFINED_NUMBER_STR
-        return if (value == UNDEFINED_NUMBER_STR) defaultValue else value.toDouble() * factor
+        return if (value == UNDEFINED_NUMBER_STR) defaultValue else value.toDouble()
     }
 
     /**

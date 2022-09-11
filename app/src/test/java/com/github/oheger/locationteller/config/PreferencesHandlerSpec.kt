@@ -92,72 +92,66 @@ class PreferencesHandlerSpec : WordSpec() {
         }
 
         "getNumeric" should {
-            "return the scaled valued of an existing property" {
+            "return the value of an existing property" {
                 val value = 42
-                val factor = 3
                 val pref = mockk<SharedPreferences>()
                 every { pref.getString(PROPERTY, "-1") } returns value.toString()
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getNumeric(PROPERTY, factor = factor) shouldBe value * factor
+                handler.getNumeric(PROPERTY) shouldBe value
             }
 
             "return the default value for a missing property" {
                 val defaultValue = 11
-                val factor = 2
                 val pref = mockk<SharedPreferences>()
                 every { pref.getString(PROPERTY, "-1") } returns null
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getNumeric(PROPERTY, factor = factor, defaultValue) shouldBe defaultValue
+                handler.getNumeric(PROPERTY, defaultValue) shouldBe defaultValue
             }
 
             "return the default value for a property with an undefined value" {
                 val defaultValue = 100
-                val factor = 99
                 val pref = mockk<SharedPreferences>()
                 every { pref.getString(PROPERTY, "-1") } returns "-1"
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getNumeric(PROPERTY, factor = factor, defaultValue) shouldBe defaultValue
+                handler.getNumeric(PROPERTY, defaultValue) shouldBe defaultValue
             }
         }
 
         "getDouble" should {
-            "return the scaled value of an existing property" {
+            "return the value of an existing property" {
                 val value = 3.1415
-                val factor = 2.5
                 val pref = mockk<SharedPreferences>()
                 every { pref.getString(PROPERTY, "-1") } returns value.toString()
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getDouble(PROPERTY, factor = factor, defaultValue = 1.0) shouldBe value * factor
+                handler.getDouble(PROPERTY, defaultValue = 1.0) shouldBe value
             }
 
             "return the default value for a missing property" {
                 val defaultValue = 11.123
-                val factor = 2.22
                 val pref = mockk<SharedPreferences>()
                 every { pref.getString(PROPERTY, "-1") } returns null
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getDouble(PROPERTY, factor = factor, defaultValue = defaultValue) shouldBe defaultValue
+                handler.getDouble(PROPERTY, defaultValue) shouldBe defaultValue
             }
 
             "return the default value for a property with an undefined value" {
                 val defaultValue = 100.01
-                val factor = 99.99
                 val pref = mockk<SharedPreferences>()
                 every { pref.getString(PROPERTY, "-1") } returns "-1"
 
                 val handler = PreferencesHandler(pref)
 
-                handler.getDouble(PROPERTY, factor = factor, defaultValue = defaultValue) shouldBe defaultValue
+                handler.getDouble(PROPERTY, defaultValue) shouldBe defaultValue
             }
         }
 

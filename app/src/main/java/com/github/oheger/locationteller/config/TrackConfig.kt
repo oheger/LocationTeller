@@ -159,54 +159,31 @@ data class TrackConfig(
          * [preferencesHandler].
          */
         fun fromPreferences(preferencesHandler: PreferencesHandler): TrackConfig {
-            val minTrackInterval = preferencesHandler.getNumeric(
-                PROP_MIN_TRACK_INTERVAL,
-                defaultValue = DEFAULT.minTrackInterval
-            )
-            val maxTrackInterval = preferencesHandler.getNumeric(
-                PROP_MAX_TRACK_INTERVAL,
-                defaultValue = DEFAULT.maxTrackInterval
-            )
+            val minTrackInterval = preferencesHandler.getNumeric(PROP_MIN_TRACK_INTERVAL, DEFAULT.minTrackInterval)
+            val maxTrackInterval = preferencesHandler.getNumeric(PROP_MAX_TRACK_INTERVAL, DEFAULT.maxTrackInterval)
             val intervalIncrementOnIdle = preferencesHandler.getNumeric(
                 PROP_IDLE_INCREMENT,
-                defaultValue = DEFAULT.intervalIncrementOnIdle
+                DEFAULT.intervalIncrementOnIdle
             )
-            val locationValidity = preferencesHandler.getNumeric(
-                PROP_LOCATION_VALIDITY,
-                defaultValue = DEFAULT.locationValidity
-            )
+            val locationValidity = preferencesHandler.getNumeric(PROP_LOCATION_VALIDITY, DEFAULT.locationValidity)
             val locationUpdateThreshold = preferencesHandler.getNumeric(
                 PROP_LOCATION_UPDATE_THRESHOLD,
-                defaultValue = DEFAULT.locationUpdateThreshold
+                DEFAULT.locationUpdateThreshold
             )
-            val retryOnErrorTime = preferencesHandler.getNumeric(
-                PROP_RETRY_ON_ERROR_TIME,
-                defaultValue = DEFAULT.retryOnErrorTime
-            )
-            val gpsTimeout = preferencesHandler.getNumeric(
-                PROP_GPS_TIMEOUT,
-                defaultValue = DEFAULT.gpsTimeout
-            )
-            val offlineStorageSize = preferencesHandler.getNumeric(
-                PROP_OFFLINE_STORAGE_SIZE,
-                defaultValue = DEFAULT.offlineStorageSize
-            )
+            val retryOnErrorTime = preferencesHandler.getNumeric(PROP_RETRY_ON_ERROR_TIME, DEFAULT.retryOnErrorTime)
+            val gpsTimeout = preferencesHandler.getNumeric(PROP_GPS_TIMEOUT, DEFAULT.gpsTimeout)
+            val offlineStorageSize =
+                preferencesHandler.getNumeric(PROP_OFFLINE_STORAGE_SIZE, DEFAULT.offlineStorageSize)
             val offlineStorageSyncTime = preferencesHandler.getNumeric(
                 PROP_OFFLINE_STORAGE_SYNC_TIME,
-                defaultValue = DEFAULT.maxOfflineStorageSyncTime
+                DEFAULT.maxOfflineStorageSyncTime
             )
             val multiUploadChunkSize = preferencesHandler.getNumeric(
                 PROP_MULTI_UPLOAD_CHUNK_SIZE,
-                defaultValue = DEFAULT.multiUploadChunkSize
+                DEFAULT.multiUploadChunkSize
             )
-            val maxSpeedIncrease = preferencesHandler.getDouble(
-                PROP_MAX_SPEED_INCREASE,
-                defaultValue = DEFAULT.maxSpeedIncrease
-            )
-            val walkingSpeed = preferencesHandler.getDouble(
-                PROP_WALKING_SPEED,
-                defaultValue = DEFAULT.walkingSpeed
-            )
+            val maxSpeedIncrease = preferencesHandler.getDouble(PROP_MAX_SPEED_INCREASE, DEFAULT.maxSpeedIncrease)
+            val walkingSpeed = preferencesHandler.getDouble(PROP_WALKING_SPEED, DEFAULT.walkingSpeed)
             val autoResetStats = preferencesHandler.preferences.getBoolean(PROP_AUTO_RESET_STATS, false)
 
             return TrackConfig(
@@ -235,7 +212,7 @@ data class TrackConfig(
 
     /** The walking speed in Km/h. */
     val walkingSpeedKmH: Double
-    get() = walkingSpeed / METER_PER_SECOND
+        get() = walkingSpeed / METER_PER_SECOND
 
     /**
      * Return a new instance of [TrackConfig] with [walkingSpeed] set to [speed] in Km/h.

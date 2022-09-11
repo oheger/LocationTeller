@@ -68,10 +68,7 @@ data class ReceiverConfig(
          */
         fun fromPreferences(preferencesHandler: PreferencesHandler): ReceiverConfig =
             ReceiverConfig(
-                updateInterval = preferencesHandler.getNumeric(
-                    PROP_UPDATE_INTERVAL,
-                    defaultValue = DEFAULT.updateInterval
-                ),
+                updateInterval = preferencesHandler.getNumeric(PROP_UPDATE_INTERVAL, DEFAULT.updateInterval),
                 fadeOutEnabled = preferencesHandler.preferences.getBoolean(
                     PROP_FADE_OUT_ENABLED,
                     DEFAULT.fadeOutEnabled
