@@ -36,7 +36,6 @@ import com.github.oheger.locationteller.track.TrackTestHelper
 import io.kotest.matchers.shouldBe
 
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,7 +65,7 @@ class TrackConfigUiSpec {
         }
     }
 
-    @Test @Ignore // TODO Enable test when persistence of TrackConfig has been reworked.
+    @Test
     fun `Track configuration can be edited`() {
         fun editValue(item: String, vararg values: String) {
             composeTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(item)).performScrollTo()

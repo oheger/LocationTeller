@@ -220,38 +220,23 @@ data class TrackConfig(
     fun updateWalkingSpeedKmH(speed: Double): TrackConfig = copy(walkingSpeed = speed * METER_PER_SECOND)
 
     /**
-     * Write the values contained in this configuration into the preferences managed by [handler]. If [keepExisting]
-     * is *true*, only properties are written that are not yet defined. This is useful for instance to initialize
-     * preferences with default values.
+     * Write the values contained in this configuration into the preferences managed by [handler].
      */
-    fun save(handler: PreferencesHandler, keepExisting: Boolean = false) {
-        val values = mapOf(
-            PROP_MIN_TRACK_INTERVAL to minTrackInterval,
-            PROP_MAX_TRACK_INTERVAL to maxTrackInterval,
-            PROP_IDLE_INCREMENT to intervalIncrementOnIdle,
-            PROP_LOCATION_VALIDITY to locationValidity,
-            PROP_LOCATION_UPDATE_THRESHOLD to locationUpdateThreshold,
-            PROP_RETRY_ON_ERROR_TIME to retryOnErrorTime,
-            PROP_GPS_TIMEOUT to gpsTimeout,
-            PROP_OFFLINE_STORAGE_SIZE to offlineStorageSize,
-            PROP_OFFLINE_STORAGE_SYNC_TIME to maxOfflineStorageSyncTime,
-            PROP_MULTI_UPLOAD_CHUNK_SIZE to multiUploadChunkSize,
-            PROP_MAX_SPEED_INCREASE to maxSpeedIncrease,
-            PROP_WALKING_SPEED to walkingSpeed,
-            PROP_AUTO_RESET_STATS to autoResetStats
-        )
-
-        values.filter { !keepExisting || !handler.contains(it.key) }
-            .takeUnless { it.isEmpty() }?.let { undefinedProps ->
-                handler.update {
-                    undefinedProps.forEach { (key, value) ->
-                        when (value) {
-                            // Boolean needs a special treatment; otherwise, loading fails
-                            is Boolean -> putBoolean(key, value)
-                            else -> putString(key, value.toString())
-                        }
-                    }
-                }
-            }
+    fun save(handler: PreferencesHandler) {
+        handler.update {
+            putInt(PROP_MIN_TRACK_INTERVAL, minTrackInterval)
+            putInt(PROP_MAX_TRACK_INTERVAL, maxTrackInterval)
+            putInt(PROP_IDLE_INCREMENT, intervalIncrementOnIdle)
+            putInt(PROP_LOCATION_VALIDITY, locationValidity)
+            putInt(PROP_LOCATION_UPDATE_THRESHOLD, locationUpdateThreshold)
+            putInt(PROP_RETRY_ON_ERROR_TIME, retryOnErrorTime)
+            putInt(PROP_GPS_TIMEOUT, gpsTimeout)
+            putInt(PROP_OFFLINE_STORAGE_SIZE, offlineStorageSize)
+            putInt(PROP_OFFLINE_STORAGE_SYNC_TIME, maxOfflineStorageSyncTime)
+            putInt(PROP_MULTI_UPLOAD_CHUNK_SIZE, multiUploadChunkSize)
+            putFloat(PROP_MAX_SPEED_INCREASE, maxSpeedIncrease.toFloat())
+            putFloat(PROP_WALKING_SPEED, walkingSpeed.toFloat())
+            putBoolean(PROP_AUTO_RESET_STATS, autoResetStats)
+        }
     }
 }

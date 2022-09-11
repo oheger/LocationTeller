@@ -60,7 +60,7 @@ object TrackTestHelper {
         maxOfflineStorageSyncTime = 20,
         multiUploadChunkSize = 4,
         maxSpeedIncrease = 2.0,
-        walkingSpeed = 1.1111
+        walkingSpeed = 1.25
     )
 
     /**

@@ -133,8 +133,8 @@ class TrackConfigSpec : StringSpec({
         val editor = mockk<SharedPreferences.Editor>()
         val slotUpdater = slot<SharedPreferences.Editor.() -> Unit>()
         every { handler.update(capture(slotUpdater)) } just runs
-        every { handler.contains(any()) } returns false
-        every { editor.putString(any(), any()) } returns editor
+        every { editor.putInt(any(), any()) } returns editor
+        every { editor.putFloat(any(), any()) } returns editor
         every { editor.putBoolean(any(), any()) } returns editor
         val config = TrackConfig.DEFAULT.copy(minTrackInterval = 42)
 
@@ -142,29 +142,20 @@ class TrackConfigSpec : StringSpec({
         slotUpdater.captured(editor)
 
         verify {
-            editor.putString(TrackConfig.PROP_MIN_TRACK_INTERVAL, config.minTrackInterval.toString())
-            editor.putString(TrackConfig.PROP_MAX_TRACK_INTERVAL, config.maxTrackInterval.toString())
-            editor.putString(TrackConfig.PROP_IDLE_INCREMENT, config.intervalIncrementOnIdle.toString())
-            editor.putString(TrackConfig.PROP_LOCATION_VALIDITY, config.locationValidity.toString())
-            editor.putString(TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD, config.locationUpdateThreshold.toString())
-            editor.putString(TrackConfig.PROP_RETRY_ON_ERROR_TIME, config.retryOnErrorTime.toString())
-            editor.putString(TrackConfig.PROP_GPS_TIMEOUT, config.gpsTimeout.toString())
-            editor.putString(TrackConfig.PROP_OFFLINE_STORAGE_SIZE, config.offlineStorageSize.toString())
-            editor.putString(TrackConfig.PROP_OFFLINE_STORAGE_SYNC_TIME, config.maxOfflineStorageSyncTime.toString())
-            editor.putString(TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE, config.multiUploadChunkSize.toString())
-            editor.putString(TrackConfig.PROP_MAX_SPEED_INCREASE, config.maxSpeedIncrease.toString())
-            editor.putString(TrackConfig.PROP_WALKING_SPEED, config.walkingSpeed.toString())
+            editor.putInt(TrackConfig.PROP_MIN_TRACK_INTERVAL, config.minTrackInterval)
+            editor.putInt(TrackConfig.PROP_MAX_TRACK_INTERVAL, config.maxTrackInterval)
+            editor.putInt(TrackConfig.PROP_IDLE_INCREMENT, config.intervalIncrementOnIdle)
+            editor.putInt(TrackConfig.PROP_LOCATION_VALIDITY, config.locationValidity)
+            editor.putInt(TrackConfig.PROP_LOCATION_UPDATE_THRESHOLD, config.locationUpdateThreshold)
+            editor.putInt(TrackConfig.PROP_RETRY_ON_ERROR_TIME, config.retryOnErrorTime)
+            editor.putInt(TrackConfig.PROP_GPS_TIMEOUT, config.gpsTimeout)
+            editor.putInt(TrackConfig.PROP_OFFLINE_STORAGE_SIZE, config.offlineStorageSize)
+            editor.putInt(TrackConfig.PROP_OFFLINE_STORAGE_SYNC_TIME, config.maxOfflineStorageSyncTime)
+            editor.putInt(TrackConfig.PROP_MULTI_UPLOAD_CHUNK_SIZE, config.multiUploadChunkSize)
+            editor.putFloat(TrackConfig.PROP_MAX_SPEED_INCREASE, config.maxSpeedIncrease.toFloat())
+            editor.putFloat(TrackConfig.PROP_WALKING_SPEED, config.walkingSpeed.toFloat())
             editor.putBoolean(TrackConfig.PROP_AUTO_RESET_STATS, config.autoResetStats)
         }
-    }
-
-    "Values can be saved without overriding existing properties" {
-        val handler = mockk<PreferencesHandler>()
-        every { handler.contains(any()) } returns true
-
-        TrackConfig.DEFAULT.save(handler, keepExisting = true)
-
-        verify(exactly = 0) { handler.update(any()) }
     }
 
     "Configuration properties can be identified" {
