@@ -16,8 +16,6 @@
 package com.github.oheger.locationteller.ui
 
 import android.content.SharedPreferences
-import androidx.lifecycle.Lifecycle
-import androidx.test.core.app.launchActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
@@ -56,22 +54,6 @@ class MainActivitySpec {
         val activity = MainActivity()
 
         activity.onSharedPreferenceChanged(pref, PreferencesHandler.PROP_BASE_PATH)
-    }
-
-    @Test
-    fun `default track configuration settings are initialized on startup`() {
-        mockkObject(TrackConfig)
-        val defaultConfig = mockk<TrackConfig>(relaxed = true)
-        every { TrackConfig.DEFAULT } returns defaultConfig
-
-        val scenario = launchActivity<MainActivity>()
-        scenario.moveToState(Lifecycle.State.CREATED)
-
-        scenario.onActivity {
-            verify {
-                defaultConfig.save(any(), keepExisting = true)
-            }
-        }
     }
 
     @Test
