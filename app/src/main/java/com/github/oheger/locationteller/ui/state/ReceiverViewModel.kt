@@ -41,6 +41,15 @@ import com.github.oheger.locationteller.server.TrackService
 import com.google.maps.android.compose.CameraPositionState
 
 /**
+ * An enumeration class defining the actions the user can trigger on the receiver UI. Actions typically cause some kind
+ * of update of the map view and the receiver state.
+ */
+enum class ReceiverAction {
+    /** Triggers an immediate update of the receiver state from the server. */
+    UPDATE
+}
+
+/**
  * Definition of an interface that defines the contract of the view model used for the receiver part of the application
  * (the map view showing the recorded locations).
  */
@@ -79,6 +88,12 @@ interface ReceiverViewModel {
      * be used to display an indicator in the UI.
      */
     fun isUpdating(): Boolean = secondsToNextUpdate == 0
+
+    /**
+     * Handle the given [action]. This function is called as a reaction on a user action on the receiver UI. The
+     * action causes an update on the receiver state.
+     */
+    fun onAction(action: ReceiverAction)
 }
 
 /**
@@ -216,6 +231,12 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         return locationFileState.recentMarker()?.locationData?.time?.currentTime?.let { time ->
             markerFactory.deltaFormatter.formatTimeDelta(markerFactory.timeService.currentTime().currentTime - time)
         }
+    }
+
+    override fun onAction(action: ReceiverAction) {
+        Log.i(TAG, "onAction($action)")
+
+        mapStateUpdater?.update()
     }
 
     override fun onCleared() {

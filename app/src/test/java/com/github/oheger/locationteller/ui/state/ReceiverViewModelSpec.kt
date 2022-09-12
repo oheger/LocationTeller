@@ -402,6 +402,19 @@ class ReceiverViewModelSpec : WordSpec() {
                 model.recentLocationTime() shouldBe "10 $UNIT_MINUTE"
             }
         }
+
+        "onAction" should {
+            "handle an UPDATE action" {
+                every { updater.update() } just runs
+                val model = createModel()
+
+                model.onAction(ReceiverAction.UPDATE)
+
+                verify {
+                    updater.update()
+                }
+            }
+        }
     }
 
     /**

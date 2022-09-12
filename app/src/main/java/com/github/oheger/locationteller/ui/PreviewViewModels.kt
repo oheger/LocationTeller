@@ -25,6 +25,7 @@ import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.TimeData
+import com.github.oheger.locationteller.ui.state.ReceiverAction
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
@@ -65,6 +66,7 @@ internal data class PreviewReceiverViewModel(
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {}
 
     override fun recentLocationTime(): String = "42 s"
+    override fun onAction(action: ReceiverAction) {}
 }
 
 /** A test server configuration used by the model for the preview. */
