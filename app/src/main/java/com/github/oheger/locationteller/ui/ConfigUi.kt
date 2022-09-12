@@ -367,14 +367,15 @@ fun ConfigBooleanItem(
     update: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ConfigItemLabel(item = item, labelRes = labelRes, onClick = {}, modifier = modifier.padding(top = 15.dp))
-    Switch(
-        checked = value,
-        onCheckedChange = update,
-        modifier = modifier
-            .padding(start = EDITOR_INDENT.dp)
-            .testTag(ConfigItemElement.EDITOR.tagForItem(item))
-    )
+    Row(modifier = modifier) {
+        ConfigItemLabel(item = item, labelRes = labelRes, onClick = {}, modifier = modifier.padding(top = 15.dp))
+        Spacer(modifier = modifier.weight(1f))
+        Switch(
+            checked = value,
+            onCheckedChange = update,
+            modifier = modifier.testTag(ConfigItemElement.EDITOR.tagForItem(item))
+        )
+    }
 }
 
 /**
