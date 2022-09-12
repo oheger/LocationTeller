@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -556,15 +557,24 @@ class ConfigUiSpec {
     @Test
     fun `A Boolean configuration item is correctly displayed`() {
         val item2 = CONFIG_ITEM + "_other"
+        val item3 = CONFIG_ITEM + "_other2"
         composableTestRule.setContent {
             ConfigBooleanItem(item = CONFIG_ITEM, labelRes = R.string.pref_auto_reset_stats, value = true, update = {})
             ConfigBooleanItem(item = item2, labelRes = R.string.pref_auto_reset_stats, value = false, update = {})
+            ConfigBooleanItem(
+                item = item3,
+                labelRes = R.string.pref_auto_reset_stats,
+                value = false,
+                enabled = false,
+                update = {})
         }
 
         composableTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(item2))
             .assertTextEquals(stringResource(R.string.pref_auto_reset_stats))
         composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).assertIsOn()
+        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(CONFIG_ITEM)).assertIsEnabled()
         composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(item2)).assertIsOff()
+        composableTestRule.onNodeWithTag(ConfigItemElement.EDITOR.tagForItem(item3)).assertIsNotEnabled()
     }
 
     fun `A Boolean configuration item can be edited`() {

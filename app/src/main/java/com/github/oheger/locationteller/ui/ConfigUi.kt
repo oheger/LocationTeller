@@ -355,9 +355,10 @@ fun ConfigDurationItem(
 
 /**
  * Generate the UI for the configuration setting [item] of type boolean with the specified
- * [resource ID for the label][labelRes] and [value]. In contrast to other functions for configuration settings, for
- * booleans, no separate editor is used; the boolean value is represented by a switch, which can be updated
- * directly. Changes on the switch state are propagated to the [update] function.
+ * [resource ID for the label][labelRes] and [value]. With the given [enabled] flag, it can be determined whether the
+ * item is enabled or disabled; in the latter case, it cannot be edited. In contrast to other functions for
+ * configuration settings, for booleans, no separate editor is used; the boolean value is represented by a switch,
+ * which can be updated directly. Changes on the switch state are propagated to the [update] function.
  */
 @Composable
 fun ConfigBooleanItem(
@@ -365,14 +366,22 @@ fun ConfigBooleanItem(
     labelRes: Int,
     value: Boolean,
     update: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Row(modifier = modifier) {
-        ConfigItemLabel(item = item, labelRes = labelRes, onClick = {}, modifier = modifier.padding(top = 15.dp))
+        ConfigItemLabel(
+            item = item,
+            labelRes = labelRes,
+            onClick = {},
+            enabled = enabled,
+            modifier = modifier.padding(top = 15.dp)
+        )
         Spacer(modifier = modifier.weight(1f))
         Switch(
             checked = value,
             onCheckedChange = update,
+            enabled = enabled,
             modifier = modifier.testTag(ConfigItemElement.EDITOR.tagForItem(item))
         )
     }
@@ -572,13 +581,20 @@ fun <T> ConfigItem(
 
 /**
  * Generate the label for the given configuration [item], using the given [resource ID][labelRes]. The label can be
- * clicked, then the [onClick] callback is invoked.
+ * clicked, then the [onClick] callback is invoked. With the given [enabled] flag, the enabled state of this item is
+ * determined; if set to *false*, the label is rendered not in bold.
  */
 @Composable
-private fun ConfigItemLabel(item: String, labelRes: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ConfigItemLabel(
+    item: String,
+    labelRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
     Text(
         text = stringResource(id = labelRes),
-        fontWeight = FontWeight.Bold,
+        fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal,
         fontSize = 18.sp,
         modifier = modifier
             .testTag(ConfigItemElement.LABEL.tagForItem(item))
@@ -699,6 +715,13 @@ private class InvalidDurationException(val invalidComponents: List<String>) : Ex
 fun ItemsPreview() {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         ConfigBooleanItem(item = "booleanItem", labelRes = R.string.pref_auto_reset_stats, value = true, update = {})
+
+        ConfigBooleanItem(
+            item = "booleanItem2",
+            labelRes = R.string.pref_auto_reset_stats,
+            value = true,
+            enabled = false,
+            update = {})
 
         ConfigIntItem(
             item = "intItem",
