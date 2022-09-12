@@ -29,6 +29,8 @@ import kotlin.coroutines.CoroutineContext
  * configured [updateInterval] is reached, a [MapStateLoader] is called to obtain the newest state from the server.
  * The new state is then propagated via an update function. In addition, a count-down is generated, so that a UI can
  * display the time until the next update happens.
+ *
+ * _Implementation note:_ This class is not thread-safe. All interactions must be done in the main thread.
  */
 class MapStateUpdater internal constructor(
     /** The update interval in seconds. */
@@ -83,6 +85,15 @@ class MapStateUpdater internal constructor(
      */
     override fun close() {
         tickerService.cancel()
+    }
+
+    /**
+     * Trigger an immediate update. This is equivalent to setting the count-down to 1 and then simulating a tick event.
+     * New state is fetched from the server, and corresponding data is published.
+     */
+    fun update() {
+        countDownValue = 1
+        tick()
     }
 
     /**

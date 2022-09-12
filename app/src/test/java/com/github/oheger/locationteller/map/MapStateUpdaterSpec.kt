@@ -100,7 +100,7 @@ class MapStateUpdaterSpec : StringSpec() {
 
         "The count-down value should not become negative" {
             val helper = UpdaterTestHelper().apply {
-            runJobs()
+                runJobs()
                 closeUpdater()
             }
 
@@ -125,6 +125,20 @@ class MapStateUpdaterSpec : StringSpec() {
             helper.sendTicks(UPDATE_INTERVAL)
             helper.runJobs()
             helper.shouldHaveUpdated(LocationFileState.EMPTY, state1, state2)
+        }
+
+        "Updates can be triggered on demand" {
+            val state = LocationTestHelper.createState(1..4)
+            val helper = UpdaterTestHelper().apply {
+                runJobs()
+                closeUpdater()
+                prepareLoader(state)
+            }
+
+            helper.triggerUpdate()
+            helper.runJobs()
+
+            helper.shouldHaveUpdated(LocationFileState.EMPTY, state)
         }
     }
 }
@@ -188,6 +202,13 @@ private class UpdaterTestHelper {
      */
     fun sendTicks(count: Int = 1) {
         (1..count).forEach { _ -> updater.tick() }
+    }
+
+    /**
+     * Trigger the test updater to perform an update immediately.
+     */
+    fun triggerUpdate() {
+        updater.update()
     }
 
     /**
