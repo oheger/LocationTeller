@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -47,10 +49,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.config.ReceiverConfig
+import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
 import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
+import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
@@ -61,6 +66,11 @@ internal const val TAG_REC_MAP_VIEW = "rec_map_view"
 internal const val TAG_REC_UPDATE_INDICATOR = "rec_update_indicator"
 internal const val TAG_REC_UPDATE_STATUS_TEXT = "rec_update_status_text"
 internal const val TAG_REC_LOCATION_STATUS_TEXT = "rec_location_status_text"
+internal const val TAG_REC_CONF_UPDATE_INTERVAL = "rec_conf_update_interval"
+internal const val TAG_REC_CONF_FADE = "rec_conf_fade"
+internal const val TAG_REC_CONF_FADE_FAST = "rec_conf_fade_fast"
+internal const val TAG_REC_CONF_FADE_STRONG = "rec_conf_fade_strong"
+internal const val TAG_REC_CONF_CENTER_NEW = "rec_conf_center_new"
 
 internal const val TAG_REC_HEADER_ACTIONS = "actions"
 internal const val TAG_REC_HEADER_SETTINGS = "settings"
@@ -106,6 +116,8 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
                 countDown = model.secondsToNextUpdateString,
                 numberOfLocations = model.locationFileState.files.size,
                 recentLocationTime = model.recentLocationTime(),
+                config = model.receiverConfig,
+                updateConfig = model::updateReceiverConfig,
                 modifier
             )
         }
@@ -152,7 +164,8 @@ fun MapView(
 /**
  * Generate the part of the receiver UI that allows controlling the map view. Here some status information is
  * displayed, and the user can manipulate the map. Pass [updateInProgress], [countDown], [numberOfLocations], and
- * [recentLocationTime] to the [StatusLine] function.
+ * [recentLocationTime] to the [StatusLine] function. Pass [config], and [updateConfig] to the function to edit the
+ * receiver configuration.
  */
 @Composable
 internal fun ControlView(
@@ -160,6 +173,8 @@ internal fun ControlView(
     countDown: String,
     numberOfLocations: Int,
     recentLocationTime: String?,
+    config: ReceiverConfig,
+    updateConfig: (ReceiverConfig) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var actionsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -179,6 +194,9 @@ internal fun ControlView(
             expanded = settingsExpanded,
             onChanged = { settingsExpanded = it }
         )
+        if (settingsExpanded) {
+            ReceiverConfigView(config = config, update = updateConfig, modifier = modifier)
+        }
 
         StatusLine(
             updateInProgress = updateInProgress,
@@ -186,6 +204,69 @@ internal fun ControlView(
             numberOfLocations = numberOfLocations,
             recentLocationTime = recentLocationTime,
             modifier
+        )
+    }
+}
+
+/**
+ * Generate a view in which the user can edit the current [receiver configuration][config]. Report changes on the
+ * configuration through the given [update] function.
+ */
+@Composable
+internal fun ReceiverConfigView(config: ReceiverConfig, update: (ReceiverConfig) -> Unit, modifier: Modifier) {
+    val editItem = rememberSaveable { mutableStateOf<String?>(null) }
+    val editFunc: (String?) -> Unit = { editItem.value = it }
+
+    fun <T> updateConfig(updateFunc: (ReceiverConfig, T) -> ReceiverConfig): (T) -> Unit = { value ->
+        update(updateFunc(config, value))
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            //.padding(start = 10.dp, end = 10.dp, top = 0.dp, bottom = 5.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        ConfigDurationItem(
+            item = TAG_REC_CONF_UPDATE_INTERVAL,
+            editItem = editItem.value,
+            labelRes = R.string.pref_rec_update_interval,
+            value = config.updateInterval,
+            formatter = TrackStatsFormatter.INSTANCE,
+            maxComponent = DurationModel.Component.MINUTE,
+            update = updateConfig { config, interval -> config.copy(updateInterval = interval) },
+            updateEdit = editFunc,
+            modifier = modifier
+        )
+        ConfigBooleanItem(
+            item = TAG_REC_CONF_FADE,
+            labelRes = R.string.pref_rec_fade,
+            value = config.fadeOutEnabled,
+            update = updateConfig { config, fade -> config.copy(fadeOutEnabled = fade) },
+            modifier = modifier
+        )
+        ConfigBooleanItem(
+            item = TAG_REC_CONF_FADE_FAST,
+            labelRes = R.string.pref_rec_fade_fast,
+            value = config.fastFadeOut,
+            update = updateConfig { config, fade -> config.copy(fastFadeOut = fade) },
+            enabled = config.fadeOutEnabled,
+            modifier = modifier.padding(start = 10.dp)
+        )
+        ConfigBooleanItem(
+            item = TAG_REC_CONF_FADE_STRONG,
+            labelRes = R.string.pref_rec_fade_strong,
+            value = config.strongFadeOut,
+            update = updateConfig { config, fade -> config.copy(strongFadeOut = fade) },
+            enabled = config.fadeOutEnabled,
+            modifier = modifier.padding(start = 10.dp)
+        )
+        ConfigBooleanItem(
+            item = TAG_REC_CONF_CENTER_NEW,
+            labelRes = R.string.pref_rec_center_new,
+            value = config.centerNewPosition,
+            update = updateConfig { config, center -> config.copy(centerNewPosition = center) },
+            modifier = modifier
         )
     }
 }
@@ -317,4 +398,18 @@ fun ReceiverPreview() {
     val model = PreviewReceiverViewModel()
 
     ReceiverView(model = model)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ReceiverConfigPreview() {
+    val config = ReceiverConfig(
+        updateInterval = 150,
+        fadeOutEnabled = true,
+        fastFadeOut = true,
+        strongFadeOut = false,
+        centerNewPosition = true
+    )
+
+    ReceiverConfigView(config = config, update = {}, modifier = Modifier)
 }
