@@ -49,7 +49,12 @@ enum class ReceiverAction {
     UPDATE,
 
     /** Moves the recent position to the center of the map. */
-    CENTER_RECENT_POSITION
+    CENTER_RECENT_POSITION,
+
+    /**
+     * Changes position and zoom level of the map view, so that the whole tracked area can be displayed.
+     */
+    ZOOM_TRACKED_AREA
 }
 
 /**
@@ -242,6 +247,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         when (action) {
             ReceiverAction.UPDATE -> mapStateUpdater?.update()
             ReceiverAction.CENTER_RECENT_POSITION -> receiverCameraState.centerRecentMarker(locationFileState)
+            ReceiverAction.ZOOM_TRACKED_AREA -> receiverCameraState.zoomToAllMarkers(locationFileState)
         }
     }
 

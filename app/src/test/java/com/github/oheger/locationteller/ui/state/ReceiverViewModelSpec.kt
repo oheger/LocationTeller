@@ -429,6 +429,21 @@ class ReceiverViewModelSpec : WordSpec() {
                     cameraState.centerRecentMarker(locationFileState)
                 }
             }
+
+            "handle a ZOOM_TRACKED_AREA action" {
+                val locationFileState = LocationTestHelper.createState(2..8)
+                every { cameraState.centerRecentMarker(any()) } just runs
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locationFileState)
+
+                model.onAction(ReceiverAction.ZOOM_TRACKED_AREA)
+
+                verify(exactly = 2) {
+                    cameraState.zoomToAllMarkers(locationFileState)
+                }
+            }
         }
     }
 

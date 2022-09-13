@@ -248,6 +248,16 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Mo
             )
         }
         Spacer(modifier = modifier.weight(1f))
+        Button(
+            onClick = { onAction(ReceiverAction.ZOOM_TRACKED_AREA) },
+            modifier = modifier.testTag(actionTag(ReceiverAction.ZOOM_TRACKED_AREA))
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_action_zoom_tracked),
+                contentDescription = stringResource(id = R.string.item_zoom_tracked_area)
+            )
+        }
+        Spacer(modifier = modifier.weight(1f))
     }
 }
 
