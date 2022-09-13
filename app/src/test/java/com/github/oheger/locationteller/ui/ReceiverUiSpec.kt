@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -31,6 +32,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.ReceiverConfig
+import com.github.oheger.locationteller.ui.state.ReceiverAction
 
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
@@ -132,10 +134,40 @@ class ReceiverUiSpec {
         currentConfig shouldBe expectedConfig
     }
 
+    @Test
+    fun `The actions view is hidden by default`() {
+        ReceiverAction.values().forAll { action ->
+            composeTestRule.onNodeWithTag(actionTag(action)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `The actions view can be displayed`() {
+        toggleActionView()
+
+        ReceiverAction.values().forAll { action ->
+            composeTestRule.onNodeWithTag(actionTag(action)).assertIsDisplayed()
+        }
+    }
+
     /**
      * Toggle the visibility of the receiver configuration view by clicking on the expandable header.
      */
     private fun toggleConfigView() {
-        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_SETTINGS)).performClick()
+        toggleExpandableHeader(TAG_REC_HEADER_SETTINGS)
+    }
+
+    /**
+     * Toggle the visibility of the receiver actions view by clicking on the expandable header.
+     */
+    private fun toggleActionView() {
+        toggleExpandableHeader(TAG_REC_HEADER_ACTIONS)
+    }
+
+    /**
+     * Toggle the visibility of the view controlled by the expandable header with the given [tag] by clicking on it.
+     */
+    private fun toggleExpandableHeader(tag: String) {
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(tag)).performClick()
     }
 }

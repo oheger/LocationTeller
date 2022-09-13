@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -53,6 +54,7 @@ import com.github.oheger.locationteller.config.ReceiverConfig
 import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MarkerFactory
+import com.github.oheger.locationteller.ui.state.ReceiverAction
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
 import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
@@ -89,6 +91,11 @@ internal fun expandableHeaderIconTag(tag: String): String = "$TAG_REC_EXPANDABLE
 internal fun expandableHeaderTextTag(tag: String): String = "$TAG_REC_EXPANDABLE_HEADER_PREFIX${tag}_caption"
 
 /**
+ * Generate a test tag for the action button that triggers the given [action].
+ */
+internal fun actionTag(action: ReceiverAction): String = "rec_action_$action"
+
+/**
  * Generate the whole receiver UI. This is the entry point into this UI.
  */
 @Composable
@@ -118,6 +125,7 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
                 recentLocationTime = model.recentLocationTime(),
                 config = model.receiverConfig,
                 updateConfig = model::updateReceiverConfig,
+                onAction = model::onAction,
                 modifier
             )
         }
@@ -175,6 +183,7 @@ internal fun ControlView(
     recentLocationTime: String?,
     config: ReceiverConfig,
     updateConfig: (ReceiverConfig) -> Unit,
+    onAction: (ReceiverAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var actionsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -187,6 +196,9 @@ internal fun ControlView(
             expanded = actionsExpanded,
             onChanged = { actionsExpanded = it }
         )
+        if (actionsExpanded) {
+            ReceiverActionView(onAction = onAction, modifier = modifier)
+        }
 
         ExpandableHeader(
             headerRes = R.string.rec_header_settings,
@@ -205,6 +217,27 @@ internal fun ControlView(
             recentLocationTime = recentLocationTime,
             modifier
         )
+    }
+}
+
+/**
+ * Generate a view with buttons corresponding to actions the user can perform on the receiver view. Report the actions
+ * triggered by the user via the [onAction] function.
+ */
+@Composable
+internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Modifier) {
+    Row(modifier = modifier.fillMaxWidth()) {
+        Spacer(modifier = modifier.weight(1f))
+        Button(
+            onClick = { onAction(ReceiverAction.UPDATE) },
+            modifier = modifier.testTag(actionTag(ReceiverAction.UPDATE))
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_action_refresh),
+                contentDescription = stringResource(id = R.string.item_update_map)
+            )
+        }
+        Spacer(modifier = modifier.weight(1f))
     }
 }
 
@@ -412,4 +445,10 @@ fun ReceiverConfigPreview() {
     )
 
     ReceiverConfigView(config = config, update = {}, modifier = Modifier)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ActionPreview() {
+    ReceiverActionView(onAction = {}, modifier = Modifier)
 }

@@ -28,8 +28,11 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.ui.state.ReceiverAction
 
 import io.kotest.matchers.shouldBe
+import io.mockk.spyk
+import io.mockk.verify
 
 import org.junit.Rule
 import org.junit.Test
@@ -163,6 +166,28 @@ class ReceiverViewSpec {
             .assertTextContains(model.secondsToNextUpdateString, substring = true)
         composeTestRule.onNodeWithTag(TAG_REC_LOCATION_STATUS_TEXT)
             .assertTextContains(model.recentLocationTime(), substring = true)
+    }
+
+    @Test
+    fun `The update action is correctly handled`() {
+        checkAction(ReceiverAction.UPDATE)
+    }
+
+    /**
+     * Check whether the given [action] is correctly triggered.
+     */
+    private fun checkAction(action: ReceiverAction) {
+        val model = spyk(PreviewReceiverViewModel())
+        composeTestRule.setContent {
+            ReceiverView(model = model)
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+        composeTestRule.onNodeWithTag(actionTag(action)).performClick()
+
+        verify {
+            model.onAction(action)
+        }
     }
 }
 
