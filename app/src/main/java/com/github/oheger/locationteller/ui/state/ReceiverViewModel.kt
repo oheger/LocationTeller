@@ -46,7 +46,10 @@ import com.google.maps.android.compose.CameraPositionState
  */
 enum class ReceiverAction {
     /** Triggers an immediate update of the receiver state from the server. */
-    UPDATE
+    UPDATE,
+
+    /** Moves the recent position to the center of the map. */
+    CENTER_RECENT_POSITION
 }
 
 /**
@@ -236,7 +239,10 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     override fun onAction(action: ReceiverAction) {
         Log.i(TAG, "onAction($action)")
 
-        mapStateUpdater?.update()
+        when (action) {
+            ReceiverAction.UPDATE -> mapStateUpdater?.update()
+            ReceiverAction.CENTER_RECENT_POSITION -> receiverCameraState.centerRecentMarker(locationFileState)
+        }
     }
 
     override fun onCleared() {

@@ -173,6 +173,11 @@ class ReceiverViewSpec {
         checkAction(ReceiverAction.UPDATE)
     }
 
+    @Test
+    fun `The center recent position action is correctly handled`() {
+        checkAction(ReceiverAction.CENTER_RECENT_POSITION)
+    }
+
     /**
      * Check whether the given [action] is correctly triggered.
      */

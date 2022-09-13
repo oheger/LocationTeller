@@ -238,6 +238,16 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Mo
             )
         }
         Spacer(modifier = modifier.weight(1f))
+        Button(
+            onClick = { onAction(ReceiverAction.CENTER_RECENT_POSITION) },
+            modifier = modifier.testTag(actionTag(ReceiverAction.CENTER_RECENT_POSITION))
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_action_center_last),
+                contentDescription = stringResource(id = R.string.item_center_to_recent)
+            )
+        }
+        Spacer(modifier = modifier.weight(1f))
     }
 }
 

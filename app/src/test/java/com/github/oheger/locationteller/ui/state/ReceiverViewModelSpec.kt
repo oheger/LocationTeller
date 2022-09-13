@@ -414,6 +414,21 @@ class ReceiverViewModelSpec : WordSpec() {
                     updater.update()
                 }
             }
+
+            "handle a CENTER_RECENT_POSITION action" {
+                val locationFileState = LocationTestHelper.createState(4..8)
+                every { cameraState.centerRecentMarker(any()) } just runs
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locationFileState)
+
+                model.onAction(ReceiverAction.CENTER_RECENT_POSITION)
+
+                verify {
+                    cameraState.centerRecentMarker(locationFileState)
+                }
+            }
         }
     }
 
