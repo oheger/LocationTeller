@@ -197,7 +197,7 @@ internal fun ControlView(
             onChanged = { actionsExpanded = it }
         )
         if (actionsExpanded) {
-            ReceiverActionView(onAction = onAction, modifier = modifier)
+            ReceiverActionView(onAction = onAction, numberOfLocations = numberOfLocations, modifier = modifier)
         }
 
         ExpandableHeader(
@@ -222,10 +222,11 @@ internal fun ControlView(
 
 /**
  * Generate a view with buttons corresponding to actions the user can perform on the receiver view. Report the actions
- * triggered by the user via the [onAction] function.
+ * triggered by the user via the [onAction] function. Use [numberOfLocations] to disable some actions that depend on
+ * the availability of positions.
  */
 @Composable
-internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Modifier) {
+internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, numberOfLocations: Int, modifier: Modifier) {
     Row(modifier = modifier.fillMaxWidth()) {
         Spacer(modifier = modifier.weight(1f))
         ActionButton(
@@ -241,7 +242,8 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Mo
             iconId = R.drawable.ic_action_center_last,
             contentDescId = R.string.item_center_to_recent,
             onAction = onAction,
-            modifier = modifier
+            modifier = modifier,
+            enabled = numberOfLocations > 0
         )
         Spacer(modifier = modifier.weight(1f))
         ActionButton(
@@ -249,7 +251,8 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Mo
             iconId = R.drawable.ic_action_zoom_tracked,
             contentDescId = R.string.item_zoom_tracked_area,
             onAction = onAction,
-            modifier = modifier
+            modifier = modifier,
+            enabled = numberOfLocations > 0
         )
         Spacer(modifier = modifier.weight(1f))
     }
@@ -439,8 +442,9 @@ internal fun ExpandableHeader(
 }
 
 /**
- * Generate a button that represents the given [action] with the given [iconId] and
- * [content description][contentDescId]. When the button is clicked, invoke the given [onAction] function.
+ * Generate a button that represents the given [action] with the given [iconId],
+ * [content description][contentDescId], and [enabled] state. When the button is clicked, invoke the given
+ * [onAction] function.
  */
 @Composable
 private fun ActionButton(
@@ -448,10 +452,12 @@ private fun ActionButton(
     iconId: Int,
     contentDescId: Int,
     onAction: (ReceiverAction) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = { onAction(action) },
+        enabled = enabled,
         modifier = modifier.testTag(actionTag(action))
     ) {
         Icon(
@@ -487,5 +493,5 @@ fun ReceiverConfigPreview() {
 @Preview(showBackground = true)
 @Composable
 fun ActionPreview() {
-    ReceiverActionView(onAction = {}, modifier = Modifier)
+    ReceiverActionView(onAction = {}, numberOfLocations = 5, modifier = Modifier)
 }

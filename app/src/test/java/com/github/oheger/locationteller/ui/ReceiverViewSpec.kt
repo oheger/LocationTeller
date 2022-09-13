@@ -19,6 +19,8 @@ import android.app.Application
 
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -28,9 +30,12 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.ui.state.ReceiverAction
 
+import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
+
 import io.mockk.spyk
 import io.mockk.verify
 
@@ -183,6 +188,20 @@ class ReceiverViewSpec {
         checkAction(ReceiverAction.ZOOM_TRACKED_AREA)
     }
 
+    @Test
+    fun `Some actions are disabled when no positions are available`() {
+        val model = PreviewReceiverViewModel(locationFileState = LocationFileState.EMPTY)
+        composeTestRule.setContent {
+            ReceiverView(model = model)
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+
+        listOf(ReceiverAction.CENTER_RECENT_POSITION, ReceiverAction.ZOOM_TRACKED_AREA).forAll { action ->
+            composeTestRule.onNodeWithTag(actionTag(action)).assertIsNotEnabled()
+        }
+    }
+
     /**
      * Check whether the given [action] is correctly triggered.
      */
@@ -193,7 +212,10 @@ class ReceiverViewSpec {
         }
 
         composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
-        composeTestRule.onNodeWithTag(actionTag(action)).performClick()
+        with(composeTestRule.onNodeWithTag(actionTag(action))) {
+            assertIsEnabled()
+            performClick()
+        }
 
         verify {
             model.onAction(action)
