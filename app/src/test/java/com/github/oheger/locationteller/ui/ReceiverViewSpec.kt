@@ -178,6 +178,7 @@ class ReceiverViewSpec {
         checkAction(ReceiverAction.CENTER_RECENT_POSITION)
     }
 
+    @Test
     fun `The zoom tracked area action is correctly handled`() {
         checkAction(ReceiverAction.ZOOM_TRACKED_AREA)
     }

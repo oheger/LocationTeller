@@ -228,35 +228,29 @@ internal fun ControlView(
 internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, modifier: Modifier) {
     Row(modifier = modifier.fillMaxWidth()) {
         Spacer(modifier = modifier.weight(1f))
-        Button(
-            onClick = { onAction(ReceiverAction.UPDATE) },
-            modifier = modifier.testTag(actionTag(ReceiverAction.UPDATE))
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_action_refresh),
-                contentDescription = stringResource(id = R.string.item_update_map)
-            )
-        }
+        ActionButton(
+            action = ReceiverAction.UPDATE,
+            iconId = R.drawable.ic_action_refresh,
+            contentDescId = R.string.item_update_map,
+            onAction = onAction,
+            modifier = modifier
+        )
         Spacer(modifier = modifier.weight(1f))
-        Button(
-            onClick = { onAction(ReceiverAction.CENTER_RECENT_POSITION) },
-            modifier = modifier.testTag(actionTag(ReceiverAction.CENTER_RECENT_POSITION))
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_action_center_last),
-                contentDescription = stringResource(id = R.string.item_center_to_recent)
-            )
-        }
+        ActionButton(
+            action = ReceiverAction.CENTER_RECENT_POSITION,
+            iconId = R.drawable.ic_action_center_last,
+            contentDescId = R.string.item_center_to_recent,
+            onAction = onAction,
+            modifier = modifier
+        )
         Spacer(modifier = modifier.weight(1f))
-        Button(
-            onClick = { onAction(ReceiverAction.ZOOM_TRACKED_AREA) },
-            modifier = modifier.testTag(actionTag(ReceiverAction.ZOOM_TRACKED_AREA))
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_action_zoom_tracked),
-                contentDescription = stringResource(id = R.string.item_zoom_tracked_area)
-            )
-        }
+        ActionButton(
+            action = ReceiverAction.ZOOM_TRACKED_AREA,
+            iconId = R.drawable.ic_action_zoom_tracked,
+            contentDescId = R.string.item_zoom_tracked_area,
+            onAction = onAction,
+            modifier = modifier
+        )
         Spacer(modifier = modifier.weight(1f))
     }
 }
@@ -440,6 +434,29 @@ internal fun ExpandableHeader(
             text = headerText, modifier = modifier
                 .clickable(onClick = onClick)
                 .testTag(expandableHeaderTextTag(tag))
+        )
+    }
+}
+
+/**
+ * Generate a button that represents the given [action] with the given [iconId] and
+ * [content description][contentDescId]. When the button is clicked, invoke the given [onAction] function.
+ */
+@Composable
+private fun ActionButton(
+    action: ReceiverAction,
+    iconId: Int,
+    contentDescId: Int,
+    onAction: (ReceiverAction) -> Unit,
+    modifier: Modifier
+) {
+    Button(
+        onClick = { onAction(action) },
+        modifier = modifier.testTag(actionTag(action))
+    ) {
+        Icon(
+            painter = painterResource(id = iconId),
+            contentDescription = stringResource(id = contentDescId)
         )
     }
 }
