@@ -52,13 +52,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.ReceiverConfig
 import com.github.oheger.locationteller.duration.DurationModel
-import com.github.oheger.locationteller.map.LocationFileState
-import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.ui.state.ReceiverAction
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
 import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerInfoWindow
@@ -111,8 +110,7 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Box(modifier = modifier.weight(1.0f)) {
             MapView(
-                locationFileState = model.locationFileState,
-                markerFactory = model.markerFactory,
+                markers = model.markers,
                 cameraState = model.cameraPositionState,
                 modifier = modifier.testTag(TAG_REC_MAP_VIEW)
             )
@@ -133,13 +131,12 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
 }
 
 /**
- * Render the map view as part of the receiver UI. Use the given [markerFactory] to display markers on the map based on
- * the given [locationFileState]. Set the position and zoom level of the map as defined by the given [cameraState].
+ * Render the map view as part of the receiver UI. Place the given [markers] on the map. Set the position and zoom
+ * level of the map as defined by the given [cameraState].
  */
 @Composable
 fun MapView(
-    locationFileState: LocationFileState,
-    markerFactory: MarkerFactory,
+    markers: List<MarkerOptions>,
     cameraState: CameraPositionState,
     modifier: Modifier = Modifier
 ) {
@@ -147,25 +144,16 @@ fun MapView(
         modifier = modifier.fillMaxSize(),
         cameraPositionState = cameraState
     ) {
-        val recentMarker = locationFileState.recentMarker()
-        val markerData = locationFileState.files.mapNotNull { locationFileState.markerData[it] }
-
-        markerData.withIndex()
-            .forEach { (index, data) ->
-                val options = markerFactory.createMarker(
-                    data,
-                    recentMarker = data == recentMarker,
-                    zIndex = index.toFloat()
-                )
-                MarkerInfoWindow(
-                    state = MarkerState(position = options.position),
-                    alpha = options.alpha,
-                    icon = options.icon,
-                    zIndex = options.zIndex,
-                    title = options.title,
-                    snippet = options.snippet
-                )
-            }
+        markers.forEach { options ->
+            MarkerInfoWindow(
+                state = MarkerState(position = options.position),
+                alpha = options.alpha,
+                icon = options.icon,
+                zIndex = options.zIndex,
+                title = options.title,
+                snippet = options.snippet
+            )
+        }
     }
 }
 
