@@ -38,6 +38,7 @@ import com.github.oheger.locationteller.map.RangeTimeDeltaAlphaCalculator
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
 
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 
 /**
@@ -74,6 +75,13 @@ interface ReceiverViewModel {
     /** The object containing the position files loaded from the server. */
     val locationFileState: LocationFileState
 
+    /**
+     * A list with [MarkerOptions] corresponding to the positions in the managed [LocationFileState]. Whenever a new
+     * [LocationFileState] is set, corresponding markers are created using [markerFactory]. The UI can then directly
+     * use these markers to render the map view.
+     */
+    val markers: List<MarkerOptions>
+
     /** The number of seconds until the next update from the server. */
     val secondsToNextUpdate: Int
 
@@ -102,6 +110,25 @@ interface ReceiverViewModel {
      * action causes an update on the receiver state.
      */
     fun onAction(action: ReceiverAction)
+
+    /**
+     * Create a list of [MarkerOptions] for the positions stored in this [LocationFileState] using the [MarkerFactory]
+     * managed by this object. This function can be used by concrete implementations to provide the markers
+     * property.
+     */
+    fun LocationFileState.createMarkers(): List<MarkerOptions> {
+        val recentMarker = recentMarker()
+        val markerData = files.mapNotNull { markerData[it] }
+
+        return markerData.withIndex()
+            .map { (index, data) ->
+                markerFactory.createMarker(
+                    data,
+                    recentMarker = data == recentMarker,
+                    zIndex = index.toFloat()
+                )
+            }
+    }
 }
 
 /**
@@ -166,6 +193,12 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     private val currentLocationFileState: MutableState<LocationFileState>
 
     /**
+     * Stores a list with [MarkerOptions] for the positions contained in [currentLocationFileState]. This property is
+     * updated automatically when a new [LocationFileState] is set or the [MarkerFactory] changes.
+     */
+    private val currentMarkers: MutableState<List<MarkerOptions>>
+
+    /**
      * Stores the count-down value when the next update from the server is scheduled. This property gets updated
      * automatically from the [MapStateUpdater].
      */
@@ -208,6 +241,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
 
         currentMarkerFactory = mutableStateOf(createMarkerFactory())
         currentLocationFileState = mutableStateOf(LocationFileState.EMPTY)
+        currentMarkers = mutableStateOf(emptyList())
 
         receiverConfigChanged(configManager.receiverConfig(application))
         serverConfigChanged(configManager.serverConfig(application))
@@ -224,6 +258,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
 
     override val locationFileState: LocationFileState
         get() = currentLocationFileState.value
+
+    override val markers: List<MarkerOptions>
+        get() = currentMarkers.value
 
     override val secondsToNextUpdate: Int
         get() = currentSecondsToNextUpdate.value
@@ -332,6 +369,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
 
         currentReceiverConfig.value = config
         currentMarkerFactory.value = createMarkerFactory()
+        currentMarkers.value = locationFileState.createMarkers()
     }
 
     /**
@@ -348,6 +386,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     private fun locationFileStateChanged(newState: LocationFileState) {
         updateCamera(newState)
         currentLocationFileState.value = newState
+        currentMarkers.value = newState.createMarkers()
     }
 
     /**

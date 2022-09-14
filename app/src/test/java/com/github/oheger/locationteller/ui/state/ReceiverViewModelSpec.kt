@@ -27,19 +27,26 @@ import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.LocationTestHelper
 import com.github.oheger.locationteller.map.MapStateLoader
 import com.github.oheger.locationteller.map.MapStateUpdater
+import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TrackService
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.github.oheger.locationteller.track.TrackTestHelper.asServerConfig
 
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCase
+import io.kotest.inspectors.forAll
+import io.kotest.matchers.collections.beEmpty
+import io.kotest.matchers.collections.containExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.beNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 
 import io.mockk.every
 import io.mockk.just
@@ -47,6 +54,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.runs
 import io.mockk.slot
+import io.mockk.spyk
 import io.mockk.verify
 
 /**
@@ -443,6 +451,81 @@ class ReceiverViewModelSpec : WordSpec() {
                 verify(exactly = 2) {
                     cameraState.zoomToAllMarkers(locationFileState)
                 }
+            }
+        }
+
+        "markers" should {
+            "be created correctly for the data in a LocationFileState" {
+                val locationFileState = LocationTestHelper.createState(1..3)
+                val marker1 = mockk<MarkerOptions>()
+                val marker2 = mockk<MarkerOptions>()
+                val marker3 = mockk<MarkerOptions>()
+                val markerFactory = mockk<MarkerFactory>()
+                val model = spyk(createModel())
+                every { model.markerFactory } returns markerFactory
+
+                every {
+                    markerFactory.createMarker(
+                        LocationTestHelper.createMarkerData(1),
+                        recentMarker = false,
+                        zIndex = 0f
+                    )
+                } returns marker1
+                every {
+                    markerFactory.createMarker(
+                        LocationTestHelper.createMarkerData(2),
+                        recentMarker = false,
+                        zIndex = 1f
+                    )
+                } returns marker2
+                every {
+                    markerFactory.createMarker(
+                        LocationTestHelper.createMarkerData(3),
+                        recentMarker = true,
+                        zIndex = 2f
+                    )
+                } returns marker3
+
+                val markers = with(model) {
+                    locationFileState.createMarkers()
+                }
+
+                markers should containExactly(marker1, marker2, marker3)
+            }
+
+            "be empty initially" {
+                val model = createModel()
+
+                model.markers should beEmpty()
+            }
+
+            "contain the expected data from the LocationFileState" {
+                val locationFileState = LocationTestHelper.createState(1..4)
+                every { cameraState.centerRecentMarker(any()) } just runs
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locationFileState)
+
+                val markers = model.markers
+
+                locationFileState.markerData.values.forAll { markerData ->
+                    markers.find { it.position == markerData.position }.shouldNotBeNull()
+                }
+            }
+
+            "be replaced when the marker factory is changed" {
+                val locationFileState = LocationTestHelper.createState(1..32)
+                every { cameraState.centerRecentMarker(any()) } just runs
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locationFileState)
+                val markers = model.markers
+
+                receiverConfigChangeNotification(RECEIVER_CONFIG.copy(fastFadeOut = true))
+
+                model.markers shouldNotBe markers
             }
         }
     }

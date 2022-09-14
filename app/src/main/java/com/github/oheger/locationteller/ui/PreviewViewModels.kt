@@ -32,6 +32,7 @@ import com.github.oheger.locationteller.ui.state.TrackViewModel
 
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 
 /**
@@ -63,6 +64,9 @@ internal data class PreviewReceiverViewModel(
     override val secondsToNextUpdateString: String = "59 s"
 
 ) : ReceiverViewModel {
+    override val markers: List<MarkerOptions>
+        get() = locationFileState.createMarkers()
+
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {}
 
     override fun recentLocationTime(): String = "42 s"
