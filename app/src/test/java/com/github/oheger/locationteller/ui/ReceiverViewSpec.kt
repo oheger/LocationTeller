@@ -189,6 +189,11 @@ class ReceiverViewSpec {
     }
 
     @Test
+    fun `The update own location action is correctly handled`() {
+        checkAction(ReceiverAction.UPDATE_OWN_POSITION)
+    }
+
+    @Test
     fun `Some actions are disabled when no positions are available`() {
         val model = PreviewReceiverViewModel(locationFileState = LocationFileState.EMPTY)
         composeTestRule.setContent {

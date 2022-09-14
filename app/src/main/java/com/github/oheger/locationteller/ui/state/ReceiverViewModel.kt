@@ -55,7 +55,10 @@ enum class ReceiverAction {
     /**
      * Changes position and zoom level of the map view, so that the whole tracked area can be displayed.
      */
-    ZOOM_TRACKED_AREA
+    ZOOM_TRACKED_AREA,
+
+    /** Queries the position of this device, so that it can be displayed on the map. */
+    UPDATE_OWN_POSITION
 }
 
 /**
@@ -285,6 +288,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
             ReceiverAction.UPDATE -> mapStateUpdater?.update()
             ReceiverAction.CENTER_RECENT_POSITION -> receiverCameraState.centerRecentMarker(locationFileState)
             ReceiverAction.ZOOM_TRACKED_AREA -> receiverCameraState.zoomToAllMarkers(locationFileState)
+            ReceiverAction.UPDATE_OWN_POSITION -> mapStateUpdater?.queryLocation(getApplication())
         }
     }
 

@@ -452,6 +452,17 @@ class ReceiverViewModelSpec : WordSpec() {
                     cameraState.zoomToAllMarkers(locationFileState)
                 }
             }
+
+            "handle an UPDATE_OWN_POSITION action" {
+                every { updater.queryLocation(any()) } just runs
+                val model = createModel()
+
+                model.onAction(ReceiverAction.UPDATE_OWN_POSITION)
+
+                verify {
+                    updater.queryLocation(application)
+                }
+            }
         }
 
         "markers" should {

@@ -243,6 +243,14 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, numberOfLoca
             enabled = numberOfLocations > 0
         )
         Spacer(modifier = modifier.weight(1f))
+        ActionButton(
+            action = ReceiverAction.UPDATE_OWN_POSITION,
+            iconId = R.drawable.ic_action_own_position,
+            contentDescId = R.string.item_update_my_location,
+            onAction = onAction,
+            modifier = modifier
+        )
+        Spacer(modifier = modifier.weight(1f))
     }
 }
 
