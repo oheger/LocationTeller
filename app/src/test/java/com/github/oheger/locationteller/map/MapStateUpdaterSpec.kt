@@ -15,8 +15,15 @@
  */
 package com.github.oheger.locationteller.map
 
+import android.content.Context
+import android.location.Location
+
 import com.github.oheger.locationteller.MockDispatcher
 import com.github.oheger.locationteller.ResetDispatcherListener
+import com.github.oheger.locationteller.config.ConfigManager
+import com.github.oheger.locationteller.track.LocationRetriever
+import com.github.oheger.locationteller.track.LocationRetrieverFactory
+import com.github.oheger.locationteller.track.TrackTestHelper
 
 import io.kotest.core.listeners.TestListener
 import io.kotest.core.spec.style.StringSpec
@@ -25,7 +32,9 @@ import io.kotest.matchers.shouldBe
 
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -43,19 +52,22 @@ class MapStateUpdaterSpec : StringSpec() {
             val loaderProvider: () -> MapStateLoader = { loader }
             val updateState: (LocationFileState) -> Unit = { }
             val countDown: (Int) -> Unit = {}
+            val locationUpdate: (Location?) -> Unit = {}
             MockDispatcher.installAsMain()
 
-            MapStateUpdater.create(UPDATE_INTERVAL, loaderProvider, updateState, countDown).use { updater ->
-                updater.coroutineContext shouldBe Dispatchers.Main
-                updater.updateInterval shouldBe UPDATE_INTERVAL
-                updater.updateState shouldBe updateState
-                updater.countDown shouldBe countDown
-                updater.loaderProvider shouldBe loaderProvider
+            MapStateUpdater.create(UPDATE_INTERVAL, loaderProvider, updateState, countDown, locationUpdate)
+                .use { updater ->
+                    updater.coroutineContext shouldBe Dispatchers.Main
+                    updater.updateInterval shouldBe UPDATE_INTERVAL
+                    updater.updateState shouldBe updateState
+                    updater.countDown shouldBe countDown
+                    updater.updateLocation shouldBe locationUpdate
+                    updater.loaderProvider shouldBe loaderProvider
 
-                coVerify {
-                    loader.loadMapState(LocationFileState.EMPTY)
+                    coVerify {
+                        loader.loadMapState(LocationFileState.EMPTY)
+                    }
                 }
-            }
         }
 
         "The current state should be loaded immediately" {
@@ -140,6 +152,24 @@ class MapStateUpdaterSpec : StringSpec() {
 
             helper.shouldHaveUpdated(LocationFileState.EMPTY, state)
         }
+
+        "The own location can be queried" {
+            mockkObject(ConfigManager)
+            val context = mockk<Context>()
+            val location = mockk<Location>()
+            val configManager = mockk<ConfigManager>()
+            every { ConfigManager.getInstance() } returns configManager
+            every { configManager.trackConfig(context) } returns TrackTestHelper.DEFAULT_TRACK_CONFIG
+
+            val helper = UpdaterTestHelper()
+            val retriever = helper.prepareLocationRetrieverFactory(context)
+            coEvery { retriever.fetchLocation() } returns location
+
+            helper.queryLocation(context)
+            helper.runJobs()
+
+            helper.locationValue shouldBe location
+        }
     }
 }
 
@@ -156,11 +186,17 @@ private class UpdaterTestHelper {
     /** The mock map state loader. */
     private val mapStateLoader = createLoaderMock()
 
+    /** The mock for the factory to create the location retriever. */
+    private val locationRetrieverFactory = mockk<LocationRetrieverFactory>()
+
     /** A list that stores the data passed to the update function. */
     private val fileStates = mutableListOf<LocationFileState>()
 
     /** Stores the latest value passed to the count down function. */
     var countDownValue: Int = 0
+
+    /** Stores the latest value passed to the location update function. */
+    var locationValue: Location? = null
 
     /** The updater to be tested. */
     private val updater = createUpdater()
@@ -174,6 +210,30 @@ private class UpdaterTestHelper {
         statesWithNextState.forEach { (current, next) ->
             coEvery { mapStateLoader.loadMapState(current) } returns next
         }
+    }
+
+    /**
+     * Create a mock for a [LocationRetriever] and prepare the mock [LocationRetrieverFactory] to return it when it is
+     * invoked with the given [context].
+     */
+    fun prepareLocationRetrieverFactory(context: Context): LocationRetriever {
+        val retriever = mockk<LocationRetriever>()
+        every {
+            locationRetrieverFactory.createRetriever(
+                context,
+                TrackTestHelper.DEFAULT_TRACK_CONFIG,
+                validating = false
+            )
+        } returns retriever
+
+        return retriever
+    }
+
+    /**
+     * Trigger the test updater to request the current location.
+     */
+    fun queryLocation(context: Context) {
+        updater.queryLocation(context)
     }
 
     /**
@@ -219,6 +279,8 @@ private class UpdaterTestHelper {
         loaderProvider = { mapStateLoader },
         updateState = fileStates::add,
         countDown = { countDownValue = it },
+        updateLocation = { locationValue = it },
+        locationRetrieverFactory = locationRetrieverFactory,
         coroutineContext = dispatcher
     )
 }

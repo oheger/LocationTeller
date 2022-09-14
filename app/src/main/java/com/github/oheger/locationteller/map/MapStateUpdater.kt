@@ -15,11 +15,17 @@
  */
 package com.github.oheger.locationteller.map
 
+import android.content.Context
+import android.location.Location
+
+import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.duration.TickerService.Companion.createTickerService
+import com.github.oheger.locationteller.track.LocationRetrieverFactory
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -48,6 +54,12 @@ class MapStateUpdater internal constructor(
     /** A function to be invoked with the current value of the count-down timer. */
     val countDown: (Int) -> Unit,
 
+    /** A function to be invoked when the own location has been retried. */
+    val updateLocation: (Location?) -> Unit,
+
+    /** The factory for creating a new location retriever instance. */
+    val locationRetrieverFactory: LocationRetrieverFactory,
+
     /** The context for launching new coroutines. */
     override val coroutineContext: CoroutineContext
 ) : CoroutineScope, AutoCloseable {
@@ -56,15 +68,25 @@ class MapStateUpdater internal constructor(
          * Create a new [MapStateUpdater] instance that performs updates in the given [updateInterval] (in seconds).
          * The [MapStateLoader] needed for updates is obtained via the [loaderProvider] function. The new state is
          * propagated via the [updateState] function, every second the [countDown] function is invoked with the time
-         * in seconds until the next update.
+         * in seconds until the next update. Via the [updateLocation] function, the result of a query for the own
+         * location is propagated.
          */
         fun create(
             updateInterval: Int,
             loaderProvider: () -> MapStateLoader,
             updateState: (LocationFileState) -> Unit,
-            countDown: (Int) -> Unit
+            countDown: (Int) -> Unit,
+            updateLocation: (Location?) -> Unit,
         ): MapStateUpdater =
-            MapStateUpdater(updateInterval, loaderProvider, updateState, countDown, Dispatchers.Main)
+            MapStateUpdater(
+                updateInterval,
+                loaderProvider,
+                updateState,
+                countDown,
+                updateLocation,
+                LocationRetrieverFactory(),
+                Dispatchers.Main
+            )
     }
 
     /** The service for receiving tick events periodically. */
@@ -94,6 +116,20 @@ class MapStateUpdater internal constructor(
     fun update() {
         countDownValue = 1
         tick()
+    }
+
+    /**
+     * Trigger a request for the current location. Use [context] to obtain a corresponding retriever object. The
+     * request is done asynchronously. The result is passed via the [updateLocation] function.
+     */
+    fun queryLocation(context: Context) {
+        val trackConfig = ConfigManager.getInstance().trackConfig(context)
+        val retriever = locationRetrieverFactory.createRetriever(context, trackConfig, validating = false)
+
+        launch {
+            val location = retriever.fetchLocation()
+            updateLocation(location)
+        }
     }
 
     /**

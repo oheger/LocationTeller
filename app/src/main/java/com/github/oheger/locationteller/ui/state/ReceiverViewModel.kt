@@ -334,7 +334,8 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
             updateInterval,
             this::getOrCreateMapStateLoader,
             this::locationFileStateChanged,
-            this::onCountDown
+            this::onCountDown,
+            {}
         )
 
     /**

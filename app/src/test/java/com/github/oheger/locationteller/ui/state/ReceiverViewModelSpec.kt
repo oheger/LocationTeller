@@ -90,7 +90,7 @@ class ReceiverViewModelSpec : WordSpec() {
 
         every { PreferencesHandler.getInstance(application) } returns preferencesHandler
         every { TrackService.create(TrackTestHelper.DEFAULT_SERVER_CONFIG.asServerConfig()) } returns trackService
-        every { MapStateUpdater.create(any(), any(), any(), any()) } returns updater
+        every { MapStateUpdater.create(any(), any(), any(), any(), any()) } returns updater
         every { updater.close() } just runs
         every { ReceiverCameraState.create() } returns cameraState
     }
@@ -348,7 +348,7 @@ class ReceiverViewModelSpec : WordSpec() {
                 val newConfig = RECEIVER_CONFIG.copy(updateInterval = RECEIVER_CONFIG.updateInterval - 1)
                 val newUpdater = mockk<MapStateUpdater>(relaxed = true)
                 createModel()
-                every { MapStateUpdater.create(any(), any(), any(), any()) } returns newUpdater
+                every { MapStateUpdater.create(any(), any(), any(), any(), any()) } returns newUpdater
 
                 receiverConfigChangeNotification(newConfig)
 
@@ -654,7 +654,8 @@ private class MapStateUpdaterCreation(
                     capture(intervals),
                     capture(providers),
                     capture(updates),
-                    capture(countDowns)
+                    capture(countDowns),
+                    any()
                 )
             }
 
