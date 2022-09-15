@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
+import android.location.Location
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.ConfigManager
@@ -29,10 +30,12 @@ import com.github.oheger.locationteller.map.MapStateLoader
 import com.github.oheger.locationteller.map.MapStateUpdater
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.server.TimeData
+import com.github.oheger.locationteller.server.TimeService
 import com.github.oheger.locationteller.server.TrackService
 import com.github.oheger.locationteller.track.TrackTestHelper
 import com.github.oheger.locationteller.track.TrackTestHelper.asServerConfig
 
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 
@@ -52,10 +55,13 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
+
+import kotlin.math.round
 
 /**
  * Test class for [ReceiverViewModel] and its default implementation.
@@ -248,6 +254,110 @@ class ReceiverViewModelSpec : WordSpec() {
                 creation.sendStateUpdate(newLocations)
 
                 model.locationFileState shouldBe newLocations
+            }
+        }
+
+        "the own location" should {
+            "be null initially" {
+                val model = createModel()
+
+                model.ownLocation should beNull()
+            }
+
+            "be updated from the updater" {
+                val markerFactory = createMarkerFactoryMock()
+                val markerOptions = mockk<MarkerOptions>()
+                every {
+                    markerFactory.createMarker(
+                        OWN_LOCATION_MARKER,
+                        recentMarker = false,
+                        zIndex = 1f,
+                        text = null,
+                        color = BitmapDescriptorFactory.HUE_GREEN
+                    )
+                } returns markerOptions
+                every { cameraState.centerMarker(OWN_LOCATION_MARKER) } just runs
+                val model = spyk(createModel())
+                every { model.markerFactory } returns markerFactory
+                val creation = MapStateUpdaterCreation.fetch()
+
+                // Because model is a spy, sending the location via the creation does not work.
+                model.updateOwnLocation(createOwnLocationMock())
+
+                model.ownLocation shouldBe markerOptions
+                verify {
+                    cameraState.centerMarker(OWN_LOCATION_MARKER)
+                }
+
+                creation.sendLocation(null)
+                model.ownLocation should beNull()
+            }
+
+            "be updated from the updater with a correct distance to the recent location" {
+                val locations = createLocationsAndMockDistance()
+
+                val markerFactory = createMarkerFactoryMock().apply { prepareForMarkerCreation(locations) }
+                val markerOptions = mockk<MarkerOptions>()
+                every {
+                    markerFactory.createMarker(
+                        OWN_LOCATION_MARKER,
+                        recentMarker = false,
+                        zIndex = 5f,
+                        text = DISTANCE_STR,
+                        color = BitmapDescriptorFactory.HUE_GREEN
+                    )
+                } returns markerOptions
+
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                every { cameraState.centerRecentMarker(locations) } just runs
+                every { cameraState.centerMarker(OWN_LOCATION_MARKER) } just runs
+                val model = spyk(createModel())
+                every { model.markerFactory } returns markerFactory
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locations)
+
+                model.updateOwnLocation(createOwnLocationMock())
+
+                model.ownLocation shouldBe markerOptions
+            }
+
+            "be updated from the updater when new location data arrives" {
+                val locations = createLocationsAndMockDistance()
+
+                val markerFactory = createMarkerFactoryMock().apply { prepareForMarkerCreation(locations) }
+                val markerOptionsOrg = mockk<MarkerOptions>()
+                val markerOptions = mockk<MarkerOptions>()
+                every {
+                    markerFactory.createMarker(
+                        OWN_LOCATION_MARKER,
+                        recentMarker = false,
+                        zIndex = 1f,
+                        text = null,
+                        color = BitmapDescriptorFactory.HUE_GREEN
+                    )
+                } returns markerOptionsOrg
+                every {
+                    markerFactory.createMarker(
+                        OWN_LOCATION_MARKER,
+                        recentMarker = false,
+                        zIndex = 5f,
+                        text = DISTANCE_STR,
+                        color = BitmapDescriptorFactory.HUE_GREEN
+                    )
+                } returns markerOptions
+
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                every { cameraState.centerRecentMarker(locations) } just runs
+                every { cameraState.centerMarker(OWN_LOCATION_MARKER) } just runs
+                val model = spyk(createModel())
+                every { model.markerFactory } returns markerFactory
+
+                model.updateOwnLocation(createOwnLocationMock())
+                model.ownLocation shouldBe markerOptionsOrg
+
+                // Because model is a spy, sending the location state via the creation does not work.
+                model.locationFileStateChanged(locations)
+                model.ownLocation shouldBe markerOptions
             }
         }
 
@@ -615,6 +725,15 @@ private const val UNIT_MINUTE = "minuteStr"
 /** The unit to display for seconds. */
 private const val UNIT_SECOND = "secondStr"
 
+/** A marker representing the own position. */
+private val OWN_LOCATION_MARKER = LocationTestHelper.createMarkerData(42)
+
+/** The distance between the last retrieved location and the own location. */
+private const val DISTANCE = 1249.51f
+
+/** A string for the distance to the own location that is set for the own location marker. */
+private const val DISTANCE_STR = "The distance is $DISTANCE."
+
 /**
  * Create a mock for the [PreferencesHandler] that is prepared to expect updates.
  */
@@ -632,7 +751,65 @@ private fun createApplicationMock(): Application =
         every { getString(R.string.time_minutes) } returns UNIT_MINUTE
         every { getString(R.string.time_hours) } returns UNIT_HOUR
         every { getString(R.string.time_days) } returns UNIT_DAY
+        every { getString(R.string.map_distance_own, round(DISTANCE).toInt()) } returns DISTANCE_STR
     }
+
+/**
+ * Create a mock [Location] to represent the own location.
+ */
+private fun createOwnLocationMock(): Location =
+    mockk<Location>().apply {
+        every { latitude } returns OWN_LOCATION_MARKER.position.latitude
+        every { longitude } returns OWN_LOCATION_MARKER.position.longitude
+    }
+
+/**
+ * Create a mock for a [MarkerFactory]. The mock is configured with a time service that returns the current test time.
+ */
+private fun createMarkerFactoryMock(): MarkerFactory {
+    val timeService = mockk<TimeService>()
+    every { timeService.currentTime() } returns OWN_LOCATION_MARKER.locationData.time
+
+    val factory = mockk<MarkerFactory>()
+    every { factory.timeService } returns timeService
+    return factory
+}
+
+/**
+ * Prepare this mock of a [MarkerFactory] to create mock [MarkerOptions] object for all the locations in the given
+ * [locations].
+ */
+private fun MarkerFactory.prepareForMarkerCreation(locations: LocationFileState) {
+    val markersToOptions = locations.markerData.values.associateWith { mockk<MarkerOptions>() }
+    markersToOptions.forEach { (data, options) ->
+        every { createMarker(data, recentMarker = any(), any()) } returns options
+    }
+}
+
+/**
+ * Create a test [LocationFileState] and prepare the [Location] class to calculate the distance between the recent
+ * location and the own location.
+ */
+private fun createLocationsAndMockDistance(): LocationFileState {
+    val locations = LocationTestHelper.createState(1..4)
+    val lastLocation = locations.recentMarker()!!
+    mockkStatic(Location::class)
+    every {
+        Location.distanceBetween(
+            lastLocation.locationData.latitude,
+            lastLocation.locationData.longitude,
+            OWN_LOCATION_MARKER.locationData.latitude,
+            OWN_LOCATION_MARKER.locationData.longitude,
+            any()
+        )
+    } answers {
+        val res = arg<FloatArray>(4)
+        res[0] = DISTANCE
+        res.size shouldBe 1
+    }
+
+    return locations
+}
 
 /**
  * A class that stores the complex parameters of a creation of a [MapStateUpdater] object.
@@ -645,7 +822,10 @@ private class MapStateUpdaterCreation(
     private val updateState: (LocationFileState) -> Unit,
 
     /** The function to update the count-down value. */
-    private val countDown: (Int) -> Unit
+    private val countDown: (Int) -> Unit,
+
+    /** The function to update the own location. */
+    private val updateLocation: (Location?) -> Unit
 ) {
     companion object {
         /**
@@ -660,20 +840,21 @@ private class MapStateUpdaterCreation(
             val providers = mutableListOf<() -> MapStateLoader>()
             val updates = mutableListOf<(LocationFileState) -> Unit>()
             val countDowns = mutableListOf<(Int) -> Unit>()
+            val locationUpdates = mutableListOf<(Location?) -> Unit>()
             verify {
                 MapStateUpdater.create(
                     capture(intervals),
                     capture(providers),
                     capture(updates),
                     capture(countDowns),
-                    any()
+                    capture(locationUpdates)
                 )
             }
 
             providers shouldHaveSize numberOfCalls
             intervals.last() shouldBe expectedInterval
 
-            return MapStateUpdaterCreation(providers.last(), updates.last(), countDowns.last())
+            return MapStateUpdaterCreation(providers.last(), updates.last(), countDowns.last(), locationUpdates.last())
         }
     }
 
@@ -693,5 +874,12 @@ private class MapStateUpdaterCreation(
      */
     fun sendCountDown(value: Int) {
         countDown(value)
+    }
+
+    /**
+     * Pass the given [location] to the location update function.
+     */
+    fun sendLocation(location: Location?) {
+        updateLocation(location)
     }
 }

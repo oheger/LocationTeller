@@ -46,6 +46,7 @@
     <string name="map_status_update_scheduled">Aktualisiere in %1$s</string>
     <string name="map_status">%1$d Pos., Alter %2$s</string>
     <string name="map_status_empty">Keine Positionen</string>
+    <string name="map_distance_own">Aktuelle Entfernung: %1$d m</string>
     <string name="track_settings">Verfolgungseinstellungen</string>
     <string name="track_channel_desc">Benachrichtigung über aktive Verfolgung von LocationTeller</string>
     <string name="track_channel_name">Verfolgung</string>

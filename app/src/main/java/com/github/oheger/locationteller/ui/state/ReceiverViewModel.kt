@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui.state
 
 import android.app.Application
+import android.location.Location
 import android.util.Log
 
 import androidx.compose.runtime.MutableState
@@ -33,13 +34,19 @@ import com.github.oheger.locationteller.map.DisabledFadeOutAlphaCalculator
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.MapStateLoader
 import com.github.oheger.locationteller.map.MapStateUpdater
+import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.map.RangeTimeDeltaAlphaCalculator
+import com.github.oheger.locationteller.server.LocationData
 import com.github.oheger.locationteller.server.ServerConfig
 import com.github.oheger.locationteller.server.TrackService
 
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
+
+import kotlin.math.round
 
 /**
  * An enumeration class defining the actions the user can trigger on the receiver UI. Actions typically cause some kind
@@ -84,6 +91,9 @@ interface ReceiverViewModel {
      * use these markers to render the map view.
      */
     val markers: List<MarkerOptions>
+
+    /** Stores the [MarkerOptions] representing the location of this device if it is known. */
+    val ownLocation: MarkerOptions?
 
     /** The number of seconds until the next update from the server. */
     val secondsToNextUpdate: Int
@@ -201,6 +211,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
      */
     private val currentMarkers: MutableState<List<MarkerOptions>>
 
+    /** Stores [MarkerOptions] for the marker representing the own location. */
+    private val currentOwnLocation: MutableState<MarkerOptions?>
+
     /**
      * Stores the count-down value when the next update from the server is scheduled. This property gets updated
      * automatically from the [MapStateUpdater].
@@ -225,6 +238,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     /** Stores the current server configuration. */
     private var currentServerConfig = TrackServerConfig.EMPTY
 
+    /** Stores a [MarkerData] object to represent the own location if it is known. */
+    private var ownLocationMarker: MarkerData? = null
+
     /**
      * The object responsible for loading the current positions from the server. It depends on the server configuration
      * and is reset whenever this configuration changes.
@@ -245,6 +261,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         currentMarkerFactory = mutableStateOf(createMarkerFactory())
         currentLocationFileState = mutableStateOf(LocationFileState.EMPTY)
         currentMarkers = mutableStateOf(emptyList())
+        currentOwnLocation = mutableStateOf(null)
 
         receiverConfigChanged(configManager.receiverConfig(application))
         serverConfigChanged(configManager.serverConfig(application))
@@ -264,6 +281,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
 
     override val markers: List<MarkerOptions>
         get() = currentMarkers.value
+
+    override val ownLocation: MarkerOptions?
+        get() = currentOwnLocation.value
 
     override val secondsToNextUpdate: Int
         get() = currentSecondsToNextUpdate.value
@@ -299,6 +319,33 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         configManager.removeServerConfigChangeListener(this::serverConfigChanged)
 
         mapStateUpdater?.close()
+    }
+
+    /**
+     * The notification function called by [MapStateUpdater] when new data has been retrieved from the server.
+     */
+    internal fun locationFileStateChanged(newState: LocationFileState) {
+        updateCamera(newState)
+        currentLocationFileState.value = newState
+        currentMarkers.value = newState.createMarkers()
+        updateOwnLocationMarkerOptions()
+    }
+
+    /**
+     * The callback function called by [MapStateUpdater] when the own location has been retrieved. It computes the
+     * [MarkerData] for the given [location] and eventually updates the [currentOwnLocation] state.
+     */
+    internal fun updateOwnLocation(location: Location?) {
+        ownLocationMarker = location?.let { loc ->
+            MarkerData(
+                LocationData(loc.latitude, loc.longitude, markerFactory.timeService.currentTime()),
+                LatLng(loc.latitude, loc.longitude)
+            ).also {
+                receiverCameraState.centerMarker(it)
+            }
+        }
+
+        updateOwnLocationMarkerOptions()
     }
 
     /**
@@ -339,7 +386,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
             this::getOrCreateMapStateLoader,
             this::locationFileStateChanged,
             this::onCountDown,
-            {}
+            this::updateOwnLocation
         )
 
     /**
@@ -386,15 +433,6 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     }
 
     /**
-     * The notification function called by [MapStateUpdater] when new data has been retrieved from the server.
-     */
-    private fun locationFileStateChanged(newState: LocationFileState) {
-        updateCamera(newState)
-        currentLocationFileState.value = newState
-        currentMarkers.value = newState.createMarkers()
-    }
-
-    /**
      * Update the camera state on arrival of [a new LocationFileState][newState].
      */
     private fun updateCamera(newState: LocationFileState) {
@@ -415,4 +453,39 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         currentSecondsToNextUpdate.value = value
         currentSecondsToNextUpdateString.value = timeDeltaFormatter.formatTimeDelta(value * 1000L)
     }
+
+    /**
+     * Generate the [MarkerOptions] for the own location based on [ownLocationMarker]. This function is called for
+     * every change of the own location or the location state, to make sure that the [MarkerOptions] are always
+     * up-to-date.
+     */
+    private fun updateOwnLocationMarkerOptions() {
+        currentOwnLocation.value = ownLocationMarker?.let { markerData ->
+            markerFactory.createMarker(
+                markerData,
+                recentMarker = false,
+                zIndex = (locationFileState.files.size + 1).toFloat(),
+                text = generateDistanceString(markerData),
+                color = BitmapDescriptorFactory.HUE_GREEN
+            )
+        }
+    }
+
+    /**
+     * Generate a string describing the distance between the given [ownLocation] and the recent location retrieved
+     * from the server. Return *null* if no location data is available.
+     */
+    private fun generateDistanceString(ownLocation: MarkerData): String? =
+        locationFileState.recentMarker()?.let {
+            val res = FloatArray(1)
+            Location.distanceBetween(
+                it.locationData.latitude,
+                it.locationData.longitude,
+                ownLocation.locationData.latitude,
+                ownLocation.locationData.longitude,
+                res
+            )
+
+            getApplication<Application>().getString(R.string.map_distance_own, round(res[0]).toInt())
+        }
 }

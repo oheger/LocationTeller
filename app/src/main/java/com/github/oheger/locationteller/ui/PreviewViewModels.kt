@@ -61,8 +61,8 @@ internal data class PreviewReceiverViewModel(
     override val cameraPositionState: CameraPositionState = CAMERA_STATE,
     override val locationFileState: LocationFileState = createLocationFileState(),
     override val secondsToNextUpdate: Int = 59,
-    override val secondsToNextUpdateString: String = "59 s"
-
+    override val secondsToNextUpdateString: String = "59 s",
+    override val ownLocation: MarkerOptions? = createOwnLocationMarkerOptions()
 ) : ReceiverViewModel {
     override val markers: List<MarkerOptions>
         get() = locationFileState.createMarkers()
@@ -113,3 +113,11 @@ private fun createLocationFileState(): LocationFileState {
 
     return LocationFileState(markerMap.keys.toList(), markerMap)
 }
+
+/**
+ * Generate a [MarkerOptions] for the own location.
+ */
+private fun createOwnLocationMarkerOptions(): MarkerOptions =
+    MarkerOptions()
+        .position(LatLng(47.0, 8.0))
+        .title("My own location")
