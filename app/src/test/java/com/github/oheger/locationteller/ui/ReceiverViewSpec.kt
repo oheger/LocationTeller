@@ -194,6 +194,11 @@ class ReceiverViewSpec {
     }
 
     @Test
+    fun `The center own location action is correctly handled`() {
+        checkAction(ReceiverAction.CENTER_OWN_POSITION)
+    }
+
+    @Test
     fun `Some actions are disabled when no positions are available`() {
         val model = PreviewReceiverViewModel(locationFileState = LocationFileState.EMPTY)
         composeTestRule.setContent {

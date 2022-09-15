@@ -65,7 +65,10 @@ enum class ReceiverAction {
     ZOOM_TRACKED_AREA,
 
     /** Queries the position of this device, so that it can be displayed on the map. */
-    UPDATE_OWN_POSITION
+    UPDATE_OWN_POSITION,
+
+    /** Moves the position of this device to the center of the map. */
+    CENTER_OWN_POSITION
 }
 
 /**
@@ -309,6 +312,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
             ReceiverAction.CENTER_RECENT_POSITION -> receiverCameraState.centerRecentMarker(locationFileState)
             ReceiverAction.ZOOM_TRACKED_AREA -> receiverCameraState.zoomToAllMarkers(locationFileState)
             ReceiverAction.UPDATE_OWN_POSITION -> mapStateUpdater?.queryLocation(getApplication())
+            ReceiverAction.CENTER_OWN_POSITION -> receiverCameraState.centerMarker(ownLocationMarker)
         }
     }
 

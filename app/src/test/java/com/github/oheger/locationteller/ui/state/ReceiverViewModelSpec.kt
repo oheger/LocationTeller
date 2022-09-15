@@ -28,6 +28,7 @@ import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.map.LocationTestHelper
 import com.github.oheger.locationteller.map.MapStateLoader
 import com.github.oheger.locationteller.map.MapStateUpdater
+import com.github.oheger.locationteller.map.MarkerData
 import com.github.oheger.locationteller.map.MarkerFactory
 import com.github.oheger.locationteller.server.TimeData
 import com.github.oheger.locationteller.server.TimeService
@@ -571,6 +572,25 @@ class ReceiverViewModelSpec : WordSpec() {
 
                 verify {
                     updater.queryLocation(application)
+                }
+            }
+
+            "handle a CENTER_OWN_POSITION action" {
+                mockkStatic(BitmapDescriptorFactory::class)
+                every { BitmapDescriptorFactory.defaultMarker(any()) } returns mockk(relaxed = true)
+                every { cameraState.centerMarker(any()) } just runs
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendLocation(createOwnLocationMock())
+
+                model.onAction(ReceiverAction.CENTER_OWN_POSITION)
+
+                val centeredMarkers = mutableListOf<MarkerData>()
+                verify(exactly = 2) {
+                    cameraState.centerMarker(capture(centeredMarkers))
+                }
+                centeredMarkers.forAll { marker ->
+                    marker.position shouldBe OWN_LOCATION_MARKER.position
                 }
             }
         }

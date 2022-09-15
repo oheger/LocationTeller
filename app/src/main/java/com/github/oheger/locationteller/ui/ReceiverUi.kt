@@ -251,6 +251,14 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, numberOfLoca
             modifier = modifier
         )
         Spacer(modifier = modifier.weight(1f))
+        ActionButton(
+            action = ReceiverAction.CENTER_OWN_POSITION,
+            iconId = R.drawable.ic_action_center_my_position,
+            contentDescId = R.string.item_center_to_my_location,
+            onAction = onAction,
+            modifier = modifier
+        )
+        Spacer(modifier = modifier.weight(1f))
     }
 }
 
