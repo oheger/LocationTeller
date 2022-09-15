@@ -648,6 +648,25 @@ class ReceiverViewModelSpec : WordSpec() {
 
                 model.markers shouldNotBe markers
             }
+
+            "contain the marker for the own location" {
+                mockkStatic(BitmapDescriptorFactory::class)
+                every { BitmapDescriptorFactory.defaultMarker(any()) } returns mockk(relaxed = true)
+
+                val locationFileState = createLocationsAndMockDistance()
+                every { cameraState.centerRecentMarker(any()) } just runs
+                every { cameraState.centerMarker(any()) } just runs
+                every { cameraState.zoomToAllMarkers(any()) } just runs
+                val model = createModel()
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendStateUpdate(locationFileState)
+                creation.sendLocation(createOwnLocationMock())
+
+                val markers = model.markers
+
+                markers shouldHaveSize locationFileState.files.size + 1
+                markers.find { it.position == OWN_LOCATION_MARKER.position }.shouldNotBeNull()
+            }
         }
     }
 

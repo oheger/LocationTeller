@@ -280,7 +280,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         get() = currentLocationFileState.value
 
     override val markers: List<MarkerOptions>
-        get() = currentMarkers.value
+        get() = currentOwnLocation.value?.let {  currentMarkers.value + it } ?: currentMarkers.value
 
     override val ownLocation: MarkerOptions?
         get() = currentOwnLocation.value
