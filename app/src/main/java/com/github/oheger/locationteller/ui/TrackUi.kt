@@ -18,7 +18,6 @@ package com.github.oheger.locationteller.ui
 import android.Manifest
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,7 +39,6 @@ import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
 
 import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 
 internal const val TAG_TRACK_START = "tag_track_start"
@@ -57,7 +54,6 @@ internal const val TAG_TRACK_LAST_UPDATE = "tag_track_last_update"
 internal const val TAG_TRACK_ERRORS = "tag_track_errors"
 internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
 internal const val TAG_TRACK_ENABLED_SWITCH = "tag_track_enabled_switch"
-internal const val TAG_TRACK_PERM_BUTTON = "tag_track_perm_button"
 internal const val TAG_TRACK_PERM_MESSAGE = "tag_track_perm_message"
 internal const val TAG_TRACK_PERM_DETAILS = "tag_track_perm_details"
 
@@ -103,56 +99,48 @@ fun TrackEnabledSwitch(
     locationPermissionState: PermissionState,
     modifier: Modifier = Modifier
 ) {
-    when (val status = locationPermissionState.status) {
-        PermissionStatus.Granted ->
-            Row(
-                modifier = modifier
-                    .padding(all = 2.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onStateChange,
-                    modifier = modifier
-                        .testTag(TAG_TRACK_ENABLED_SWITCH)
-                )
-                Text(text = stringResource(id = R.string.lab_track_enabled), modifier = modifier)
-            }
+    val permissionFlags = locationPermissionState.toFlags()
 
-        is PermissionStatus.Denied -> {
-            Column(
+    if (permissionFlags.hasPermission) {
+        Row(
+            modifier = modifier
+                .padding(all = 2.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Switch(
+                checked = enabled,
+                onCheckedChange = onStateChange,
                 modifier = modifier
-                    .fillMaxWidth()
-                    .padding(all = 10.dp)
-            ) {
+                    .testTag(TAG_TRACK_ENABLED_SWITCH)
+            )
+            Text(text = stringResource(id = R.string.lab_track_enabled), modifier = modifier)
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(all = 10.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.perm_location_title),
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = modifier
+                    .testTag(TAG_TRACK_PERM_MESSAGE)
+                    .padding(bottom = 10.dp)
+            )
+            if (permissionFlags.shouldShowRationale) {
                 Text(
-                    text = stringResource(id = R.string.perm_location_title),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
+                    text = stringResource(id = R.string.perm_location_rationale),
+                    fontSize = 12.sp,
                     modifier = modifier
-                        .testTag(TAG_TRACK_PERM_MESSAGE)
+                        .testTag(TAG_TRACK_PERM_DETAILS)
                         .padding(bottom = 10.dp)
                 )
-                if (status.shouldShowRationale) {
-                    Text(
-                        text = stringResource(id = R.string.perm_location_rationale),
-                        fontSize = 12.sp,
-                        modifier = modifier
-                            .testTag(TAG_TRACK_PERM_DETAILS)
-                            .padding(bottom = 10.dp)
-                    )
-                }
-                Button(
-                    onClick = { locationPermissionState.launchPermissionRequest() },
-                    modifier = modifier
-                        .testTag(TAG_TRACK_PERM_BUTTON)
-                        .align(Alignment.CenterHorizontally)
-                ) {
-                    Text(text = stringResource(id = R.string.perm_location_request))
-                }
             }
+            RequestPermissionButton(locationPermissionState, modifier.align(Alignment.CenterHorizontally))
         }
     }
 }
@@ -297,28 +285,4 @@ fun TrackViewPreview(
     val model = PreviewTrackViewModel(state)
 
     TrackView(model = model, locationPermissionState = permissionState)
-}
-
-/**
- * A [PreviewParameterProvider] implementation that provides all possible permission states for the location
- * permission. So the effect of the permission state on the UI can be seen.
- */
-class PermissionStateProvider : PreviewParameterProvider<PermissionState> {
-    override val values: Sequence<PermissionState> = sequenceOf(
-        PermissionStatus.Granted,
-        PermissionStatus.Denied(shouldShowRationale = false),
-        PermissionStatus.Denied(shouldShowRationale = true)
-    ).map(this::createLocationPermissionState)
-
-    /**
-     * Create a [PermissionState] stub object that reports the given [status].
-     */
-    private fun createLocationPermissionState(status: PermissionStatus): PermissionState =
-        object : PermissionState {
-            override val permission = Manifest.permission.ACCESS_FINE_LOCATION
-
-            override val status = status
-
-            override fun launchPermissionRequest() {}
-        }
 }

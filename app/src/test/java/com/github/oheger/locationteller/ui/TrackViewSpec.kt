@@ -82,7 +82,7 @@ class TrackViewSpec {
         every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = false)
         installTrackView(permissionState)
 
-        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertExists()
+        composeTestRule.onNodeWithTag(TAG_PERM_REQUEST_BUTTON).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_MESSAGE).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_DETAILS).assertDoesNotExist()
         composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertDoesNotExist()
@@ -94,7 +94,7 @@ class TrackViewSpec {
         every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = true)
         installTrackView(permissionState)
 
-        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertExists()
+        composeTestRule.onNodeWithTag(TAG_PERM_REQUEST_BUTTON).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_MESSAGE).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_DETAILS).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertDoesNotExist()
@@ -109,7 +109,7 @@ class TrackViewSpec {
         composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertExists()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_DETAILS).assertDoesNotExist()
         composeTestRule.onNodeWithTag(TAG_TRACK_PERM_MESSAGE).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_PERM_REQUEST_BUTTON).assertDoesNotExist()
     }
 
     @Test
@@ -118,7 +118,7 @@ class TrackViewSpec {
         every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = false)
         installTrackView(permissionState)
 
-        composeTestRule.onNodeWithTag(TAG_TRACK_PERM_BUTTON).performClick()
+        composeTestRule.onNodeWithTag(TAG_PERM_REQUEST_BUTTON).performClick()
 
         verify {
             permissionState.launchPermissionRequest()
