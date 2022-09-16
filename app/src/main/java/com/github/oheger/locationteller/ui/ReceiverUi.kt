@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.Manifest
+
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -46,6 +48,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -57,6 +60,9 @@ import com.github.oheger.locationteller.ui.state.ReceiverViewModel
 import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
+import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
@@ -99,14 +105,17 @@ internal fun actionTag(action: ReceiverAction): String = "rec_action_$action"
  */
 @Composable
 fun ReceiverUi(modifier: Modifier = Modifier, model: ReceiverViewModelImpl = viewModel()) {
-    ReceiverView(model = model, modifier = modifier)
+    val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
+
+    ReceiverView(model = model, locationPermissionState = locationPermissionState, modifier = modifier)
 }
 
 /**
- * Generate the view for the receiver part of the application based on the given [model].
+ * Generate the view for the receiver part of the application based on the given [model] and the
+ * [locationPermissionState].
  */
 @Composable
-fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
+fun ReceiverView(model: ReceiverViewModel, locationPermissionState: PermissionState, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Box(modifier = modifier.weight(1.0f)) {
             MapView(
@@ -125,6 +134,7 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
                 config = model.receiverConfig,
                 updateConfig = model::updateReceiverConfig,
                 onAction = model::onAction,
+                locationPermissionState = locationPermissionState,
                 modifier
             )
         }
@@ -162,7 +172,8 @@ fun MapView(
  * Generate the part of the receiver UI that allows controlling the map view. Here some status information is
  * displayed, and the user can manipulate the map. Pass [updateInProgress], [countDown], [numberOfLocations], and
  * [recentLocationTime] to the [StatusLine] function. Pass [config], and [updateConfig] to the function to edit the
- * receiver configuration. Pass [ownLocation] to the function that renders the action buttons.
+ * receiver configuration. Pass [ownLocation] and [locationPermissionState] to the function that renders the action
+ * buttons.
  */
 @Composable
 internal fun ControlView(
@@ -174,6 +185,7 @@ internal fun ControlView(
     config: ReceiverConfig,
     updateConfig: (ReceiverConfig) -> Unit,
     onAction: (ReceiverAction) -> Unit,
+    locationPermissionState: PermissionState,
     modifier: Modifier = Modifier
 ) {
     var actionsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -191,6 +203,7 @@ internal fun ControlView(
                 onAction = onAction,
                 numberOfLocations = numberOfLocations,
                 ownLocation = ownLocation,
+                locationPermissionState = locationPermissionState,
                 modifier = modifier
             )
         }
@@ -218,15 +231,20 @@ internal fun ControlView(
 /**
  * Generate a view with buttons corresponding to actions the user can perform on the receiver view. Report the actions
  * triggered by the user via the [onAction] function. Use [numberOfLocations] to disable some actions that depend on
- * the availability of positions, and [ownLocation] to determine whether the own position is available.
+ * the availability of positions, and [ownLocation] to determine whether the own position is available. The actions
+ * related to the own location require the permission to obtain this location. Use [locationPermissionState] to adapt
+ * this view to the current state of this permission.
  */
 @Composable
 internal fun ReceiverActionView(
     onAction: (ReceiverAction) -> Unit,
     numberOfLocations: Int,
     ownLocation: MarkerOptions?,
+    locationPermissionState: PermissionState,
     modifier: Modifier
 ) {
+    val hasLocationPermission = locationPermissionState.status == PermissionStatus.Granted
+
     Row(modifier = modifier.fillMaxWidth()) {
         Spacer(modifier = modifier.weight(1f))
         ActionButton(
@@ -255,23 +273,26 @@ internal fun ReceiverActionView(
             enabled = numberOfLocations > 0
         )
         Spacer(modifier = modifier.weight(1f))
-        ActionButton(
-            action = ReceiverAction.UPDATE_OWN_POSITION,
-            iconId = R.drawable.ic_action_own_position,
-            contentDescId = R.string.item_update_my_location,
-            onAction = onAction,
-            modifier = modifier
-        )
-        Spacer(modifier = modifier.weight(1f))
-        ActionButton(
-            action = ReceiverAction.CENTER_OWN_POSITION,
-            iconId = R.drawable.ic_action_center_my_position,
-            contentDescId = R.string.item_center_to_my_location,
-            onAction = onAction,
-            modifier = modifier,
-            enabled = ownLocation != null
-        )
-        Spacer(modifier = modifier.weight(1f))
+
+        if (hasLocationPermission) {
+            ActionButton(
+                action = ReceiverAction.UPDATE_OWN_POSITION,
+                iconId = R.drawable.ic_action_own_position,
+                contentDescId = R.string.item_update_my_location,
+                onAction = onAction,
+                modifier = modifier
+            )
+            Spacer(modifier = modifier.weight(1f))
+            ActionButton(
+                action = ReceiverAction.CENTER_OWN_POSITION,
+                iconId = R.drawable.ic_action_center_my_position,
+                contentDescId = R.string.item_center_to_my_location,
+                onAction = onAction,
+                modifier = modifier,
+                enabled = ownLocation != null
+            )
+            Spacer(modifier = modifier.weight(1f))
+        }
     }
 }
 
@@ -489,8 +510,9 @@ private fun ActionButton(
 @Composable
 fun ReceiverPreview() {
     val model = PreviewReceiverViewModel()
+    val permissionStateProvider = PermissionStateProvider()
 
-    ReceiverView(model = model)
+    ReceiverView(model = model, locationPermissionState = permissionStateProvider.values.first())
 }
 
 @Preview(showBackground = true)
@@ -509,6 +531,15 @@ fun ReceiverConfigPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun ActionPreview() {
-    ReceiverActionView(onAction = {}, numberOfLocations = 5, modifier = Modifier, ownLocation = null)
+fun ActionPreview(
+    @PreviewParameter(PermissionStateProvider::class)
+    permissionState: PermissionState
+) {
+    ReceiverActionView(
+        onAction = {},
+        numberOfLocations = 5,
+        modifier = Modifier,
+        ownLocation = null,
+        locationPermissionState = permissionState
+    )
 }

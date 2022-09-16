@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.Manifest
+
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -27,6 +29,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.navigation.Navigation
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.GrantPermissionRule
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.ConfigManager
@@ -52,6 +55,9 @@ import org.robolectric.annotation.Config
     instrumentedPackages = ["androidx.loader.content"]
 )
 class ReceiverUiSpec {
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION)
+
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 

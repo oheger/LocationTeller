@@ -32,10 +32,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.map.LocationFileState
 import com.github.oheger.locationteller.ui.state.ReceiverAction
+import com.github.oheger.locationteller.ui.state.ReceiverViewModel
+
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
 
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
 
+import io.mockk.every
+import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 
@@ -162,15 +168,12 @@ class ReceiverViewSpec {
 
     @Test
     fun `ReceiverView displays the status line`() {
-        val model = PreviewReceiverViewModel()
-        composeTestRule.setContent {
-            ReceiverView(model = model)
-        }
+        val model = installReceiverView()
 
         composeTestRule.onNodeWithTag(TAG_REC_UPDATE_STATUS_TEXT)
             .assertTextContains(model.secondsToNextUpdateString, substring = true)
         composeTestRule.onNodeWithTag(TAG_REC_LOCATION_STATUS_TEXT)
-            .assertTextContains(model.recentLocationTime(), substring = true)
+            .assertTextContains(model.recentLocationTime()!!, substring = true)
     }
 
     @Test
@@ -201,11 +204,9 @@ class ReceiverViewSpec {
     @Test
     fun `Some actions are disabled when no positions are available`() {
         val model = PreviewReceiverViewModel(locationFileState = LocationFileState.EMPTY)
-        composeTestRule.setContent {
-            ReceiverView(model = model)
-        }
+        installReceiverView(model)
 
-        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+        toggleActionView()
 
         listOf(ReceiverAction.CENTER_RECENT_POSITION, ReceiverAction.ZOOM_TRACKED_AREA).forAll { action ->
             composeTestRule.onNodeWithTag(actionTag(action)).assertIsNotEnabled()
@@ -215,13 +216,23 @@ class ReceiverViewSpec {
     @Test
     fun `The center own location is disabled if there is no own location`() {
         val model = PreviewReceiverViewModel(ownLocation = null)
-        composeTestRule.setContent {
-            ReceiverView(model = model)
-        }
+        installReceiverView(model)
 
-        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+        toggleActionView()
 
         composeTestRule.onNodeWithTag(actionTag(ReceiverAction.CENTER_OWN_POSITION)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun `The actions related to the own location are not displayed if permissions are missing`() {
+        val permissionState = mockk<PermissionState>()
+        every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = false)
+        installReceiverView(permissionState = permissionState)
+
+        toggleActionView()
+
+        composeTestRule.onNodeWithTag(actionTag(ReceiverAction.UPDATE_OWN_POSITION)).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(actionTag(ReceiverAction.CENTER_OWN_POSITION)).assertDoesNotExist()
     }
 
     /**
@@ -229,11 +240,9 @@ class ReceiverViewSpec {
      */
     private fun checkAction(action: ReceiverAction) {
         val model = spyk(PreviewReceiverViewModel())
-        composeTestRule.setContent {
-            ReceiverView(model = model)
-        }
+        installReceiverView(model)
 
-        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+        toggleActionView()
         with(composeTestRule.onNodeWithTag(actionTag(action))) {
             assertIsEnabled()
             performClick()
@@ -242,6 +251,38 @@ class ReceiverViewSpec {
         verify {
             model.onAction(action)
         }
+    }
+
+    /**
+     * Toggle the visibility of the action view by clicking on the corresponding expandable header.
+     */
+    private fun toggleActionView() {
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+    }
+
+    /**
+     * Create an instance of the receiver view and set it as content for [composeTestRule]. Use the given [model] and
+     * [permissionState] to configure the UI. Also, return the view model.
+     */
+    private fun installReceiverView(
+        permissionState: PermissionState,
+        model: ReceiverViewModel = PreviewReceiverViewModel()
+    ): ReceiverViewModel {
+        composeTestRule.setContent {
+            ReceiverView(model = model, locationPermissionState = permissionState)
+        }
+
+        return model
+    }
+
+    /**
+     * Create and install an instance of the receiver view with active permissions and the provided [model].
+     */
+    private fun installReceiverView(model: ReceiverViewModel = PreviewReceiverViewModel()): ReceiverViewModel {
+        val permissionState = mockk<PermissionState>(relaxed = true)
+        every { permissionState.status } returns PermissionStatus.Granted
+
+        return installReceiverView(permissionState, model)
     }
 }
 
