@@ -121,6 +121,7 @@ fun ReceiverView(model: ReceiverViewModel, modifier: Modifier = Modifier) {
                 countDown = model.secondsToNextUpdateString,
                 numberOfLocations = model.locationFileState.files.size,
                 recentLocationTime = model.recentLocationTime(),
+                ownLocation = model.ownLocation,
                 config = model.receiverConfig,
                 updateConfig = model::updateReceiverConfig,
                 onAction = model::onAction,
@@ -161,7 +162,7 @@ fun MapView(
  * Generate the part of the receiver UI that allows controlling the map view. Here some status information is
  * displayed, and the user can manipulate the map. Pass [updateInProgress], [countDown], [numberOfLocations], and
  * [recentLocationTime] to the [StatusLine] function. Pass [config], and [updateConfig] to the function to edit the
- * receiver configuration.
+ * receiver configuration. Pass [ownLocation] to the function that renders the action buttons.
  */
 @Composable
 internal fun ControlView(
@@ -169,6 +170,7 @@ internal fun ControlView(
     countDown: String,
     numberOfLocations: Int,
     recentLocationTime: String?,
+    ownLocation: MarkerOptions?,
     config: ReceiverConfig,
     updateConfig: (ReceiverConfig) -> Unit,
     onAction: (ReceiverAction) -> Unit,
@@ -185,7 +187,12 @@ internal fun ControlView(
             onChanged = { actionsExpanded = it }
         )
         if (actionsExpanded) {
-            ReceiverActionView(onAction = onAction, numberOfLocations = numberOfLocations, modifier = modifier)
+            ReceiverActionView(
+                onAction = onAction,
+                numberOfLocations = numberOfLocations,
+                ownLocation = ownLocation,
+                modifier = modifier
+            )
         }
 
         ExpandableHeader(
@@ -211,10 +218,15 @@ internal fun ControlView(
 /**
  * Generate a view with buttons corresponding to actions the user can perform on the receiver view. Report the actions
  * triggered by the user via the [onAction] function. Use [numberOfLocations] to disable some actions that depend on
- * the availability of positions.
+ * the availability of positions, and [ownLocation] to determine whether the own position is available.
  */
 @Composable
-internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, numberOfLocations: Int, modifier: Modifier) {
+internal fun ReceiverActionView(
+    onAction: (ReceiverAction) -> Unit,
+    numberOfLocations: Int,
+    ownLocation: MarkerOptions?,
+    modifier: Modifier
+) {
     Row(modifier = modifier.fillMaxWidth()) {
         Spacer(modifier = modifier.weight(1f))
         ActionButton(
@@ -256,7 +268,8 @@ internal fun ReceiverActionView(onAction: (ReceiverAction) -> Unit, numberOfLoca
             iconId = R.drawable.ic_action_center_my_position,
             contentDescId = R.string.item_center_to_my_location,
             onAction = onAction,
-            modifier = modifier
+            modifier = modifier,
+            enabled = ownLocation != null
         )
         Spacer(modifier = modifier.weight(1f))
     }
@@ -497,5 +510,5 @@ fun ReceiverConfigPreview() {
 @Preview(showBackground = true)
 @Composable
 fun ActionPreview() {
-    ReceiverActionView(onAction = {}, numberOfLocations = 5, modifier = Modifier)
+    ReceiverActionView(onAction = {}, numberOfLocations = 5, modifier = Modifier, ownLocation = null)
 }

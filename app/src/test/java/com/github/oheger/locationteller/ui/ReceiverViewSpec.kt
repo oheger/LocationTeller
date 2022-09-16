@@ -212,6 +212,18 @@ class ReceiverViewSpec {
         }
     }
 
+    @Test
+    fun `The center own location is disabled if there is no own location`() {
+        val model = PreviewReceiverViewModel(ownLocation = null)
+        composeTestRule.setContent {
+            ReceiverView(model = model)
+        }
+
+        composeTestRule.onNodeWithTag(expandableHeaderTextTag(TAG_REC_HEADER_ACTIONS)).performClick()
+
+        composeTestRule.onNodeWithTag(actionTag(ReceiverAction.CENTER_OWN_POSITION)).assertIsNotEnabled()
+    }
+
     /**
      * Check whether the given [action] is correctly triggered.
      */
