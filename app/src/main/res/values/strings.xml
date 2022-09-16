@@ -92,6 +92,7 @@
     <string name="pref_rec_fade_strong">Strong fade out</string>
     <string name="pref_rec_center_new">Auto-center newest position</string>
     <string name="perm_location_rationale">This app uses the permission to retrieve the current location for two purposes:\n\nWhen used as sender, the location needs to be retrieved, so that it can be published. Without this permission, the whole sender part is dysfunctional.\n\nWhen used as receiver, access to the current location is needed only for the functionality to show the own position in the map. If you do not use this feature, there is no need to grant this permission.</string>
+    <string name="perm_location_rationale_rec">In order to display the own location, the permission to access it must be granted.</string>
     <string name="perm_button_continue">Continue</string>
     <string name="perm_button_cancel">Cancel</string>
     <string name="perm_location_title">Required Location Permission</string>

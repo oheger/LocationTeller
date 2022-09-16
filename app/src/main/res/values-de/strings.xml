@@ -88,6 +88,7 @@
     <string name="pref_rec_fade_strong">Starkes Ausblenden</string>
     <string name="pref_rec_center_new">Zentriere die neueste Position</string>
     <string name="perm_location_rationale">Diese App benötigt das Recht, den aktuellen Standort zu bestimmen, aus zwei Gründen:\n\nWenn sie als Sender genutzt wird, muss die Position bestimmt werden können, so dass sie an die Empfänger weitergegeben werden kann. Ohne das entsprechende Recht ist der Sender-Teil nicht funktionsfähig.\n\nAuf der Empfänger-Seite dagegen wird die aktuelle Position nur dann abgefragt, wenn sie in der Karte dargestellt werden soll. Wird diese Funktionalität nicht benötigt, ist das Recht auch nicht erforderlich.</string>
+    <string name="perm_location_rationale_rec">Um die eigene Position anzuzeigen, muss das Recht zum Zugriff auf den Standort gewährt werden.</string>
     <string name="perm_button_continue">Weiter</string>
     <string name="perm_button_cancel">Abbrechen</string>
     <string name="perm_location_title">Berechtigung zum Zugriff auf Standort benötigt</string>

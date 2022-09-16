@@ -61,7 +61,6 @@ import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 
 import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
@@ -78,6 +77,7 @@ internal const val TAG_REC_CONF_FADE = "rec_conf_fade"
 internal const val TAG_REC_CONF_FADE_FAST = "rec_conf_fade_fast"
 internal const val TAG_REC_CONF_FADE_STRONG = "rec_conf_fade_strong"
 internal const val TAG_REC_CONF_CENTER_NEW = "rec_conf_center_new"
+internal const val TAG_REC_PERM_RATIONALE = "rec_perm_rationale"
 
 internal const val TAG_REC_HEADER_ACTIONS = "actions"
 internal const val TAG_REC_HEADER_SETTINGS = "settings"
@@ -243,55 +243,68 @@ internal fun ReceiverActionView(
     locationPermissionState: PermissionState,
     modifier: Modifier
 ) {
-    val hasLocationPermission = locationPermissionState.status == PermissionStatus.Granted
+    val permissionFlags = locationPermissionState.toFlags()
 
-    Row(modifier = modifier.fillMaxWidth()) {
-        Spacer(modifier = modifier.weight(1f))
-        ActionButton(
-            action = ReceiverAction.UPDATE,
-            iconId = R.drawable.ic_action_refresh,
-            contentDescId = R.string.item_update_map,
-            onAction = onAction,
-            modifier = modifier
-        )
-        Spacer(modifier = modifier.weight(1f))
-        ActionButton(
-            action = ReceiverAction.CENTER_RECENT_POSITION,
-            iconId = R.drawable.ic_action_center_last,
-            contentDescId = R.string.item_center_to_recent,
-            onAction = onAction,
-            modifier = modifier,
-            enabled = numberOfLocations > 0
-        )
-        Spacer(modifier = modifier.weight(1f))
-        ActionButton(
-            action = ReceiverAction.ZOOM_TRACKED_AREA,
-            iconId = R.drawable.ic_action_zoom_tracked,
-            contentDescId = R.string.item_zoom_tracked_area,
-            onAction = onAction,
-            modifier = modifier,
-            enabled = numberOfLocations > 0
-        )
-        Spacer(modifier = modifier.weight(1f))
-
-        if (hasLocationPermission) {
+    Column(modifier = modifier) {
+        Row(modifier = modifier.fillMaxWidth()) {
+            Spacer(modifier = modifier.weight(1f))
             ActionButton(
-                action = ReceiverAction.UPDATE_OWN_POSITION,
-                iconId = R.drawable.ic_action_own_position,
-                contentDescId = R.string.item_update_my_location,
+                action = ReceiverAction.UPDATE,
+                iconId = R.drawable.ic_action_refresh,
+                contentDescId = R.string.item_update_map,
                 onAction = onAction,
                 modifier = modifier
             )
             Spacer(modifier = modifier.weight(1f))
             ActionButton(
-                action = ReceiverAction.CENTER_OWN_POSITION,
-                iconId = R.drawable.ic_action_center_my_position,
-                contentDescId = R.string.item_center_to_my_location,
+                action = ReceiverAction.CENTER_RECENT_POSITION,
+                iconId = R.drawable.ic_action_center_last,
+                contentDescId = R.string.item_center_to_recent,
                 onAction = onAction,
                 modifier = modifier,
-                enabled = ownLocation != null
+                enabled = numberOfLocations > 0
             )
             Spacer(modifier = modifier.weight(1f))
+            ActionButton(
+                action = ReceiverAction.ZOOM_TRACKED_AREA,
+                iconId = R.drawable.ic_action_zoom_tracked,
+                contentDescId = R.string.item_zoom_tracked_area,
+                onAction = onAction,
+                modifier = modifier,
+                enabled = numberOfLocations > 0
+            )
+            Spacer(modifier = modifier.weight(1f))
+
+            if (permissionFlags.hasPermission) {
+                ActionButton(
+                    action = ReceiverAction.UPDATE_OWN_POSITION,
+                    iconId = R.drawable.ic_action_own_position,
+                    contentDescId = R.string.item_update_my_location,
+                    onAction = onAction,
+                    modifier = modifier
+                )
+                Spacer(modifier = modifier.weight(1f))
+                ActionButton(
+                    action = ReceiverAction.CENTER_OWN_POSITION,
+                    iconId = R.drawable.ic_action_center_my_position,
+                    contentDescId = R.string.item_center_to_my_location,
+                    onAction = onAction,
+                    modifier = modifier,
+                    enabled = ownLocation != null
+                )
+            } else {
+                RequestPermissionButton(permissionState = locationPermissionState, modifier = modifier)
+            }
+            Spacer(modifier = modifier.weight(1f))
+        }
+
+        if (permissionFlags.shouldShowRationale) {
+            Row(modifier = modifier) {
+                Text(
+                    text = stringResource(id = R.string.perm_location_rationale_rec),
+                    modifier = modifier.testTag(TAG_REC_PERM_RATIONALE)
+                )
+            }
         }
     }
 }

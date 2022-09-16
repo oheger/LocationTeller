@@ -41,7 +41,9 @@ import io.kotest.inspectors.forAll
 import io.kotest.matchers.shouldBe
 
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.verify
 
@@ -233,6 +235,43 @@ class ReceiverViewSpec {
 
         composeTestRule.onNodeWithTag(actionTag(ReceiverAction.UPDATE_OWN_POSITION)).assertDoesNotExist()
         composeTestRule.onNodeWithTag(actionTag(ReceiverAction.CENTER_OWN_POSITION)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `The button to request permissions is not displayed if permissions are granted`() {
+        installReceiverView()
+
+        toggleActionView()
+
+        composeTestRule.onNodeWithTag(TAG_PERM_REQUEST_BUTTON).assertDoesNotExist()
+    }
+
+    @Test
+    fun `The button to request permissions is displayed if necessary and works correctly`() {
+        val permissionState = mockk<PermissionState>()
+        every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = false)
+        every { permissionState.launchPermissionRequest() } just runs
+        installReceiverView(permissionState = permissionState)
+
+        toggleActionView()
+
+        composeTestRule.onNodeWithTag(TAG_REC_PERM_RATIONALE).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_PERM_REQUEST_BUTTON).performClick()
+        verify {
+            permissionState.launchPermissionRequest()
+        }
+    }
+
+    @Test
+    fun `A rationale for missing permissions is displayed if necessary`() {
+        val permissionState = mockk<PermissionState>()
+        every { permissionState.status } returns PermissionStatus.Denied(shouldShowRationale = true)
+        installReceiverView(permissionState = permissionState)
+
+        toggleActionView()
+
+        composeTestRule.onNodeWithTag(TAG_REC_PERM_RATIONALE)
+            .assertTextEquals(stringResource(R.string.perm_location_rationale_rec))
     }
 
     /**
