@@ -4,11 +4,12 @@
     <string name="server_settings">Server Einstellungen</string>
     <string name="open_drawer">Öffnen</string>
     <string name="close_drawer">Schließen</string>
-    <string name="trackView">Verfolgen</string>
+    <string name="trackView">Sender</string>
     <string name="mapView">Karte</string>
     <string name="receiverView">Empfänger</string>
-    <string name="trackSettingsView">Verfolgungseinstellungen</string>
-    <string name="serverSettingsView">Servereinstellungen</string>
+    <string name="settings_header">Einstellungen</string>
+    <string name="trackSettingsView">Verfolgung</string>
+    <string name="serverSettingsView">Server</string>
     <string name="pref_track_basic">Grundlegend</string>
     <string name="pref_track_basic_intro">Geben Sie an, wie häufig Positionsänderungen ermittelt werden sollen, wie sich das Interval ändern soll, wenn keine Änderungen erfolgen und wie lange die Daten auf dem Server vorgehalten werden sollen.</string>
     <string name="pref_track_advanced">Fortgeschritten</string>
