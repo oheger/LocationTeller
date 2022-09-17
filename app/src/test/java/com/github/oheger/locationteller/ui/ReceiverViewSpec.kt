@@ -274,6 +274,16 @@ class ReceiverViewSpec {
             .assertTextEquals(stringResource(R.string.perm_location_rationale_rec))
     }
 
+    @Test
+    fun `The update own location action is disabled while the location is being retrieved`() {
+        val model = PreviewReceiverViewModel(locationRetrieving = true)
+        installReceiverView(model = model)
+
+        toggleActionView()
+
+        composeTestRule.onNodeWithTag(actionTag(ReceiverAction.UPDATE_OWN_POSITION)).assertIsNotEnabled()
+    }
+
     /**
      * Check whether the given [action] is correctly triggered.
      */

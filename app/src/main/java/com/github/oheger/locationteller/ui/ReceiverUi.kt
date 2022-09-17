@@ -131,6 +131,7 @@ fun ReceiverView(model: ReceiverViewModel, locationPermissionState: PermissionSt
                 numberOfLocations = model.locationFileState.files.size,
                 recentLocationTime = model.recentLocationTime(),
                 ownLocation = model.ownLocation,
+                ownLocationRetrieving = model.locationRetrieving,
                 config = model.receiverConfig,
                 updateConfig = model::updateReceiverConfig,
                 onAction = model::onAction,
@@ -172,8 +173,8 @@ fun MapView(
  * Generate the part of the receiver UI that allows controlling the map view. Here some status information is
  * displayed, and the user can manipulate the map. Pass [updateInProgress], [countDown], [numberOfLocations], and
  * [recentLocationTime] to the [StatusLine] function. Pass [config], and [updateConfig] to the function to edit the
- * receiver configuration. Pass [ownLocation] and [locationPermissionState] to the function that renders the action
- * buttons.
+ * receiver configuration. Pass [ownLocation], [ownLocationRetrieving] and [locationPermissionState] to the function
+ * that renders the action buttons.
  */
 @Composable
 internal fun ControlView(
@@ -182,6 +183,7 @@ internal fun ControlView(
     numberOfLocations: Int,
     recentLocationTime: String?,
     ownLocation: MarkerOptions?,
+    ownLocationRetrieving: Boolean,
     config: ReceiverConfig,
     updateConfig: (ReceiverConfig) -> Unit,
     onAction: (ReceiverAction) -> Unit,
@@ -203,6 +205,7 @@ internal fun ControlView(
                 onAction = onAction,
                 numberOfLocations = numberOfLocations,
                 ownLocation = ownLocation,
+                ownLocationRetrieving = ownLocationRetrieving,
                 locationPermissionState = locationPermissionState,
                 modifier = modifier
             )
@@ -231,15 +234,17 @@ internal fun ControlView(
 /**
  * Generate a view with buttons corresponding to actions the user can perform on the receiver view. Report the actions
  * triggered by the user via the [onAction] function. Use [numberOfLocations] to disable some actions that depend on
- * the availability of positions, and [ownLocation] to determine whether the own position is available. The actions
- * related to the own location require the permission to obtain this location. Use [locationPermissionState] to adapt
- * this view to the current state of this permission.
+ * the availability of positions, [ownLocation] to determine whether the own position is available, and
+ * [ownLocationRetrieving] to determine whether the own location is currently retrieved. The actions related to the
+ * own location require the permission to obtain this location. Use [locationPermissionState] to adapt this view to
+ * the current state of this permission.
  */
 @Composable
 internal fun ReceiverActionView(
     onAction: (ReceiverAction) -> Unit,
     numberOfLocations: Int,
     ownLocation: MarkerOptions?,
+    ownLocationRetrieving: Boolean,
     locationPermissionState: PermissionState,
     modifier: Modifier
 ) {
@@ -281,7 +286,8 @@ internal fun ReceiverActionView(
                     iconId = R.drawable.ic_action_own_position,
                     contentDescId = R.string.item_update_my_location,
                     onAction = onAction,
-                    modifier = modifier
+                    modifier = modifier,
+                    enabled = !ownLocationRetrieving
                 )
                 Spacer(modifier = modifier.weight(1f))
                 ActionButton(
@@ -553,6 +559,7 @@ fun ActionPreview(
         numberOfLocations = 5,
         modifier = Modifier,
         ownLocation = null,
+        ownLocationRetrieving = false,
         locationPermissionState = permissionState
     )
 }
