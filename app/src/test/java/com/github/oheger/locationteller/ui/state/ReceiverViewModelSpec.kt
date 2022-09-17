@@ -576,8 +576,7 @@ class ReceiverViewModelSpec : WordSpec() {
             }
 
             "handle a CENTER_OWN_POSITION action" {
-                mockkStatic(BitmapDescriptorFactory::class)
-                every { BitmapDescriptorFactory.defaultMarker(any()) } returns mockk(relaxed = true)
+                prepareBitmapDescriptorFactory()
                 every { cameraState.centerMarker(any()) } just runs
                 val model = createModel()
                 val creation = MapStateUpdaterCreation.fetch()
@@ -670,9 +669,7 @@ class ReceiverViewModelSpec : WordSpec() {
             }
 
             "contain the marker for the own location" {
-                mockkStatic(BitmapDescriptorFactory::class)
-                every { BitmapDescriptorFactory.defaultMarker(any()) } returns mockk(relaxed = true)
-
+                prepareBitmapDescriptorFactory()
                 val locationFileState = createLocationsAndMockDistance()
                 every { cameraState.centerRecentMarker(any()) } just runs
                 every { cameraState.centerMarker(any()) } just runs
@@ -686,6 +683,36 @@ class ReceiverViewModelSpec : WordSpec() {
 
                 markers shouldHaveSize locationFileState.files.size + 1
                 markers.find { it.position == OWN_LOCATION_MARKER.position }.shouldNotBeNull()
+            }
+        }
+
+        "locationRetrieving" should {
+            "be false initially" {
+                val model = createModel()
+
+                model.locationRetrieving shouldBe false
+            }
+
+            "be true while the own location is being retrieved" {
+                every { updater.queryLocation(any()) } just runs
+                val model = createModel()
+
+                model.onAction(ReceiverAction.UPDATE_OWN_POSITION)
+
+                model.locationRetrieving shouldBe true
+            }
+
+            "be false again after the result of the retrieve operation is available" {
+                prepareBitmapDescriptorFactory()
+                every { updater.queryLocation(any()) } just runs
+                every { cameraState.centerMarker(any()) } just runs
+                val model = createModel()
+                model.onAction(ReceiverAction.UPDATE_OWN_POSITION)
+
+                val creation = MapStateUpdaterCreation.fetch()
+                creation.sendLocation(createOwnLocationMock())
+
+                model.locationRetrieving shouldBe false
             }
         }
     }
@@ -848,6 +875,14 @@ private fun createLocationsAndMockDistance(): LocationFileState {
     }
 
     return locations
+}
+
+/**
+ * Prepare mocking of the [BitmapDescriptorFactory], so that it can be used in tests that involve [MarkerFactory].
+ */
+private fun prepareBitmapDescriptorFactory() {
+    mockkStatic(BitmapDescriptorFactory::class)
+    every { BitmapDescriptorFactory.defaultMarker(any()) } returns mockk(relaxed = true)
 }
 
 /**

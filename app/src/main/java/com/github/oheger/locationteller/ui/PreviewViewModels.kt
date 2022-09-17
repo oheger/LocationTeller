@@ -62,7 +62,8 @@ internal data class PreviewReceiverViewModel(
     override val locationFileState: LocationFileState = createLocationFileState(),
     override val secondsToNextUpdate: Int = 59,
     override val secondsToNextUpdateString: String = "59 s",
-    override val ownLocation: MarkerOptions? = createOwnLocationMarkerOptions()
+    override val ownLocation: MarkerOptions? = createOwnLocationMarkerOptions(),
+    override val locationRetrieving: Boolean = false
 ) : ReceiverViewModel {
     override val markers: List<MarkerOptions>
         get() = locationFileState.createMarkers()

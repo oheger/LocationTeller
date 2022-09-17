@@ -105,6 +105,13 @@ interface ReceiverViewModel {
     val secondsToNextUpdateString: String
 
     /**
+     * A flag that is *true* while an operation to retrieve the own location is in progress. This information can be
+     * used by the UI to prevent that the user triggers multiple such operations simultaneously. (Especially, since it
+     * may take some seconds until the location has been retrieved.)
+     */
+    val locationRetrieving: Boolean
+
+    /**
      * Set the current [ReceiverConfig] to [newConfig]. This causes updates on some objects managed by this instance.
      */
     fun updateReceiverConfig(newConfig: ReceiverConfig)
@@ -232,6 +239,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     /** The helper object managing the camera state. */
     private val receiverCameraState = ReceiverCameraState.create()
 
+    /** Stores a flag whether a location retrieving operation is currently in progress. */
+    private val locationRetrievingState = mutableStateOf(false)
+
     /**
      * The object responsible for updating the map state. It depends on the current receiver configuration and is
      * recreated whenever this configuration changes.
@@ -294,6 +304,9 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
     override val secondsToNextUpdateString: String
         get() = currentSecondsToNextUpdateString.value
 
+    override val locationRetrieving: Boolean
+        get() = locationRetrievingState.value
+
     override fun updateReceiverConfig(newConfig: ReceiverConfig) {
         ConfigManager.getInstance().updateReceiverConfig(getApplication(), newConfig)
     }
@@ -311,7 +324,10 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
             ReceiverAction.UPDATE -> mapStateUpdater?.update()
             ReceiverAction.CENTER_RECENT_POSITION -> receiverCameraState.centerRecentMarker(locationFileState)
             ReceiverAction.ZOOM_TRACKED_AREA -> receiverCameraState.zoomToAllMarkers(locationFileState)
-            ReceiverAction.UPDATE_OWN_POSITION -> mapStateUpdater?.queryLocation(getApplication())
+            ReceiverAction.UPDATE_OWN_POSITION -> {
+                locationRetrievingState.value = true
+                mapStateUpdater?.queryLocation(getApplication())
+            }
             ReceiverAction.CENTER_OWN_POSITION -> receiverCameraState.centerMarker(ownLocationMarker)
         }
     }
@@ -350,6 +366,7 @@ class ReceiverViewModelImpl(application: Application) : AndroidViewModel(applica
         }
 
         updateOwnLocationMarkerOptions()
+        locationRetrievingState.value = false
     }
 
     /**
