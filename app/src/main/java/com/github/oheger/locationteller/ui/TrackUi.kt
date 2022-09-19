@@ -66,18 +66,30 @@ internal fun labelTag(tag: String): String = "${tag}_label"
  * Generate the whole tracking UI. This is the entry point into this UI.
  */
 @Composable
-fun TrackUi(modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
+fun TrackUi(openDrawer: () -> Unit, modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
     val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
 
-    TrackView(model = model, locationPermissionState = locationPermissionState, modifier = modifier)
+    TrackView(
+        model = model,
+        locationPermissionState = locationPermissionState,
+        openDrawer = openDrawer,
+        modifier = modifier
+    )
 }
 
 /**
- * Generate the tracking UI based on the provided [model] and [locationPermissionState].
+ * Generate the tracking UI based on the provided [model] and [locationPermissionState]. Call the [openDrawer]
+ * function if the menu icon is clicked.
  */
 @Composable
-fun TrackView(model: TrackViewModel, locationPermissionState: PermissionState, modifier: Modifier = Modifier) {
+fun TrackView(
+    model: TrackViewModel,
+    locationPermissionState: PermissionState,
+    openDrawer: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
+        TopBar(title = stringResource(id = R.string.trackView), onMenuClicked = openDrawer)
         TrackEnabledSwitch(
             enabled = model.trackingEnabled,
             onStateChange = { state -> model.updateTrackingState(state) },
@@ -284,5 +296,5 @@ fun TrackViewPreview(
     }
     val model = PreviewTrackViewModel(state)
 
-    TrackView(model = model, locationPermissionState = permissionState)
+    TrackView(model = model, locationPermissionState = permissionState, openDrawer = {})
 }

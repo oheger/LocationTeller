@@ -41,7 +41,8 @@ open class TrackFragment : ComposeFragment() {
     }
 
     override fun getContent(): @Composable () -> Unit = {
-        TrackUi()
+        // TODO: Move this to the main activity.
+        LocationTellerMainScreen()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {

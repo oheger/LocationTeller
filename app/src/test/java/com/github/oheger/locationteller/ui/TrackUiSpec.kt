@@ -15,17 +15,21 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.app.Application
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-
+import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
+import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.track.TrackStorage
 
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,6 +50,19 @@ import java.util.Date
 class TrackUiSpec {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    @Before
+    fun navigateToSenderScreen() {
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_MENU).performClick()
+        composeTestRule.onNodeWithTag(TAG_NAV_SENDER).performClick()
+    }
+
+    @Test
+    fun `The app bar is correctly initialized`() {
+        val expectedTitle = ApplicationProvider.getApplicationContext<Application>().getString(R.string.trackView)
+
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_TITLE).assertTextEquals(expectedTitle)
+    }
 
     @Test
     fun `Changes on preferences update values in the statistics`() {

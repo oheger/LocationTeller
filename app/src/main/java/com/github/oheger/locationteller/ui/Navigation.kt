@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,11 +50,15 @@ internal const val TAG_NAV_SERVER_SETTINGS = "nav_settings_server"
 internal const val TAG_NAV_TOP_TITLE = "nav_top_title"
 internal const val TAG_NAV_TOP_MENU = "nav_top_menu"
 
+internal const val NAV_ROUTE_SENDER = "sender"
+
 /**
- * Generate the drawer with the menu items to navigate to the different screens.
+ * Generate the drawer with the menu items to navigate to the different screens. Call the [onRouteSelected]
+ * function when the user clicks on a menu item representing a screen.
  */
 @Composable
 fun Drawer(
+    onRouteSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -65,33 +70,38 @@ fun Drawer(
             iconRes = R.drawable.ic_item_sender,
             textRes = R.string.trackView,
             tag = TAG_NAV_SENDER,
-            modifier = modifier
+            modifier = modifier,
+            onClick = routeClicked(NAV_ROUTE_SENDER, onRouteSelected)
         )
         DrawerItem(
             iconRes = R.drawable.ic_item_receiver,
             textRes = R.string.receiverView,
             tag = TAG_NAV_RECEIVER,
-            modifier = modifier
+            modifier = modifier,
+            onClick = {}
         )
         DrawerItem(
             iconRes = R.drawable.ic_item_settings,
             textRes = R.string.settings_header,
             tag = "",
-            modifier = modifier
+            modifier = modifier,
+            onClick = {}
         )
         DrawerItem(
             iconRes = R.drawable.ic_item_settings_track,
             textRes = R.string.trackSettingsView,
             style = MaterialTheme.typography.h6,
             tag = TAG_NAV_TRACK_SETTINGS,
-            modifier = modifier.padding(start = 12.dp)
+            modifier = modifier.padding(start = 12.dp),
+            onClick = {}
         )
         DrawerItem(
             iconRes = R.drawable.ic_item_settings_server,
             textRes = R.string.serverSettingsView,
             style = MaterialTheme.typography.h6,
             tag = TAG_NAV_SERVER_SETTINGS,
-            modifier = modifier.padding(start = 12.dp)
+            modifier = modifier.padding(start = 12.dp),
+            onClick = {}
         )
     }
 }
@@ -116,12 +126,14 @@ fun TopBar(title: String, onMenuClicked: () -> Unit) {
 
 /**
  * Generate an item to be displayed in the drawer with the given [icon][iconRes], [text][textRes], [style], and [tag].
+ * Invoke the given [onClick] function when the user clicks on this item.
  */
 @Composable
 private fun DrawerItem(
     iconRes: Int,
     @StringRes textRes: Int,
     tag: String,
+    onClick: () -> Unit,
     modifier: Modifier,
     style: TextStyle = MaterialTheme.typography.h5
 ) {
@@ -133,12 +145,22 @@ private fun DrawerItem(
             modifier = modifier.align(Alignment.CenterVertically)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = itemText, style = style, modifier = Modifier.testTag(tag))
+        Text(
+            text = itemText, style = style, modifier = Modifier
+                .testTag(tag)
+                .clickable(onClick = onClick)
+        )
     }
 }
+
+/**
+ * Create a parameter-less callback function for clicks that invokes the given [routeFunc] with the specified
+ * [route] identifier.
+ */
+private fun routeClicked(route: String, routeFunc: (String) -> Unit): () -> Unit = { routeFunc(route) }
 
 @Preview
 @Composable
 fun DrawerPreview() {
-    Drawer()
+    Drawer(onRouteSelected = {})
 }

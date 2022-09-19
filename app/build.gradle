@@ -79,6 +79,7 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$versionComposeViewModel"
     implementation 'androidx.multidex:multidex:2.0.1'
+    implementation "androidx.navigation:navigation-compose:$versionComposeNavigation"
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation "com.google.accompanist:accompanist-permissions:$versionAccompanist"
     implementation 'com.google.android.gms:play-services-location:20.0.0'
