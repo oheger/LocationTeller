@@ -133,16 +133,16 @@ typealias InvalidDurationComponents = List<Pair<DurationModel.Component, Throwab
  * UI.
  */
 @Composable
-fun ServerConfigUi(modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
-    ServerConfigView(model = model, modifier = modifier)
+fun ServerConfigUi(openDrawer: () -> Unit, modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
+    ServerConfigView(model = model, openDrawer = openDrawer, modifier = modifier)
 }
 
 /**
  * Generate the view for displaying and changing configuration settings related to the tracking server using [model]
- * as view model.
+ * as view model. Call the [openDrawer] function if the menu item is clicked.
  */
 @Composable
-fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
+fun ServerConfigView(model: TrackViewModel, openDrawer: () -> Unit, modifier: Modifier = Modifier) {
     val editItem = rememberSaveable { mutableStateOf<String?>(null) }
     val editFunc: (String?) -> Unit = { editItem.value = it }
 
@@ -152,47 +152,53 @@ fun ServerConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
         model.updateServerConfig(updatedConfig)
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(all = 10.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        ConfigStringItem(
-            item = CONFIG_ITEM_SERVER_URI,
-            editItem = editItem.value,
-            labelRes = R.string.pref_server_uri,
-            value = model.serverConfig.serverUri,
-            update = updateConfig { config, uri -> config.copy(serverUri = uri) },
-            updateEdit = editFunc,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-        )
-        ConfigStringItem(
-            item = CONFIG_ITEM_SERVER_PATH,
-            editItem = editItem.value,
-            labelRes = R.string.pref_server_path,
-            value = model.serverConfig.basePath,
-            update = updateConfig { config, path -> config.copy(basePath = path) },
-            updateEdit = editFunc
-        )
-        ConfigStringItem(
-            item = CONFIG_ITEM_SERVER_USER,
-            editItem = editItem.value,
-            labelRes = R.string.pref_user,
-            value = model.serverConfig.user,
-            update = updateConfig { config, user -> config.copy(user = user) },
-            updateEdit = editFunc
-        )
-        ConfigStringItem(
-            item = CONFIG_ITEM_SERVER_PASSWORD,
-            editItem = editItem.value,
-            labelRes = R.string.pref_password,
-            value = model.serverConfig.password,
-            update = updateConfig { config, pass -> config.copy(password = pass) },
-            updateEdit = editFunc,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
+    Column(modifier = modifier.fillMaxWidth()) {
+        val title =
+            "${stringResource(id = R.string.settings_header)}/${stringResource(id = R.string.serverSettingsView)}"
+        TopBar(title = title, onMenuClicked = openDrawer)
+
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(all = 10.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            ConfigStringItem(
+                item = CONFIG_ITEM_SERVER_URI,
+                editItem = editItem.value,
+                labelRes = R.string.pref_server_uri,
+                value = model.serverConfig.serverUri,
+                update = updateConfig { config, uri -> config.copy(serverUri = uri) },
+                updateEdit = editFunc,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+            )
+            ConfigStringItem(
+                item = CONFIG_ITEM_SERVER_PATH,
+                editItem = editItem.value,
+                labelRes = R.string.pref_server_path,
+                value = model.serverConfig.basePath,
+                update = updateConfig { config, path -> config.copy(basePath = path) },
+                updateEdit = editFunc
+            )
+            ConfigStringItem(
+                item = CONFIG_ITEM_SERVER_USER,
+                editItem = editItem.value,
+                labelRes = R.string.pref_user,
+                value = model.serverConfig.user,
+                update = updateConfig { config, user -> config.copy(user = user) },
+                updateEdit = editFunc
+            )
+            ConfigStringItem(
+                item = CONFIG_ITEM_SERVER_PASSWORD,
+                editItem = editItem.value,
+                labelRes = R.string.pref_password,
+                value = model.serverConfig.password,
+                update = updateConfig { config, pass -> config.copy(password = pass) },
+                updateEdit = editFunc,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+        }
     }
 }
 
@@ -771,5 +777,5 @@ fun ItemsPreview() {
 fun ServerConfigPreview() {
     val model = PreviewTrackViewModel()
 
-    ServerConfigView(model = model)
+    ServerConfigView(model = model, openDrawer = {})
 }

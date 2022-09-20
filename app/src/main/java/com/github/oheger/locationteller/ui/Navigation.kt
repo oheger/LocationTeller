@@ -52,6 +52,7 @@ internal const val TAG_NAV_TOP_MENU = "nav_top_menu"
 
 internal const val NAV_ROUTE_SENDER = "sender"
 internal const val NAV_ROUTE_RECEIVER = "receiver"
+internal const val NAV_ROUTER_SERVER_SETTINGS = "serverSettings"
 
 /**
  * Generate the drawer with the menu items to navigate to the different screens. Call the [onRouteSelected]
@@ -102,7 +103,7 @@ fun Drawer(
             style = MaterialTheme.typography.h6,
             tag = TAG_NAV_SERVER_SETTINGS,
             modifier = modifier.padding(start = 12.dp),
-            onClick = {}
+            onClick = routeClicked(NAV_ROUTER_SERVER_SETTINGS, onRouteSelected)
         )
     }
 }

@@ -25,6 +25,6 @@ import androidx.compose.runtime.Composable
  */
 class ServerSettingsFragment : ComposeFragment() {
     override fun getContent(): @Composable () -> Unit = {
-        ServerConfigUi()
+        ServerConfigUi(openDrawer = {})
     }
 }

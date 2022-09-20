@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.app.Application
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -22,11 +23,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.navigation.Navigation.findNavController
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
 import com.github.oheger.locationteller.R
+
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackServerConfig
 import io.kotest.matchers.shouldBe
@@ -51,9 +51,18 @@ class ServerConfigUiSpec {
 
     @Before
     fun navigateToServerConfig() {
-        composeTestRule.activityRule.scenario.onActivity {
-            findNavController(it, R.id.nav_host_fragment).navigate(R.id.serverSettingsFragment)
-        }
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_MENU).performClick()
+        composeTestRule.onNodeWithTag(TAG_NAV_SERVER_SETTINGS).performClick()
+    }
+
+    @Test
+    fun `The app bar is correctly initialized`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val header = context.getString(R.string.settings_header)
+        val view = context.getString(R.string.serverSettingsView)
+        val expectedTitle = "$header/$view"
+
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_TITLE).assertTextEquals(expectedTitle)
     }
 
     @Test
