@@ -51,6 +51,7 @@ internal const val TAG_NAV_TOP_TITLE = "nav_top_title"
 internal const val TAG_NAV_TOP_MENU = "nav_top_menu"
 
 internal const val NAV_ROUTE_SENDER = "sender"
+internal const val NAV_ROUTE_RECEIVER = "receiver"
 
 /**
  * Generate the drawer with the menu items to navigate to the different screens. Call the [onRouteSelected]
@@ -78,7 +79,7 @@ fun Drawer(
             textRes = R.string.receiverView,
             tag = TAG_NAV_RECEIVER,
             modifier = modifier,
-            onClick = {}
+            onClick = routeClicked(NAV_ROUTE_RECEIVER, onRouteSelected)
         )
         DrawerItem(
             iconRes = R.drawable.ic_item_settings,

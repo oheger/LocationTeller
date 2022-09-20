@@ -22,6 +22,6 @@ import androidx.compose.runtime.Composable
  */
 class ReceiverFragment : ComposeFragment() {
     override fun getContent(): @Composable () -> Unit = {
-        ReceiverUi()
+        ReceiverUi(openDrawer = {})
     }
 }

@@ -16,22 +16,23 @@
 package com.github.oheger.locationteller.ui
 
 import android.Manifest
+import android.app.Application
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.navigation.Navigation
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-
 import com.github.oheger.locationteller.R
+
 import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.ReceiverConfig
@@ -67,8 +68,16 @@ class ReceiverUiSpec {
             val configManager = ConfigManager.getInstance()
             configManager.updateReceiverConfig(it.application, ReceiverConfig.DEFAULT)
 
-            Navigation.findNavController(it, R.id.nav_host_fragment).navigate(R.id.receiverView)
+            composeTestRule.onNodeWithTag(TAG_NAV_TOP_MENU).performClick()
+            composeTestRule.onNodeWithTag(TAG_NAV_RECEIVER).performClick()
         }
+    }
+
+    @Test
+    fun `The app bar is correctly initialized`() {
+        val expectedTitle = ApplicationProvider.getApplicationContext<Application>().getString(R.string.receiverView)
+
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_TITLE).assertTextEquals(expectedTitle)
     }
 
     @Test

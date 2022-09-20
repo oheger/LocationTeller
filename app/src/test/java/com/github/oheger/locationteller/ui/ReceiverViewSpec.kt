@@ -318,7 +318,7 @@ class ReceiverViewSpec {
         model: ReceiverViewModel = PreviewReceiverViewModel()
     ): ReceiverViewModel {
         composeTestRule.setContent {
-            ReceiverView(model = model, locationPermissionState = permissionState)
+            ReceiverView(model = model, locationPermissionState = permissionState, openDrawer = {})
         }
 
         return model

@@ -104,19 +104,30 @@ internal fun actionTag(action: ReceiverAction): String = "rec_action_$action"
  * Generate the whole receiver UI. This is the entry point into this UI.
  */
 @Composable
-fun ReceiverUi(modifier: Modifier = Modifier, model: ReceiverViewModelImpl = viewModel()) {
+fun ReceiverUi(openDrawer: () -> Unit, modifier: Modifier = Modifier, model: ReceiverViewModelImpl = viewModel()) {
     val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
 
-    ReceiverView(model = model, locationPermissionState = locationPermissionState, modifier = modifier)
+    ReceiverView(
+        model = model,
+        locationPermissionState = locationPermissionState,
+        openDrawer = openDrawer,
+        modifier = modifier
+    )
 }
 
 /**
  * Generate the view for the receiver part of the application based on the given [model] and the
- * [locationPermissionState].
+ * [locationPermissionState]. Call the [openDrawer] function if the menu icon is clicked.
  */
 @Composable
-fun ReceiverView(model: ReceiverViewModel, locationPermissionState: PermissionState, modifier: Modifier = Modifier) {
+fun ReceiverView(
+    model: ReceiverViewModel,
+    locationPermissionState: PermissionState,
+    openDrawer: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier.fillMaxWidth()) {
+        TopBar(title = stringResource(id = R.string.receiverView), onMenuClicked = openDrawer)
         Box(modifier = modifier.weight(1.0f)) {
             MapView(
                 markers = model.markers,
@@ -531,7 +542,7 @@ fun ReceiverPreview() {
     val model = PreviewReceiverViewModel()
     val permissionStateProvider = PermissionStateProvider()
 
-    ReceiverView(model = model, locationPermissionState = permissionStateProvider.values.first())
+    ReceiverView(model = model, locationPermissionState = permissionStateProvider.values.first(), openDrawer = {})
 }
 
 @Preview(showBackground = true)
