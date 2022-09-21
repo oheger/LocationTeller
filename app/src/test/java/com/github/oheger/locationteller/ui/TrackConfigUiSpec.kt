@@ -15,19 +15,20 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.app.Application
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.navigation.Navigation.findNavController
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
 import com.github.oheger.locationteller.R
+
 import com.github.oheger.locationteller.config.ConfigManager
 import com.github.oheger.locationteller.config.PreferencesHandler
 import com.github.oheger.locationteller.config.TrackConfig
@@ -60,9 +61,20 @@ class TrackConfigUiSpec {
             val configManager = ConfigManager.getInstance()
             val trackConfig = configManager.trackConfig(activity.application)
             configManager.updateTrackConfig(activity.application, trackConfig.copy(autoResetStats = true))
-
-            findNavController(activity, R.id.nav_host_fragment).navigate(R.id.trackSettingsFragment)
         }
+
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_MENU).performClick()
+        composeTestRule.onNodeWithTag(TAG_NAV_TRACK_SETTINGS).performClick()
+    }
+
+    @Test
+    fun `The app bar is correctly initialized`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val header = context.getString(R.string.settings_header)
+        val title = context.getString(R.string.trackSettingsView)
+        val expectedTitle = "$header/$title"
+
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_TITLE).assertTextEquals(expectedTitle)
     }
 
     @Test

@@ -24,6 +24,6 @@ import androidx.compose.runtime.Composable
  */
 class TrackSettingsFragment : ComposeFragment() {
     override fun getContent(): @Composable () -> Unit = {
-        TrackConfigUi()
+        TrackConfigUi(openDrawer = {})
     }
 }

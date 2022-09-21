@@ -69,6 +69,9 @@ fun LocationTellerMainScreen() {
                 composable(NAV_ROUTE_RECEIVER) {
                     ReceiverUi(openDrawer = { openDrawer() })
                 }
+                composable(NAV_ROUTER_TRACK_SETTINGS) {
+                    TrackConfigUi(openDrawer = { openDrawer() })
+                }
                 composable(NAV_ROUTER_SERVER_SETTINGS) {
                     ServerConfigUi(openDrawer = { openDrawer() })
                 }

@@ -62,22 +62,26 @@ internal const val CONFIG_ITEM_TRACK_WALKING_SPEED = "config_track_walking_speed
  * Generate the UI for the configuration of the tracking settings. This is the entry point into this configuration UI.
  */
 @Composable
-fun TrackConfigUi(modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
-    TrackConfigView(model = model, modifier = modifier)
+fun TrackConfigUi(openDrawer: () -> Unit, modifier: Modifier = Modifier, model: TrackViewModelImpl = viewModel()) {
+    TrackConfigView(model = model, openDrawer = openDrawer, modifier = modifier)
 }
 
 /**
  * Generate the view for displaying and changing tracking-related configuration settings using [model] as view model.
+ * Call the [openDrawer] function if the menu icon is clicked.
  */
 @Composable
-fun TrackConfigView(model: TrackViewModel, modifier: Modifier = Modifier) {
+fun TrackConfigView(model: TrackViewModel, openDrawer: () -> Unit, modifier: Modifier = Modifier) {
     var tabIndex by rememberSaveable { mutableStateOf(0) }
     val tabData = listOf(
         R.string.pref_track_basic to CONFIG_ITEM_TRACK_TAB_BASIC,
         R.string.pref_track_advanced to CONFIG_ITEM_TRACK_TAB_ADVANCED
     )
+    val title = "${stringResource(id = R.string.settings_header)}/${stringResource(id = R.string.trackSettingsView)}"
 
     Column(modifier = modifier) {
+        TopBar(title = title, onMenuClicked = openDrawer)
+
         TabRow(selectedTabIndex = tabIndex) {
             tabData.forEachIndexed { index, (label, tag) ->
                 Tab(
@@ -299,7 +303,7 @@ private fun AdvancedTrackConfig(
 fun TrackConfigPreview() {
     val model = PreviewTrackViewModel()
 
-    TrackConfigView(model = model)
+    TrackConfigView(model = model, openDrawer = {})
 }
 
 @Preview(showBackground = true)
