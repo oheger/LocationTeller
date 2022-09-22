@@ -21,7 +21,11 @@ import androidx.compose.material.ModalDrawer
 import androidx.compose.material.Surface
 import androidx.compose.material.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -34,6 +38,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun LocationTellerMainScreen() {
     val navController = rememberNavController()
+    var trackingEnabled by rememberSaveable { mutableStateOf(false) }
+
     Surface(color = MaterialTheme.colors.background) {
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val scope = rememberCoroutineScope()
@@ -47,6 +53,7 @@ fun LocationTellerMainScreen() {
             gesturesEnabled = drawerState.isOpen,
             drawerContent = {
                 Drawer(
+                    trackingActive = trackingEnabled,
                     onRouteSelected = { route ->
                         scope.launch {
                             drawerState.close()
@@ -64,7 +71,7 @@ fun LocationTellerMainScreen() {
                 startDestination = NAV_ROUTE_SENDER
             ) {
                 composable(NAV_ROUTE_SENDER) {
-                    TrackUi(openDrawer = { openDrawer() })
+                    TrackUi(openDrawer = { openDrawer() }, updateTrackState = { trackingEnabled = it })
                 }
                 composable(NAV_ROUTE_RECEIVER) {
                     ReceiverUi(openDrawer = { openDrawer() })

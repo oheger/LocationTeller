@@ -11,6 +11,7 @@
     <string name="settings_header">Settings</string>
     <string name="trackSettingsView">Track</string>
     <string name="serverSettingsView">Server</string>
+    <string name="settings_disabled">(not editable while tracking is active)</string>
     <string name="pref_track_basic">Basic</string>
     <string name="pref_track_basic_intro">Specify, how often position updates should be recorded, how the interval should be changed if there are no position changes, and how the data should be stored on the server.</string>
     <string name="pref_track_advanced">Advanced</string>

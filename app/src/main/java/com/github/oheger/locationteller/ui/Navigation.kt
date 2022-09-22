@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -56,14 +57,19 @@ internal const val NAV_ROUTER_TRACK_SETTINGS = "trackSettings"
 internal const val NAV_ROUTER_SERVER_SETTINGS = "serverSettings"
 
 /**
- * Generate the drawer with the menu items to navigate to the different screens. Call the [onRouteSelected]
- * function when the user clicks on a menu item representing a screen.
+ * Generate the drawer with the menu items to navigate to the different screens. Use the [trackingActive] flag to
+ * determine whether some screens are disabled. Call the [onRouteSelected] function when the user clicks on a menu
+ * item representing a screen.
  */
 @Composable
 fun Drawer(
+    trackingActive: Boolean,
     onRouteSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val settingsColor = if (trackingActive) MaterialTheme.colors.secondaryVariant
+    else MaterialTheme.colors.secondary
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -83,28 +89,35 @@ fun Drawer(
             modifier = modifier,
             onClick = routeClicked(NAV_ROUTE_RECEIVER, onRouteSelected)
         )
+
         DrawerItem(
             iconRes = R.drawable.ic_item_settings,
             textRes = R.string.settings_header,
+            color = MaterialTheme.colors.secondaryVariant,
             tag = "",
             modifier = modifier,
             onClick = {}
         )
+        if (trackingActive) {
+            Text(text = stringResource(id = R.string.settings_disabled))
+        }
         DrawerItem(
             iconRes = R.drawable.ic_item_settings_track,
             textRes = R.string.trackSettingsView,
             style = MaterialTheme.typography.h6,
+            color = settingsColor,
             tag = TAG_NAV_TRACK_SETTINGS,
             modifier = modifier.padding(start = 12.dp),
-            onClick = routeClicked(NAV_ROUTER_TRACK_SETTINGS, onRouteSelected)
+            onClick = routeClicked(NAV_ROUTER_TRACK_SETTINGS, onRouteSelected, enabled = !trackingActive)
         )
         DrawerItem(
             iconRes = R.drawable.ic_item_settings_server,
             textRes = R.string.serverSettingsView,
             style = MaterialTheme.typography.h6,
+            color = settingsColor,
             tag = TAG_NAV_SERVER_SETTINGS,
             modifier = modifier.padding(start = 12.dp),
-            onClick = routeClicked(NAV_ROUTER_SERVER_SETTINGS, onRouteSelected)
+            onClick = routeClicked(NAV_ROUTER_SERVER_SETTINGS, onRouteSelected, enabled = !trackingActive)
         )
     }
 }
@@ -128,8 +141,8 @@ fun TopBar(title: String, onMenuClicked: () -> Unit) {
 }
 
 /**
- * Generate an item to be displayed in the drawer with the given [icon][iconRes], [text][textRes], [style], and [tag].
- * Invoke the given [onClick] function when the user clicks on this item.
+ * Generate an item to be displayed in the drawer with the given [icon][iconRes], [text][textRes], [style],
+ * [color], and [tag]. Invoke the given [onClick] function when the user clicks on this item.
  */
 @Composable
 private fun DrawerItem(
@@ -138,7 +151,8 @@ private fun DrawerItem(
     tag: String,
     onClick: () -> Unit,
     modifier: Modifier,
-    style: TextStyle = MaterialTheme.typography.h5
+    style: TextStyle = MaterialTheme.typography.h5,
+    color: Color = MaterialTheme.colors.secondary
 ) {
     val itemText = stringResource(id = textRes)
     Row(modifier = modifier.padding(top = 12.dp)) {
@@ -149,7 +163,7 @@ private fun DrawerItem(
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = itemText, style = style, modifier = Modifier
+            text = itemText, style = style, color = color, modifier = Modifier
                 .testTag(tag)
                 .clickable(onClick = onClick)
         )
@@ -158,12 +172,13 @@ private fun DrawerItem(
 
 /**
  * Create a parameter-less callback function for clicks that invokes the given [routeFunc] with the specified
- * [route] identifier.
+ * [route] identifier. If the given [enabled] flag is *false*, return a dummy function that does no routing.
  */
-private fun routeClicked(route: String, routeFunc: (String) -> Unit): () -> Unit = { routeFunc(route) }
+private fun routeClicked(route: String, routeFunc: (String) -> Unit, enabled: Boolean = true): () -> Unit =
+    { if (enabled) routeFunc(route) }
 
 @Preview
 @Composable
 fun DrawerPreview() {
-    Drawer(onRouteSelected = {})
+    Drawer(trackingActive = false, onRouteSelected = {})
 }

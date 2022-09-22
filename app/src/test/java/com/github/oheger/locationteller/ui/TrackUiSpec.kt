@@ -15,6 +15,7 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.Manifest
 import android.app.Application
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -24,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.GrantPermissionRule
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.config.PreferencesHandler
@@ -48,6 +50,9 @@ import java.util.Date
     instrumentedPackages = ["androidx.loader.content"]
 )
 class TrackUiSpec {
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION)
+
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
@@ -82,6 +87,20 @@ class TrackUiSpec {
         composeTestRule.onNodeWithTag(TAG_TRACK_CHECKS).assertTextEquals("42")
         composeTestRule.onNodeWithTag(TAG_TRACK_LAST_DIST).assertTextEquals("77")
         composeTestRule.onNodeWithTag(TAG_TRACK_START).assertTextContains("2022", substring = true)
+    }
+
+    @Test
+    fun `When tracking is active the settings screens are disabled`() {
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).performClick()
+        composeTestRule.onNodeWithTag(TAG_NAV_TOP_MENU).performClick()
+
+        composeTestRule.onNodeWithTag(TAG_NAV_TRACK_SETTINGS).performClick()
+        composeTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM_TRACK_MIN_INTERVAL))
+            .assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag(TAG_NAV_SERVER_SETTINGS).performClick()
+        composeTestRule.onNodeWithTag(ConfigItemElement.LABEL.tagForItem(CONFIG_ITEM_SERVER_USER))
+            .assertDoesNotExist()
     }
 }
 

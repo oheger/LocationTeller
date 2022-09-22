@@ -169,7 +169,7 @@ class TrackViewSpec {
         val model = TrackViewModelImpl(application)
 
         composeTestRule.setContent {
-            TrackView(model = model, locationPermissionState = permissionState, openDrawer = {})
+            TrackView(model = model, locationPermissionState = permissionState, openDrawer = {}, updateTrackState = {})
         }
         return model
     }
