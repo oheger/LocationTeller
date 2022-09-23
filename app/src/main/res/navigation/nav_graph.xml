@@ -10,8 +10,4 @@
         android:name="com.github.oheger.locationteller.ui.MapFragment"
         android:label="@string/mapView"
         tools:layout="@layout/fragment_map" />
-    <fragment
-        android:id="@+id/receiverView"
-        android:name="com.github.oheger.locationteller.ui.ReceiverFragment"
-        android:label="@string/receiverView" />
 </navigation>
