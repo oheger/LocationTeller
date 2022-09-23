@@ -14,8 +14,4 @@
         android:id="@+id/receiverView"
         android:name="com.github.oheger.locationteller.ui.ReceiverFragment"
         android:label="@string/receiverView" />
-    <fragment
-        android:id="@+id/trackSettingsFragment"
-        android:name="com.github.oheger.locationteller.ui.TrackSettingsFragment"
-        android:label="@string/trackSettingsView" />
 </navigation>
