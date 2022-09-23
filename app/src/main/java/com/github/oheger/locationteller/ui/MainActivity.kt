@@ -18,106 +18,52 @@ package com.github.oheger.locationteller.ui
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupWithNavController
+
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+
 import com.github.oheger.locationteller.R
-import com.github.oheger.locationteller.databinding.ActivityMainBinding
 import com.github.oheger.locationteller.track.LocationTellerService
-import com.github.oheger.locationteller.config.PreferencesHandler
-import com.github.oheger.locationteller.config.TrackConfig
+
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
-import java.text.SimpleDateFormat
-import java.util.*
 
 /**
  * The main activity of this application.
  *
- * This activity does not have a visual representation on its own as the whole
- * UI is provided by different fragments. This class implements some common
- * management tasks.
+ * This class does some initialization and installs the main composable screen.
  */
-class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
-    OnMapsSdkInitializedCallback {
-    private val logTag = "MainActivity"
-
-    private lateinit var binding: ActivityMainBinding
-
-    private lateinit var appBarConfig: AppBarConfiguration
-
-    private lateinit var preferencesHandler: PreferencesHandler
+class MainActivity : ComponentActivity(), OnMapsSdkInitializedCallback {
+    companion object {
+        private const val LOG_TAG = "MainActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST, this)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setSupportActionBar(binding.toolbar)
-
-        val navCtrl = findNavController(R.id.nav_host_fragment)
-        appBarConfig = AppBarConfiguration(navCtrl.graph, binding.drawerLayout)
-        binding.toolbar.setupWithNavController(navCtrl, appBarConfig)
-        binding.navView.setupWithNavController(navCtrl)
-
-        if (Thread.getDefaultUncaughtExceptionHandler() !is ExceptionLogger) {
-            Thread.setDefaultUncaughtExceptionHandler(ExceptionLogger(this))
+        setContent {
+            LocationTellerMainScreen()
         }
 
-        preferencesHandler = PreferencesHandler.getInstance(this)
         createTrackNotificationChannel()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        preferencesHandler.registerListener(this)
-    }
-
-    override fun onPause() {
-        preferencesHandler.unregisterListener(this)
-        super.onPause()
-    }
-
-    /**
-     * Handles updates of the shared preferences. If the update affects a
-     * configuration key, tracking is stopped. It then has to be enabled
-     * explicitly by the user again. If the track state is affected, the
-     * service is invoked.
-     * @param sharedPreferences the preferences that have been changed
-     * @param key the key affected
-     */
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-        Log.d(logTag, "Change of shared properties. Affected key is $key.")
-        if (PreferencesHandler.isConfigProperty(key) || TrackConfig.isProperty(key)) {
-            val handler = PreferencesHandler(sharedPreferences)
-            if (handler.isTrackingEnabled()) {
-                handler.setTrackingEnabled(false)
-            }
-        }
     }
 
     override fun onMapsSdkInitialized(renderer: MapsInitializer.Renderer) {
         when (renderer) {
             MapsInitializer.Renderer.LATEST ->
-                Log.i(logTag, "The latest version of the map renderer is used.")
+                Log.i(LOG_TAG, "The latest version of the map renderer is used.")
             MapsInitializer.Renderer.LEGACY ->
-                Log.i(logTag, "The legacy version of the map renderer is used.")
+                Log.i(LOG_TAG, "The legacy version of the map renderer is used.")
         }
     }
 
     /**
-     * Creates the notification channel that is mandatory for the location
-     * teller service in newer Android versions.
+     * Create the notification channel that is mandatory for the location teller service in newer Android versions.
      */
     private fun createTrackNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -131,21 +77,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             }
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
-            Log.i(logTag, "Created notification channel.")
-        }
-    }
-
-    class ExceptionLogger(private val context: Context) : Thread.UncaughtExceptionHandler {
-        override fun uncaughtException(t: Thread, e: Throwable) {
-            val bos = ByteArrayOutputStream()
-            val out = PrintStream(bos)
-            e.printStackTrace(out)
-            out.flush()
-            val format = SimpleDateFormat("yyyy-MM-dd_HH_mm_ss", Locale.getDefault())
-            val fileName = format.format(Date()) + ".log"
-            context.openFileOutput(fileName, Context.MODE_PRIVATE).use { stream ->
-                stream.write(bos.toByteArray())
-            }
+            Log.i(LOG_TAG, "Created notification channel.")
         }
     }
 }
