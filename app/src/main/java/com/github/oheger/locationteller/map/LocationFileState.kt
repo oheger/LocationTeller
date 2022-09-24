@@ -18,7 +18,6 @@ package com.github.oheger.locationteller.map
 import com.github.oheger.locationteller.server.LocationData
 
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 
 /**
  * A data class storing information about a marker on a map.
@@ -81,18 +80,3 @@ data class LocationFileState(
         return result
     }
 }
-
-/**
- * A data class storing information about the markers that have been added to the map view.
- *
- * This class is used by [MapUpdater] to execute update operations in an efficient and correct way. In addition to
- * information about the location files retrieved from the server, this class also contains data about the own
- * location.
- */
-data class MapMarkerState(
-    /** The current [LocationFileState]. */
-    val locations: LocationFileState,
-
-    /** The optional marker that was added for the own location. */
-    val ownMarker: Marker?
-)
