@@ -1,12 +1,7 @@
 <resources>
     <string name="app_name">Location Teller</string>
-    <string name="track_settings">Track settings</string>
-    <string name="server_settings">Track settings</string>
-    <string name="open_drawer">Open</string>
-    <string name="close_drawer">Close</string>
 
     <string name="trackView">Sender</string>
-    <string name="mapView">Map</string>
     <string name="receiverView">Receiver</string>
     <string name="settings_header">Settings</string>
     <string name="trackSettingsView">Track</string>
@@ -67,27 +62,19 @@
     <string name="stats_tracking_last_update">Last update</string>
     <string name="stats_tracking_error_count">Error count</string>
     <string name="stats_tracking_last_error">Last error</string>
-    <string name="item_track_reset_stats">Reset statistics</string>
     <string name="stats_tracking_speed">Average speed (km/h)</string>
     <string name="stats_tracking_check_count">Check count</string>
     <string name="stats_tracking_update_count">Update count</string>
     <string name="pref_offline_storage_size">Size of the offline storage</string>
-    <string name="pref_offline_sync_time">Max time to sync offline storage (s)</string>
+    <string name="pref_offline_sync_time">Max time to sync offline storage</string>
     <string name="pref_multi_upload_chunk_size">No of uploads per offline sync op</string>
     <string name="pref_basic_settings">Basic</string>
     <string name="pref_advanced_settings">Advanced</string>
     <string name="map_distance">Current distance: %d m</string>
     <string name="item_update_my_location">Update my location</string>
     <string name="item_center_to_my_location">Center to my location</string>
-    <string name="map_no_own_location">Failed to retrieve the current location</string>
     <string name="pref_max_speed_increase">Maximum speed increase factor</string>
     <string name="pref_walking_speed">Average walking speed (km/h)</string>
-    <string name="item_fading_mode">Fading mode</string>
-    <string name="item_fading_mode_fast">Fast</string>
-    <string name="item_fading_mode_slow">Slow</string>
-    <string name="item_fading_mode_fast_and_strong">Fast and strong</string>
-    <string name="item_fading_mode_slow_and_strong">Slow and strong</string>
-    <string name="item_fading_mode_none">None</string>
     <string name="pref_rec_update_interval">Update interval</string>
     <string name="pref_rec_fade">Fade out old positions</string>
     <string name="pref_rec_fade_fast">Fast fade out</string>
@@ -95,8 +82,6 @@
     <string name="pref_rec_center_new">Auto-center newest position</string>
     <string name="perm_location_rationale">This app uses the permission to retrieve the current location for two purposes:\n\nWhen used as sender, the location needs to be retrieved, so that it can be published. Without this permission, the whole sender part is dysfunctional.\n\nWhen used as receiver, access to the current location is needed only for the functionality to show the own position in the map. If you do not use this feature, there is no need to grant this permission.</string>
     <string name="perm_location_rationale_rec">In order to display the own location, the permission to access it must be granted.</string>
-    <string name="perm_button_continue">Continue</string>
-    <string name="perm_button_cancel">Cancel</string>
     <string name="perm_location_title">Required Location Permission</string>
     <string name="perm_location_request">Request permission</string>
     <string name="exp_header_expand">Expand %1$s</string>
