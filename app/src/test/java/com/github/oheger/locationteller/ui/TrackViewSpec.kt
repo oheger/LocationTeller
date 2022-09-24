@@ -17,6 +17,8 @@ package com.github.oheger.locationteller.ui
 
 import android.app.Application
 
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -33,6 +35,7 @@ import io.kotest.inspectors.forAll
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 
 import org.junit.Rule
@@ -160,6 +163,46 @@ class TrackViewSpec {
         composeTestRule.onNodeWithTag(labelTag(TAG_TRACK_LAST_ERROR)).assertDoesNotExist()
     }
 
+    @Test
+    fun `The tracking enabled switch is off if the model reports that tracking is inactive`() {
+        val model = PreviewTrackViewModel()
+        installTrackViewWithModel(model)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertIsOff()
+    }
+
+    @Test
+    fun `The tracking enabled switch is on if the model reports that tracking is active`() {
+        val model = PreviewTrackViewModel(trackingEnabled = true)
+        installTrackViewWithModel(model)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).assertIsOn()
+    }
+
+    @Test
+    fun `Tracking can be started via the tracking enabled switch`() {
+        val model = spyk(PreviewTrackViewModel())
+        installTrackViewWithModel(model)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).performClick()
+
+        verify {
+            model.updateTrackingState(enabled = true)
+        }
+    }
+
+    @Test
+    fun `Tracking can be stopped via the tracking enabled switch`() {
+        val model = spyk(PreviewTrackViewModel(trackingEnabled = true))
+        installTrackViewWithModel(model)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_ENABLED_SWITCH).performClick()
+
+        verify {
+            model.updateTrackingState(enabled = false)
+        }
+    }
+
     /**
      * Create an instance of the track view and set it as content for [composeTestRule]. Pass [permissionState] to
      * the switch UI. Return the underling [TrackViewModel].
@@ -179,11 +222,31 @@ class TrackViewSpec {
      * [tracking enabled state][trackingEnabled]. Return the underlying [TrackViewModel].
      */
     private fun installTrackView(trackingEnabled: Boolean): TrackViewModelImpl {
-        val permissionState = mockk<PermissionState>(relaxed = true)
-        every { permissionState.status } returns PermissionStatus.Granted
-
-        val model = installTrackView(permissionState)
+        val model = installTrackView(grantedPermissionState())
         model.updateTrackingState(trackingEnabled)
         return model
     }
+
+    /**
+     * Create an instance of the track view that is associated with the given [model]. Pass a [PermissionState] that
+     * grants all required permissions.
+     */
+    private fun installTrackViewWithModel(model: TrackViewModel) {
+        composeTestRule.setContent {
+            TrackView(
+                model = model,
+                locationPermissionState = grantedPermissionState(),
+                openDrawer = {},
+                updateTrackState = {}
+            )
+        }
+    }
 }
+
+/**
+ * Return a mock [PermissionState] that reports that the permission is granted.
+ */
+private fun grantedPermissionState(): PermissionState =
+    mockk<PermissionState>().apply {
+        every { status } returns PermissionStatus.Granted
+    }
