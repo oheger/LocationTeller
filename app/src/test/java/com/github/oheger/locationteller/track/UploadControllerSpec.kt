@@ -54,7 +54,7 @@ class UploadControllerSpec : StringSpec() {
         "UploadController should not process an update if there is no change in the location" {
             val locUpdate1 = locationUpdate(0)
             val loc2 = mockk<Location>()
-            every { loc2.distanceTo(locUpdate1.orgLocation) } returns defaultConfig.locationUpdateThreshold - 0.1f
+            every { loc2.distanceTo(locUpdate1.orgLocation!!) } returns defaultConfig.locationUpdateThreshold - 0.1f
             val locUpdate2 = locationUpdate(
                 locUpdate1.locationData.copy(time = TimeData(1)),
                 orgLocation = loc2
@@ -240,7 +240,7 @@ class UploadControllerSpec : StringSpec() {
             val locUpdate2 =
                 locationUpdate(locData = locationData(2), orgLocation = null)
             val loc = mockk<Location>()
-            every { loc.distanceTo(locUpdate1.orgLocation) } returns 1f
+            every { loc.distanceTo(locUpdate1.orgLocation!!) } returns 1f
             val locUpdate3 = locationUpdate(locUpdate1.locationData, orgLocation = loc)
             val helper = ControllerTestHelper()
 
@@ -249,7 +249,7 @@ class UploadControllerSpec : StringSpec() {
                 .runUpload(locUpdate2)
                 .runUpload(locUpdate3)
             verify {
-                loc.distanceTo(locUpdate1.orgLocation)
+                loc.distanceTo(locUpdate1.orgLocation!!)
             }
         }
 

@@ -87,13 +87,14 @@ class ValidatingLocationRetriever(
         else {
 
             val now = timeService.currentTime().currentTime
-            if (lastLocation == null) {
+            val storedLocation = lastLocation
+            if (storedLocation == null) {
                 lastLocation = location
                 lastTime = now
                 location
             } else {
 
-                val distance = location.distanceTo(lastLocation)
+                val distance = location.distanceTo(storedLocation)
                 val time = now - lastTime
                 val velocity = if (time > 0) distance * 1000.0 / time
                 else lastVelocity

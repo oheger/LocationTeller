@@ -199,13 +199,10 @@ class UploadController(
      * @param currentLocation the current location
      * @return the distance to the previous location
      */
-    private fun locationChanged(currentLocation: Location?): Int {
-        if (lastLocation == null) {
-            return 0
-        }
-
-        val distance = currentLocation?.distanceTo(lastLocation) ?: trackConfig.locationUpdateThreshold.toFloat()
-        return if (distance >= trackConfig.locationUpdateThreshold) distance.toInt()
-        else -1
-    }
+    private fun locationChanged(currentLocation: Location?): Int =
+        lastLocation?.let {
+            val distance = currentLocation?.distanceTo(it) ?: trackConfig.locationUpdateThreshold.toFloat()
+            if (distance >= trackConfig.locationUpdateThreshold) distance.toInt()
+            else -1
+        } ?: 0
 }
