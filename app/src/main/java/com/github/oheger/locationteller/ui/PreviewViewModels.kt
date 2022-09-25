@@ -50,6 +50,7 @@ internal data class PreviewTrackViewModel(
 
     override fun updateTrackConfig(config: TrackConfig) {}
     override fun updateServerConfig(config: TrackServerConfig) {}
+    override fun resetStatistics() {}
 }
 
 /**

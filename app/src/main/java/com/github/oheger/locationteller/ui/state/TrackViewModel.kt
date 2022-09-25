@@ -70,6 +70,11 @@ interface TrackViewModel {
      * properties are persisted.
      */
     fun updateServerConfig(config: TrackServerConfig)
+
+    /**
+     * Reset the current tracking statistics.
+     */
+    fun resetStatistics()
 }
 
 /**
@@ -167,6 +172,10 @@ class TrackViewModelImpl(
 
     override fun updateServerConfig(config: TrackServerConfig) {
         ConfigManager.getInstance().updateServerConfig(getApplication(), config)
+    }
+
+    override fun resetStatistics() {
+        trackStorage.resetStatistics()
     }
 
     /**

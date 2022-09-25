@@ -571,6 +571,18 @@ class TrackViewModelSpec : WordSpec() {
                 model.serverConfig shouldBe newConfig
             }
         }
+
+        "resetStatistics" should {
+            "pass the request to the TrackStorage" {
+                val model = createModel()
+
+                model.resetStatistics()
+
+                verify {
+                    storage.resetStatistics()
+                }
+            }
+        }
     }
 
     /**
