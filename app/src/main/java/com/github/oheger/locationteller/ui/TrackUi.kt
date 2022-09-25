@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui
 
 import android.Manifest
+import android.content.res.Configuration
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.ui.state.TrackStatsState
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
+import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.rememberPermissionState
@@ -313,7 +315,12 @@ private fun ResetStatsButton(onClick: () -> Unit, modifier: Modifier) {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Light mode")
+@Preview(
+    name = "Dark mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
 @Composable
 fun TrackViewPreview(
     @PreviewParameter(PermissionStateProvider::class)
@@ -332,5 +339,7 @@ fun TrackViewPreview(
     }
     val model = PreviewTrackViewModel(state)
 
-    TrackView(model = model, locationPermissionState = permissionState, openDrawer = {}, updateTrackState = {})
+    LocationTellerTheme {
+        TrackView(model = model, locationPermissionState = permissionState, openDrawer = {}, updateTrackState = {})
+    }
 }

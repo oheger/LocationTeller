@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.content.res.Configuration
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,6 +43,7 @@ import com.github.oheger.locationteller.duration.DurationModel
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
 import com.github.oheger.locationteller.ui.state.TrackViewModel
 import com.github.oheger.locationteller.ui.state.TrackViewModelImpl
+import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 internal const val CONFIG_ITEM_TRACK_TAB_BASIC = "config_track_tab_basic"
 internal const val CONFIG_ITEM_TRACK_TAB_ADVANCED = "config_track_tab_advanced"
@@ -298,15 +301,27 @@ private fun AdvancedTrackConfig(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Light mode")
+@Preview(
+    name = "Dark mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
 @Composable
 fun TrackConfigPreview() {
     val model = PreviewTrackViewModel()
 
-    TrackConfigView(model = model, openDrawer = {})
+    LocationTellerTheme {
+        TrackConfigView(model = model, openDrawer = {})
+    }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Light mode")
+@Preview(
+    name = "Dark mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
 @Composable
 fun TrackConfigAdvancedPreview() {
     val model = PreviewTrackViewModel()

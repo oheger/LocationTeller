@@ -27,6 +27,7 @@ import androidx.activity.compose.setContent
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.LocationTellerService
+import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
@@ -47,7 +48,9 @@ class MainActivity : ComponentActivity(), OnMapsSdkInitializedCallback {
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST, this)
 
         setContent {
-            LocationTellerMainScreen()
+            LocationTellerTheme {
+                LocationTellerMainScreen()
+            }
         }
 
         createTrackNotificationChannel()

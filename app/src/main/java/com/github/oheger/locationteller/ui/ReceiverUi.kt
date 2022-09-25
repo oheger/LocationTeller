@@ -16,6 +16,7 @@
 package com.github.oheger.locationteller.ui
 
 import android.Manifest
+import android.content.res.Configuration
 
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -59,6 +60,7 @@ import com.github.oheger.locationteller.ui.state.ReceiverAction
 import com.github.oheger.locationteller.ui.state.ReceiverViewModel
 import com.github.oheger.locationteller.ui.state.ReceiverViewModelImpl
 import com.github.oheger.locationteller.ui.state.TrackStatsFormatter
+import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.rememberPermissionState
@@ -545,7 +547,12 @@ fun ReceiverPreview() {
     ReceiverView(model = model, locationPermissionState = permissionStateProvider.values.first(), openDrawer = {})
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Light mode")
+@Preview(
+    name = "Dark mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
 @Composable
 fun ReceiverConfigPreview() {
     val config = ReceiverConfig(
@@ -556,21 +563,30 @@ fun ReceiverConfigPreview() {
         centerNewPosition = true
     )
 
-    ReceiverConfigView(config = config, update = {}, modifier = Modifier)
+    LocationTellerTheme {
+        ReceiverConfigView(config = config, update = {}, modifier = Modifier)
+    }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Light mode")
+@Preview(
+    name = "Dark mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
 @Composable
 fun ActionPreview(
     @PreviewParameter(PermissionStateProvider::class)
     permissionState: PermissionState
 ) {
-    ReceiverActionView(
-        onAction = {},
-        numberOfLocations = 5,
-        modifier = Modifier,
-        ownLocation = null,
-        ownLocationRetrieving = false,
-        locationPermissionState = permissionState
-    )
+    LocationTellerTheme {
+        ReceiverActionView(
+            onAction = {},
+            numberOfLocations = 5,
+            modifier = Modifier,
+            ownLocation = null,
+            ownLocationRetrieving = false,
+            locationPermissionState = permissionState
+        )
+    }
 }

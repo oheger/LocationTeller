@@ -15,6 +15,8 @@
  */
 package com.github.oheger.locationteller.ui
 
+import android.content.res.Configuration
+
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -42,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 import com.github.oheger.locationteller.R
+import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 internal const val TAG_NAV_SENDER = "nav_sender"
 internal const val TAG_NAV_RECEIVER = "nav_receiver"
@@ -177,8 +180,15 @@ private fun DrawerItem(
 private fun routeClicked(route: String, routeFunc: (String) -> Unit, enabled: Boolean = true): () -> Unit =
     { if (enabled) routeFunc(route) }
 
-@Preview
+@Preview(name = "Light mode")
+@Preview(
+    name = "Dark mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
 @Composable
 fun DrawerPreview() {
-    Drawer(trackingActive = false, onRouteSelected = {})
+    LocationTellerTheme {
+        Drawer(trackingActive = false, onRouteSelected = {})
+    }
 }
