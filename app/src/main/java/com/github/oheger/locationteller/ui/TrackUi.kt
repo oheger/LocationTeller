@@ -17,7 +17,14 @@ package com.github.oheger.locationteller.ui
 
 import android.Manifest
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.Button
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -54,6 +61,7 @@ internal const val TAG_TRACK_LAST_UPDATE = "tag_track_last_update"
 internal const val TAG_TRACK_ERRORS = "tag_track_errors"
 internal const val TAG_TRACK_LAST_ERROR = "tag_track_last_error"
 internal const val TAG_TRACK_ENABLED_SWITCH = "tag_track_enabled_switch"
+internal const val TAG_TRACK_RESET_STATS = "tag_track_reset_stats"
 internal const val TAG_TRACK_PERM_MESSAGE = "tag_track_perm_message"
 internal const val TAG_TRACK_PERM_DETAILS = "tag_track_perm_details"
 
@@ -109,6 +117,7 @@ fun TrackView(
             modifier = modifier
         )
         TrackStats(stats = model.trackStatistics, model.trackingEnabled, modifier = modifier)
+        ResetStatsButton(onClick = model::resetStatistics, modifier = modifier)
     }
 }
 
@@ -286,6 +295,21 @@ fun StatsLine(labelRes: Int, value: String?, showUndefined: Boolean, tag: String
                 )
             }
         }
+    }
+}
+
+/**
+ * Generate a button that allows the user to reset tracking statistics. Report button clicks via the given [onClick]
+ * function.
+ */
+@Composable
+private fun ResetStatsButton(onClick: () -> Unit, modifier: Modifier) {
+    Row(modifier = modifier) {
+        Spacer(modifier = modifier.weight(1f))
+        Button(onClick = onClick, modifier = modifier.testTag(TAG_TRACK_RESET_STATS)) {
+            Text(text = stringResource(id = R.string.track_reset_stats))
+        }
+        Spacer(modifier = modifier.weight(1f))
     }
 }
 

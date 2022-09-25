@@ -61,6 +61,7 @@
     <string name="stats_tracking_speed">Durchschnittsgeschw. (km/h)</string>
     <string name="stats_tracking_check_count">Anzahl Überprüfungen</string>
     <string name="stats_tracking_update_count">Anzahl Änderungen</string>
+    <string name="track_reset_stats">Statistik zurücksetzen</string>
     <string name="pref_multi_upload_chunk_size">Anz. Uploads pro Offline Sync-Op.</string>
     <string name="pref_offline_storage_size">Größe des Offline-Speichers</string>
     <string name="pref_offline_sync_time">Max. Zeit für Synchr. des Offline-Speichers</string>

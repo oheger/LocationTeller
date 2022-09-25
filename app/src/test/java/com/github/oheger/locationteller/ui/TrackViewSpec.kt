@@ -203,6 +203,18 @@ class TrackViewSpec {
         }
     }
 
+    @Test
+    fun `Tracking statistics can be reset`() {
+        val model = spyk(PreviewTrackViewModel())
+        installTrackViewWithModel(model)
+
+        composeTestRule.onNodeWithTag(TAG_TRACK_RESET_STATS).performClick()
+
+        verify {
+            model.resetStatistics()
+        }
+    }
+
     /**
      * Create an instance of the track view and set it as content for [composeTestRule]. Pass [permissionState] to
      * the switch UI. Return the underling [TrackViewModel].

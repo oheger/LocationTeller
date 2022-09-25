@@ -65,6 +65,7 @@
     <string name="stats_tracking_speed">Average speed (km/h)</string>
     <string name="stats_tracking_check_count">Check count</string>
     <string name="stats_tracking_update_count">Update count</string>
+    <string name="track_reset_stats">Reset statistics</string>
     <string name="pref_offline_storage_size">Size of the offline storage</string>
     <string name="pref_offline_sync_time">Max time to sync offline storage</string>
     <string name="pref_multi_upload_chunk_size">No of uploads per offline sync op</string>
