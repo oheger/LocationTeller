@@ -26,11 +26,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -261,6 +263,7 @@ fun TrackStats(stats: TrackStatsState, trackingEnabled: Boolean, modifier: Modif
             labelRes = R.string.stats_tracking_error_count,
             value = stats.numberOfErrors,
             showUndefined = false,
+            color = MaterialTheme.colors.error,
             tag = TAG_TRACK_ERRORS,
             modifier = modifier
         )
@@ -268,6 +271,7 @@ fun TrackStats(stats: TrackStatsState, trackingEnabled: Boolean, modifier: Modif
             labelRes = R.string.stats_tracking_last_error,
             value = stats.lastErrorTime,
             showUndefined = false,
+            color = MaterialTheme.colors.error,
             tag = TAG_TRACK_LAST_ERROR,
             modifier = modifier
         )
@@ -277,20 +281,29 @@ fun TrackStats(stats: TrackStatsState, trackingEnabled: Boolean, modifier: Modif
 /**
  * Generate one line of the tracking statistics screen, showing one statistics item. The item consists of a
  * [label][labelRes] and an optional [value]. If [value] is undefined, show the line only if [showUndefined] is *true*.
+ * Use [color] as text color.
  */
 @Composable
-fun StatsLine(labelRes: Int, value: String?, showUndefined: Boolean, tag: String, modifier: Modifier = Modifier) {
+fun StatsLine(
+    labelRes: Int,
+    value: String?,
+    showUndefined: Boolean,
+    tag: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colors.onBackground
+) {
     if (value != null || showUndefined) {
         Row(
             modifier = modifier
                 .fillMaxWidth()
         ) {
-            Text(text = stringResource(id = labelRes), modifier = modifier.testTag(labelTag(tag)))
+            Text(text = stringResource(id = labelRes), color = color, modifier = modifier.testTag(labelTag(tag)))
             if (value != null) {
                 Spacer(modifier = modifier.width(width = 4.dp))
                 Text(
                     text = value,
                     textAlign = TextAlign.Right,
+                    color = color,
                     modifier = modifier
                         .fillMaxWidth()
                         .testTag(tag)
@@ -336,6 +349,8 @@ fun TrackViewPreview(
         lastCheckTime = "17:01:31"
         numberOfUpdates = "20"
         lastUpdateTime = "17:01:31"
+        lastErrorTime = "16:50:12"
+        numberOfErrors = "1"
     }
     val model = PreviewTrackViewModel(state)
 
