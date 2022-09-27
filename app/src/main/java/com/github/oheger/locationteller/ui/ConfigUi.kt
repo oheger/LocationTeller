@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
@@ -36,7 +37,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -552,7 +552,7 @@ fun <T> ConfigItem(
             editorFailure?.let { exception ->
                 Text(
                     text = invalidInputHandler(exception),
-                    color = Color.Red,
+                    color = MaterialTheme.colors.error,
                     modifier = modifier
                         .padding(start = 10.dp)
                         .testTag(ConfigItemElement.ERROR_MESSAGE.tagForItem(item))
