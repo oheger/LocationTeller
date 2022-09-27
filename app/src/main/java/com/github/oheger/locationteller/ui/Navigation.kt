@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -70,8 +71,9 @@ fun Drawer(
     onRouteSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val settingsColor = if (trackingActive) MaterialTheme.colors.secondaryVariant
-    else MaterialTheme.colors.secondary
+    val disabledColor = MaterialTheme.colors.onBackground.copy(alpha = ContentAlpha.disabled)
+    val settingsColor = if (trackingActive) disabledColor
+    else MaterialTheme.colors.onBackground
 
     Column(
         modifier = modifier
@@ -96,7 +98,7 @@ fun Drawer(
         DrawerItem(
             iconRes = R.drawable.ic_item_settings,
             textRes = R.string.settings_header,
-            color = MaterialTheme.colors.secondaryVariant,
+            color = disabledColor,
             tag = "",
             modifier = modifier,
             onClick = {}
@@ -155,7 +157,7 @@ private fun DrawerItem(
     onClick: () -> Unit,
     modifier: Modifier,
     style: TextStyle = MaterialTheme.typography.h5,
-    color: Color = MaterialTheme.colors.secondary
+    color: Color = MaterialTheme.colors.onBackground
 ) {
     val itemText = stringResource(id = textRes)
     Row(modifier = modifier.padding(top = 12.dp)) {
