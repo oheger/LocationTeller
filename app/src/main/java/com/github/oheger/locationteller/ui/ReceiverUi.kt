@@ -52,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.github.oheger.locationteller.R
@@ -523,7 +524,9 @@ internal fun ExpandableHeader(
         )
         Spacer(modifier = modifier.width(5.dp))
         Text(
-            text = headerText, modifier = modifier
+            text = headerText,
+            fontSize = 20.sp,
+            modifier = modifier
                 .clickable(onClick = onClick)
                 .testTag(expandableHeaderTextTag(tag))
         )
