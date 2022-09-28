@@ -24,6 +24,7 @@ import android.util.Log
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 
 import com.github.oheger.locationteller.R
 import com.github.oheger.locationteller.track.LocationTellerService
@@ -31,6 +32,7 @@ import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
+import com.google.android.gms.maps.model.MapStyleOptions
 
 /**
  * The main activity of this application.
@@ -46,10 +48,13 @@ class MainActivity : ComponentActivity(), OnMapsSdkInitializedCallback {
         super.onCreate(savedInstanceState)
 
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST, this)
+        val darkStyleMapOptions = MapStyleOptions.loadRawResourceStyle(applicationContext, R.raw.dark_map_style)
 
         setContent {
-            LocationTellerTheme {
-                LocationTellerMainScreen()
+            val darkTheme = isSystemInDarkTheme()
+
+            LocationTellerTheme(darkTheme) {
+                LocationTellerMainScreen(darkStyleMapOptions.takeIf { darkTheme })
             }
         }
 

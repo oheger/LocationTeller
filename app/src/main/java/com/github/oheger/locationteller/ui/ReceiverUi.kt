@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,9 +65,11 @@ import com.github.oheger.locationteller.ui.theme.LocationTellerTheme
 
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MarkerInfoWindow
 import com.google.maps.android.compose.MarkerState
 
@@ -103,29 +106,38 @@ internal fun expandableHeaderTextTag(tag: String): String = "$TAG_REC_EXPANDABLE
 internal fun actionTag(action: ReceiverAction): String = "rec_action_$action"
 
 /**
- * Generate the whole receiver UI. This is the entry point into this UI.
+ * Generate the whole receiver UI. This is the entry point into this UI. Use the given [mapStyleOptions] to style the
+ * map.
  */
 @Composable
-fun ReceiverUi(openDrawer: () -> Unit, modifier: Modifier = Modifier, model: ReceiverViewModelImpl = viewModel()) {
+fun ReceiverUi(
+    openDrawer: () -> Unit,
+    mapStyleOptions: MapStyleOptions?,
+    modifier: Modifier = Modifier,
+    model: ReceiverViewModelImpl = viewModel()
+) {
     val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
 
     ReceiverView(
         model = model,
         locationPermissionState = locationPermissionState,
         openDrawer = openDrawer,
+        mapStyleOptions = mapStyleOptions,
         modifier = modifier
     )
 }
 
 /**
  * Generate the view for the receiver part of the application based on the given [model] and the
- * [locationPermissionState]. Call the [openDrawer] function if the menu icon is clicked.
+ * [locationPermissionState]. Call the [openDrawer] function if the menu icon is clicked. Use the given
+ * [mapStyleOptions] to style the map.
  */
 @Composable
 fun ReceiverView(
     model: ReceiverViewModel,
     locationPermissionState: PermissionState,
     openDrawer: () -> Unit,
+    mapStyleOptions: MapStyleOptions?,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -134,6 +146,7 @@ fun ReceiverView(
             MapView(
                 markers = model.markers,
                 cameraState = model.cameraPositionState,
+                mapStyleOptions = mapStyleOptions,
                 modifier = modifier.testTag(TAG_REC_MAP_VIEW)
             )
         }
@@ -157,17 +170,23 @@ fun ReceiverView(
 
 /**
  * Render the map view as part of the receiver UI. Place the given [markers] on the map. Set the position and zoom
- * level of the map as defined by the given [cameraState].
+ * level of the map as defined by the given [cameraState]. Use the given [mapStyleOptions].
  */
 @Composable
 fun MapView(
     markers: List<MarkerOptions>,
     cameraState: CameraPositionState,
+    mapStyleOptions: MapStyleOptions?,
     modifier: Modifier = Modifier
 ) {
+    val properties by remember {
+        mutableStateOf(MapProperties(mapStyleOptions = mapStyleOptions))
+    }
+
     GoogleMap(
         modifier = modifier.fillMaxSize(),
-        cameraPositionState = cameraState
+        cameraPositionState = cameraState,
+        properties = properties
     ) {
         markers.forEach { options ->
             MarkerInfoWindow(
@@ -544,7 +563,12 @@ fun ReceiverPreview() {
     val model = PreviewReceiverViewModel()
     val permissionStateProvider = PermissionStateProvider()
 
-    ReceiverView(model = model, locationPermissionState = permissionStateProvider.values.first(), openDrawer = {})
+    ReceiverView(
+        model = model,
+        locationPermissionState = permissionStateProvider.values.first(),
+        openDrawer = {},
+        mapStyleOptions = null
+    )
 }
 
 @Preview(name = "Light mode")

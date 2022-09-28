@@ -30,13 +30,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
+import com.google.android.gms.maps.model.MapStyleOptions
+
 import kotlinx.coroutines.launch
 
 /**
- * The main entry point into this application.
+ * The main entry point into this application. Use the given [mapStyleOptions] to style the map view.
  */
 @Composable
-fun LocationTellerMainScreen() {
+fun LocationTellerMainScreen(mapStyleOptions: MapStyleOptions?) {
     val navController = rememberNavController()
     var trackingEnabled by rememberSaveable { mutableStateOf(false) }
 
@@ -74,7 +76,7 @@ fun LocationTellerMainScreen() {
                     TrackUi(openDrawer = { openDrawer() }, updateTrackState = { trackingEnabled = it })
                 }
                 composable(NAV_ROUTE_RECEIVER) {
-                    ReceiverUi(openDrawer = { openDrawer() })
+                    ReceiverUi(openDrawer = { openDrawer() }, mapStyleOptions = mapStyleOptions)
                 }
                 composable(NAV_ROUTER_TRACK_SETTINGS) {
                     TrackConfigUi(openDrawer = { openDrawer() })
